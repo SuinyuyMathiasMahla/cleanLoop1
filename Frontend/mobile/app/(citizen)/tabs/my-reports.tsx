@@ -8,6 +8,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { ReportCard } from '@/components/citizen/ReportCard';
 import { EmptyState } from '@/components/common/EmptyState';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
@@ -18,20 +19,35 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 
 type FilterTab = 'all' | 'pending' | 'assigned' | 'in_progress' | 'resolved';
 
-const FILTER_TABS: { key: FilterTab; label: string }[] = [
-  { key: 'all',         label: 'All' },
-  { key: 'pending',     label: 'Pending' },
-  { key: 'assigned',    label: 'Assigned' },
-  { key: 'in_progress', label: 'In Progress' },
-  { key: 'resolved',    label: 'Resolved' },
+const PRIMARY = '#1a7a5e';
+const DARK    = '#0f1f1a';
+const MUTED   = '#6b7c76';
+
+const FILTER_TABS: { key: FilterTab; label: string; icon: string }[] = [
+  { key: 'all',         label: 'All',         icon: 'apps-outline' },
+  { key: 'pending',     label: 'Pending',     icon: 'time-outline' },
+  { key: 'assigned',    label: 'Assigned',    icon: 'person-outline' },
+  { key: 'in_progress', label: 'In Progress', icon: 'reload-outline' },
+  { key: 'resolved',    label: 'Resolved',    icon: 'checkmark-circle-outline' },
 ];
+
+const STATUS_COLOR: Record<string, string> = {
+  pending:     '#FFC107',
+  assigned:    '#2196F3',
+  in_progress: '#FF9800',
+  resolved:    '#4CAF50',
+};
 
 export default function MyReportsScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
   const { status } = useLocalSearchParams<{ status?: string }>();
-  const { publicReports, publicNextKey, myReports, isLoading, fetchPublicReports, loadMorePublicReports, fetchMyReports } = useReportStore();
-  const initialTab = FILTER_TABS.some(tab => tab.key === status) ? status as FilterTab : 'all';
+  const {
+    publicReports, publicNextKey, myReports,
+    isLoading, fetchPublicReports, loadMorePublicReports, fetchMyReports,
+  } = useReportStore();
+
+  const initialTab = FILTER_TABS.some(t => t.key === status) ? status as FilterTab : 'all';
   const [activeTab, setActiveTab] = useState<FilterTab>(initialTab);
 
   const isSignedIn = !!user;
@@ -54,36 +70,64 @@ export default function MyReportsScreen() {
   }, [isSignedIn, activeTab]);
 
   const filtered =
-    activeTab === 'all' ? reports : reports.filter((r) => r.status === activeTab);
+    activeTab === 'all' ? reports : reports.filter(r => r.status === activeTab);
+
+  const activeColor = activeTab !== 'all' ? (STATUS_COLOR[activeTab] ?? PRIMARY) : PRIMARY;
 
   return (
-    <SafeAreaView style={styles.safe} edges={['bottom']}>
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>
-          {isSignedIn ? 'All Community Reports' : 'My Reports'}
-        </Text>
-      </View>
+    <SafeAreaView style={styles.safe} edges={['top']}>
 
-      <View style={styles.tabsWrapper}>
+      {/* HEADER */}
+      <View style={styles.header}>
+        <View style={styles.headerTop}>
+          <View>
+            <Text style={styles.headerTitle}>
+              {isSignedIn ? 'Community Reports' : 'My Reports'}
+            </Text>
+            <Text style={styles.headerSub}>
+              {filtered.length} {filtered.length === 1 ? 'report' : 'reports'}
+              {activeTab !== 'all' ? ` · ${activeTab.replace('_', ' ')}` : ' total'}
+            </Text>
+          </View>
+          <View style={[styles.countBadge, { backgroundColor: activeColor + '22', borderColor: activeColor + '55' }]}>
+            <Text style={[styles.countBadgeText, { color: activeColor }]}>{filtered.length}</Text>
+          </View>
+        </View>
+
+        {/* FILTER TABS */}
         <FlatList
           data={FILTER_TABS}
           horizontal
           showsHorizontalScrollIndicator={false}
-          keyExtractor={(item) => item.key}
-          contentContainerStyle={styles.tabs}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={[styles.tab, activeTab === item.key && styles.tabActive]}
-              onPress={() => setActiveTab(item.key)}
-            >
-              <Text style={[styles.tabText, activeTab === item.key && styles.tabTextActive]}>
-                {item.label}
-              </Text>
-            </TouchableOpacity>
-          )}
+          keyExtractor={item => item.key}
+          contentContainerStyle={styles.tabsRow}
+          renderItem={({ item }) => {
+            const isActive = activeTab === item.key;
+            const tColor = item.key !== 'all' ? (STATUS_COLOR[item.key] ?? PRIMARY) : PRIMARY;
+            return (
+              <TouchableOpacity
+                style={[
+                  styles.tab,
+                  isActive && { backgroundColor: tColor + '18', borderColor: tColor + '55' },
+                ]}
+                onPress={() => setActiveTab(item.key)}
+                activeOpacity={0.75}
+              >
+                <Ionicons
+                  name={item.icon as any}
+                  size={13}
+                  color={isActive ? tColor : MUTED}
+                />
+                <Text style={[styles.tabText, isActive && { color: tColor, fontWeight: '700' }]}>
+                  {item.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          }}
         />
       </View>
 
+      {/* CONTENT */}
       {isLoading && reports.length === 0 ? (
         <LoadingSpinner fullScreen message="Loading reports..." />
       ) : (
@@ -111,8 +155,8 @@ export default function MyReportsScreen() {
             <RefreshControl
               refreshing={isLoading}
               onRefresh={onRefresh}
-              tintColor={colors.primary}
-              colors={[colors.primary]}
+              tintColor={PRIMARY}
+              colors={[PRIMARY]}
             />
           }
           onEndReached={() => { if (isSignedIn && publicNextKey) loadMorePublicReports(); }}
@@ -120,29 +164,56 @@ export default function MyReportsScreen() {
           showsVerticalScrollIndicator={false}
         />
       )}
+
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.background },
-  sectionHeader: {
-    paddingHorizontal: 16, paddingTop: 14, paddingBottom: 4,
-    backgroundColor: colors.white,
+  safe: { flex: 1, backgroundColor: '#f0f4f2' },
+
+  // Header
+  header: {
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e4ede8',
+    paddingTop: 14,
   },
-  sectionTitle: { fontSize: 15, fontWeight: '700', color: colors.gray[900] },
-  tabsWrapper: {
-    backgroundColor: colors.white,
-    borderBottomWidth: 1, borderBottomColor: colors.gray[100],
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    paddingHorizontal: 18,
+    marginBottom: 14,
   },
-  tabs: { paddingHorizontal: 12, paddingVertical: 10, gap: 8 },
+  headerTitle: { fontSize: 20, fontWeight: '800', color: DARK, letterSpacing: -0.3 },
+  headerSub:   { fontSize: 12, color: MUTED, marginTop: 3, fontWeight: '500' },
+  countBadge: {
+    borderRadius: 4,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    minWidth: 36,
+    alignItems: 'center',
+  },
+  countBadgeText: { fontSize: 14, fontWeight: '800' },
+
+  // Tabs
+  tabsRow: { paddingHorizontal: 14, paddingBottom: 12, gap: 8 },
   tab: {
-    paddingHorizontal: 14, paddingVertical: 6,
-    borderRadius: 20, backgroundColor: colors.gray[100],
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#e4ede8',
+    backgroundColor: '#f7faf8',
   },
-  tabActive:     { backgroundColor: colors.primary },
-  tabText:       { fontSize: 13, fontWeight: '600', color: colors.gray[500] },
-  tabTextActive: { color: colors.white },
-  list:      { paddingTop: 14, paddingBottom: 32 },
+  tabText: { fontSize: 13, fontWeight: '600', color: MUTED },
+
+  // List
+  list:      { paddingTop: 12, paddingBottom: 32 },
   listEmpty: { flex: 1 },
 });

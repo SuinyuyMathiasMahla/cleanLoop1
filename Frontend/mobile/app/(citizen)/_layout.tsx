@@ -1,103 +1,77 @@
-import { Tabs } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { View, Text, StyleSheet } from 'react-native';
-import { colors } from '@/theme/colors';
-import { useNotificationStore } from '@/store/notificationStore';
-import { CitizenHeader } from '@/components/citizen/CitizenHeader';
+import { create } from 'zustand';
+import { notificationsApi, Notification, getApiErrorMessage } from '../services/api';
 
-export default function CitizenLayout() {
-  const unreadCount = useNotificationStore((s) => s.unreadCount);
+interface NotificationState {
+  notifications: Notification[];
+  unreadCount: number;
+  isLoading: boolean;
+  error: string | null;
 
-  return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: colors.primary,     // active icon = brand green
-        tabBarInactiveTintColor: '#6b7c76',         // inactive icon = muted grey
-        tabBarStyle: {
-          backgroundColor: '#0f1f1a',              // ← BLACK (same dark as admin)
-          borderTopColor: 'rgba(255,255,255,0.08)',
-          height: 60,
-          paddingBottom: 8,
-        },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
-        header: () => <CitizenHeader />,
-      }}
-    >
-      <Tabs.Screen
-        name="tabs/index"
-        options={{
-          title: 'Home',
-          headerShown: false,
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="home-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="tabs/report"
-        options={{
-          title: 'Report',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="camera-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="tabs/my-reports"
-        options={{
-          title: 'Reports',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="document-text-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="tabs/notifications"
-        options={{
-          title: 'Alerts',
-          tabBarIcon: ({ color, size }) => (
-            <View>
-              <Ionicons name="notifications-outline" size={size} color={color} />
-              {unreadCount > 0 && (
-                <View style={styles.badge}>
-                  <Text style={styles.badgeText}>
-                    {unreadCount > 9 ? '9+' : unreadCount}
-                  </Text>
-                </View>
-              )}
-            </View>
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="tabs/profile"
-        options={{
-          title: 'Profile',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person-outline" size={size} color={color} />
-          ),
-        }}
-      />
-    </Tabs>
-  );
+  fetchNotifications: () => Promise<void>;
+  markRead: (id: string) => Promise<void>;
+  markAllRead: () => Promise<void>;
+  registerPushToken: () => Promise<void>;
+  clearError: () => void;
 }
 
-const styles = StyleSheet.create({
-  badge: {
-    position: 'absolute',
-    top: -4,
-    right: -6,
-    backgroundColor: colors.danger,
-    borderRadius: 8,
-    minWidth: 16,
-    height: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 3,
+export const useNotificationStore = create<NotificationState>((set, get) => ({
+  notifications: [],
+  unreadCount: 0,
+  isLoading: false,
+  error: null,
+
+  clearError: () => set({ error: null }),
+
+  fetchNotifications: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await notificationsApi.getAll();
+
+      // Lambda returns { data: [...], notifications: [...] } — check all shapes
+      const notifications: Notification[] =
+        response.data?.data ??
+        response.data?.notifications ??
+        response.data?.items ??
+        [];
+
+      const unreadCount = notifications.filter((n) => !n.read).length;
+      set({ notifications, unreadCount, isLoading: false });
+    } catch (err) {
+      set({ isLoading: false, error: getApiErrorMessage(err) });
+    }
   },
-  badgeText: {
-    fontSize: 9,
-    fontWeight: '800',
-    color: '#fff',
+
+  markRead: async (id: string) => {
+    try {
+      await notificationsApi.markRead(id);
+      set((state) => {
+        const notifications = state.notifications.map((n) =>
+          n.id === id || n.notificationId === id ? { ...n, read: true } : n
+        );
+        return { notifications, unreadCount: notifications.filter((n) => !n.read).length };
+      });
+    } catch (err) {
+      set({ error: getApiErrorMessage(err) });
+    }
   },
-});
+
+  markAllRead: async () => {
+    try {
+      await notificationsApi.markAllRead();
+      set((state) => ({
+        notifications: state.notifications.map((n) => ({ ...n, read: true })),
+        unreadCount: 0,
+      }));
+    } catch (err) {
+      set({ error: getApiErrorMessage(err) });
+    }
+  },
+
+  // Called from app/(citizen)/_layout.tsx once the user is signed in.
+  // Placeholder for now: it keeps the layout from crashing ("undefined is not a function").
+  // Real push registration needs expo-notifications, a development build with FCM
+  // credentials (Android), and a backend endpoint to store the token.
+  registerPushToken: async () => {
+    // intentionally empty: never throws, never blocks the UI
+  },
+}));

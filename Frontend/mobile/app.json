@@ -6,11 +6,17 @@
     "orientation": "portrait",
     "scheme": "cleanloop",
     "icon": "./assets/icon.png",
-    "splash": {
-      "backgroundColor": "#16a34a"
-    },
     "plugins": [
       "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#16a34a"
+        }
+      ],
       [
         "expo-camera",
         {
@@ -23,19 +29,35 @@
           "locationWhenInUsePermission": "CleanLoop needs location to tag your report."
         }
       ],
-      "expo-secure-store",
-      "expo-status-bar"
+      "expo-secure-store"
     ],
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#16a34a"
       },
-      "package": "com.cleanloop.app"
+      "package": "com.cleanloop.app",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ],
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyBrn5zPmNPoUAcZiBEGKUhfFCYHp99r6O4"
+        }
+      }
     },
     "ios": {
       "bundleIdentifier": "com.cleanloop.app",
       "supportsTablet": false
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "6cf252b7-ed54-4999-bb06-9653563519e3"
+      }
     }
   }
 }

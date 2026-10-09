@@ -1,74 +1,44 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { View, Text, StyleSheet } from 'react-native';
 import { useEffect } from 'react';
-import { AppState } from 'react-native';
 import { colors } from '@/theme/colors';
 import { useNotificationStore } from '@/store/notificationStore';
-import { CrewHeader } from '@/components/crew/CrewHeader';
+import { CitizenHeader } from '@/components/citizen/CitizenHeader';
+import { useAuthStore } from '@/store/authStore';
 
-export default function CrewLayout() {
-  const { unreadCount, fetchNotifications } = useNotificationStore();
+export default function CitizenLayout() {
+  const unreadCount = useNotificationStore((s) => s.unreadCount);
+  const registerPushToken = useNotificationStore((s) => s.registerPushToken);
+  const user = useAuthStore((s) => s.user);
 
   useEffect(() => {
-    fetchNotifications();
-    const poll = setInterval(() => {
-      if (AppState.currentState === 'active') fetchNotifications();
-    }, 30000);
-    const appState = AppState.addEventListener('change', (state) => {
-      if (state === 'active') fetchNotifications();
-    });
-    return () => {
-      clearInterval(poll);
-      appState.remove();
-    };
-  }, [fetchNotifications]);
+    if (user) registerPushToken();
+  }, [user]);
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#2bd18b',
-        tabBarInactiveTintColor: '#a6b4ae',
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: '#6b7c76',
         tabBarStyle: {
           backgroundColor: '#0f1f1a',
-          borderTopColor: 'rgba(255,255,255,0.12)',
-          borderTopWidth: 1,
-          height: 64,
-          paddingBottom: 10,
-          paddingTop: 6,
+          borderTopColor: 'rgba(255,255,255,0.08)',
+          height: 60,
+          paddingBottom: 8,
         },
         tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
-        headerShown: false,
+        header: () => <CitizenHeader />,
       }}
     >
       <Tabs.Screen
         name="tabs/index"
         options={{
           title: 'Home',
-          headerShown: true,
-          header: () => <CrewHeader />,
+          headerShown: false,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="home-outline" size={size} color={color} />
           ),
-        }}
-      />
-      <Tabs.Screen
-        name="tabs/tasks"
-        options={{
-          title: 'Tasks',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="checkbox-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="tabs/notifications"
-        options={{
-          title: 'Alerts',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="notifications-outline" size={size} color={color} />
-          ),
-          tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
-          tabBarBadgeStyle: { backgroundColor: '#e5484d', color: colors.white, fontSize: 10 },
         }}
       />
       <Tabs.Screen
@@ -81,6 +51,33 @@ export default function CrewLayout() {
         }}
       />
       <Tabs.Screen
+        name="tabs/my-reports"
+        options={{
+          title: 'Reports',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="document-text-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="tabs/notifications"
+        options={{
+          title: 'Alerts',
+          tabBarIcon: ({ color, size }) => (
+            <View>
+              <Ionicons name="notifications-outline" size={size} color={color} />
+              {unreadCount > 0 && (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </Text>
+                </View>
+              )}
+            </View>
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="tabs/profile"
         options={{
           title: 'Profile',
@@ -89,7 +86,26 @@ export default function CrewLayout() {
           ),
         }}
       />
-      <Tabs.Screen name="task/[id]" options={{ href: null }} />
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  badge: {
+    position: 'absolute',
+    top: -4,
+    right: -6,
+    backgroundColor: colors.danger,
+    borderRadius: 8,
+    minWidth: 16,
+    height: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+  },
+  badgeText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#fff',
+  },
+});

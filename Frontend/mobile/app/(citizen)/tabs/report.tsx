@@ -23,10 +23,11 @@ import { useAuthStore } from '@/store/authStore';
 
 type ReportType = 'overflow_bin' | 'illegal_dumping';
 
-const DARK_BG   = '#0d1f1a';
-const GREEN     = '#1a7a5e';
-const GREEN2    = '#00e5a0';
-const CARD_BG   = '#111f1a';
+const BG      = '#0b1a14';
+const GREEN   = '#1a7a5e';
+const ACCENT  = '#00e5a0';
+const SURFACE = '#112018';
+const BORDER  = '#1e3328';
 
 export default function CitizenReportScreen() {
   const router = useRouter();
@@ -106,11 +107,15 @@ export default function CitizenReportScreen() {
   if (!permission.granted) {
     return (
       <SafeAreaView style={styles.safe}>
-        <View style={styles.permissionContainer}>
-          <Ionicons name="camera-outline" size={56} color="#444" />
-          <Text style={styles.permissionTitle}>Camera Access Needed</Text>
-          <Text style={styles.permissionSubtitle}>CleanLoop needs camera access to capture waste reports.</Text>
-          <Button title="Grant Camera Access" onPress={requestPermission} style={styles.permissionBtn} />
+        <View style={styles.permWrap}>
+          <View style={styles.permIconBox}>
+            <Ionicons name="camera-outline" size={40} color={ACCENT} />
+          </View>
+          <Text style={styles.permTitle}>Camera Access Needed</Text>
+          <Text style={styles.permSub}>
+            CleanLoop needs camera access to capture waste reports.
+          </Text>
+          <Button title="Grant Camera Access" onPress={requestPermission} style={styles.permBtn} />
         </View>
       </SafeAreaView>
     );
@@ -118,14 +123,22 @@ export default function CitizenReportScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
 
         {/* ── ANTI-FRAUD BANNER ── */}
         <View style={styles.fraudBanner}>
-          <Ionicons name="shield-checkmark" size={14} color={GREEN2} />
+          <View style={styles.fraudIconWrap}>
+            <Ionicons name="shield-checkmark" size={18} color={ACCENT} />
+          </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.fraudTitle}>ANTI-FRAUD PROTECTION ACTIVE</Text>
-            <Text style={styles.fraudSub}>Live Camera Capture Only — photo gallery uploads are disabled to ensure real-time reporting accuracy and instant location tagging.</Text>
+            <Text style={styles.fraudTitle}>Anti-Fraud Protection Active</Text>
+            <Text style={styles.fraudSub}>
+              Live camera only — gallery uploads disabled to ensure real-time accuracy and location tagging.
+            </Text>
           </View>
         </View>
 
@@ -134,18 +147,26 @@ export default function CitizenReportScreen() {
           {photo ? (
             <>
               <Image source={{ uri: photo }} style={styles.camera} />
-              <TouchableOpacity style={styles.retakeBtn} onPress={() => { setPhoto(null); setCameraReady(false); }}>
-                <Ionicons name="refresh" size={16} color="#fff" />
+              <TouchableOpacity
+                style={styles.retakeBtn}
+                onPress={() => { setPhoto(null); setCameraReady(false); }}
+              >
+                <Ionicons name="refresh" size={15} color="#fff" />
                 <Text style={styles.retakeBtnText}>Retake</Text>
               </TouchableOpacity>
             </>
           ) : (
-            <CameraView ref={cameraRef} style={styles.camera} facing="back" onCameraReady={() => setCameraReady(true)}>
-              {/* Top bar inside camera */}
+            <CameraView
+              ref={cameraRef}
+              style={styles.camera}
+              facing="back"
+              onCameraReady={() => setCameraReady(true)}
+            >
+              {/* Top bar */}
               <View style={styles.camTopBar}>
                 <View style={styles.camPill}>
                   <View style={styles.liveDot} />
-                  <Text style={styles.camPillText}>LIVE FEED</Text>
+                  <Text style={styles.camPillText}>LIVE</Text>
                 </View>
                 <View style={styles.camPill}>
                   <Text style={styles.camPillText}>60 FPS</Text>
@@ -153,53 +174,57 @@ export default function CitizenReportScreen() {
                 <View style={{ flex: 1 }} />
               </View>
 
-              {/* Corner brackets */}
+              {/* Corner brackets + crosshair */}
               <View style={styles.cameraOverlay}>
                 <View style={styles.cornerTL} />
                 <View style={styles.cornerTR} />
-                {/* Center crosshair */}
                 <View style={styles.crossH} />
                 <View style={styles.crossV} />
                 <View style={styles.cornerBL} />
                 <View style={styles.cornerBR} />
               </View>
 
-              {/* Horizon label */}
+              {/* Horizon */}
               <View style={styles.horizonRow}>
                 <Text style={styles.horizonText}>⊕  HORIZON 0.0° LEVELED</Text>
               </View>
 
+              {/* Detection / GPS row */}
               <View style={styles.detectionRow}>
                 <Text style={styles.detectionTitle}>Waste report photo</Text>
-                {location && (
+                {location ? (
                   <View style={styles.gpsRow}>
-                    <Ionicons name="location" size={11} color={GREEN2} />
+                    <Ionicons name="location" size={11} color={ACCENT} />
                     <Text style={styles.gpsText}>
                       GPS: {location.latitude.toFixed(4)}, {location.longitude.toFixed(4)}
                     </Text>
                   </View>
-                )}
-                {locationLoading && (
+                ) : locationLoading ? (
                   <View style={styles.gpsRow}>
                     <Ionicons name="location-outline" size={11} color="#888" />
                     <Text style={[styles.gpsText, { color: '#888' }]}>Acquiring GPS lock...</Text>
                   </View>
-                )}
+                ) : null}
               </View>
 
-              {/* Bottom bar: capture + grid + GPS sync */}
+              {/* Bottom capture bar */}
               <View style={styles.camBottomBar}>
                 <View style={styles.camBottomAction}>
-                  <Ionicons name="grid-outline" size={20} color="rgba(255,255,255,0.6)" />
+                  <Ionicons name="grid-outline" size={20} color="rgba(255,255,255,0.5)" />
                   <Text style={styles.camBottomLabel}>Grid</Text>
                 </View>
-                <TouchableOpacity style={[styles.captureBtn, !cameraReady && styles.captureBtnDisabled]} onPress={handleCapture} activeOpacity={0.85} disabled={!cameraReady}>
+                <TouchableOpacity
+                  style={[styles.captureBtn, !cameraReady && styles.captureBtnDisabled]}
+                  onPress={handleCapture}
+                  activeOpacity={0.85}
+                  disabled={!cameraReady}
+                >
                   <View style={styles.captureBtnRing}>
                     <View style={styles.captureBtnInner} />
                   </View>
                 </TouchableOpacity>
                 <View style={styles.camBottomAction}>
-                  <Ionicons name="navigate" size={20} color="rgba(255,255,255,0.6)" />
+                  <Ionicons name="navigate" size={20} color="rgba(255,255,255,0.5)" />
                   <Text style={styles.camBottomLabel}>GPS Sync</Text>
                 </View>
               </View>
@@ -207,75 +232,105 @@ export default function CitizenReportScreen() {
           )}
         </View>
 
-        {/* ── CLASSIFICATION ── */}
-        <View style={styles.classSection}>
-          <View style={styles.classHeader}>
-            <Text style={styles.classTitle}>CLASSIFICATION</Text>
-            <Text style={styles.classAuto}>Choose one</Text>
-          </View>
-          <View style={styles.typeRow}>
-            <TouchableOpacity
-              style={[styles.typeChip, reportType === 'overflow_bin' && styles.typeChipSelected]}
-              onPress={() => setReportType('overflow_bin')}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="trash" size={13} color={reportType === 'overflow_bin' ? '#fff' : '#666'} />
-              <Text style={[styles.typeChipText, reportType === 'overflow_bin' && styles.typeChipTextSelected]}>
-                Overflowing Public Bin
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.typeChip, reportType === 'illegal_dumping' && styles.typeChipSelected]}
-              onPress={() => setReportType('illegal_dumping')}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="warning" size={13} color={reportType === 'illegal_dumping' ? '#fff' : '#b45309'} />
-              <Text style={[styles.typeChipText, reportType === 'illegal_dumping' && styles.typeChipTextSelected]}>
-                Illegal Dumping Site
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+        {/* ── FORM BODY ── */}
+        <View style={styles.formBody}>
 
-        {/* ── POST PUBLIC TOGGLE ── */}
-        <View style={styles.toggleRow}>
-          <Ionicons name="earth" size={16} color={GREEN} />
-          <View style={{ flex: 1 }}>
-            <Text style={styles.toggleLabel}>Post anonymously to Public Feed</Text>
-            <Text style={styles.toggleSub}>Visible to sanitation crews and neighbours</Text>
+          {/* CLASSIFICATION */}
+          <View style={styles.block}>
+            <View style={styles.blockHeader}>
+              <View style={styles.blockDot} />
+              <Text style={styles.blockLabel}>Report Type</Text>
+            </View>
+            <View style={styles.typeRow}>
+              <TouchableOpacity
+                style={[styles.typeCard, reportType === 'overflow_bin' && styles.typeCardActive]}
+                onPress={() => setReportType('overflow_bin')}
+                activeOpacity={0.8}
+              >
+                <View style={[styles.typeIcon, reportType === 'overflow_bin' && styles.typeIconActive]}>
+                  <Ionicons name="trash" size={18} color={reportType === 'overflow_bin' ? '#fff' : '#6b9e8a'} />
+                </View>
+                <Text style={[styles.typeLabel, reportType === 'overflow_bin' && styles.typeLabelActive]}>
+                  Overflowing Bin
+                </Text>
+                {reportType === 'overflow_bin' && (
+                  <View style={styles.typeCheck}>
+                    <Ionicons name="checkmark" size={12} color={ACCENT} />
+                  </View>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.typeCard, reportType === 'illegal_dumping' && styles.typeCardActive]}
+                onPress={() => setReportType('illegal_dumping')}
+                activeOpacity={0.8}
+              >
+                <View style={[styles.typeIcon, reportType === 'illegal_dumping' && styles.typeIconActive]}>
+                  <Ionicons name="warning" size={18} color={reportType === 'illegal_dumping' ? '#fff' : '#b45309'} />
+                </View>
+                <Text style={[styles.typeLabel, reportType === 'illegal_dumping' && styles.typeLabelActive]}>
+                  Illegal Dumping
+                </Text>
+                {reportType === 'illegal_dumping' && (
+                  <View style={styles.typeCheck}>
+                    <Ionicons name="checkmark" size={12} color={ACCENT} />
+                  </View>
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
-          <Switch
-            value={postPublic}
-            onValueChange={setPostPublic}
-            trackColor={{ false: '#333', true: GREEN }}
-            thumbColor="#fff"
-            style={{ transform: [{ scaleX: 0.85 }, { scaleY: 0.85 }] }}
-          />
-        </View>
 
-        {/* ── DESCRIPTION ── */}
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Description (optional)</Text>
-          <TextInput
-            style={styles.textArea}
-            value={description}
-            onChangeText={setDescription}
-            placeholder="Describe the issue..."
-            placeholderTextColor="#555"
-            multiline
-            numberOfLines={3}
-            textAlignVertical="top"
-          />
-        </View>
+          {/* POST PUBLIC TOGGLE */}
+          <View style={styles.block}>
+            <View style={styles.toggleRow}>
+              <View style={styles.toggleLeft}>
+                <View style={styles.toggleIconBox}>
+                  <Ionicons name="earth" size={16} color={GREEN} />
+                </View>
+                <View>
+                  <Text style={styles.toggleLabel}>Post to Public Feed</Text>
+                  <Text style={styles.toggleSub}>Visible to crews and neighbours</Text>
+                </View>
+              </View>
+              <Switch
+                value={postPublic}
+                onValueChange={setPostPublic}
+                trackColor={{ false: '#2a3a34', true: GREEN }}
+                thumbColor="#fff"
+                style={{ transform: [{ scaleX: 0.85 }, { scaleY: 0.85 }] }}
+              />
+            </View>
+          </View>
 
-        {/* ── SUBMIT ── */}
-        <View style={styles.submitSection}>
-          <Button
-            title="Submit Report"
-            onPress={handleSubmit}
-            loading={isSubmitting}
-            disabled={!photo || !location}
-          />
+          {/* DESCRIPTION */}
+          <View style={styles.block}>
+            <View style={styles.blockHeader}>
+              <View style={styles.blockDot} />
+              <Text style={styles.blockLabel}>Description</Text>
+              <Text style={styles.blockOptional}>optional</Text>
+            </View>
+            <TextInput
+              style={styles.textArea}
+              value={description}
+              onChangeText={setDescription}
+              placeholder="Describe the issue..."
+              placeholderTextColor="#3d5a4e"
+              multiline
+              numberOfLines={3}
+              textAlignVertical="top"
+            />
+          </View>
+
+          {/* SUBMIT */}
+          <View style={styles.submitWrap}>
+            <Button
+              title="Submit Report"
+              onPress={handleSubmit}
+              loading={isSubmitting}
+              disabled={!photo || !location}
+            />
+          </View>
+
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -283,22 +338,37 @@ export default function CitizenReportScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe:   { flex: 1, backgroundColor: DARK_BG },
+  safe:   { flex: 1, backgroundColor: BG },
   scroll: { flexGrow: 1, paddingBottom: 40 },
 
-  permissionContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
-  permissionTitle:    { fontSize: 20, fontWeight: '700', color: '#fff', marginTop: 20, marginBottom: 10, textAlign: 'center' },
-  permissionSubtitle: { fontSize: 14, color: '#888', textAlign: 'center', lineHeight: 20, marginBottom: 24 },
-  permissionBtn:      { width: '80%' },
-
-  fraudBanner: {
-    flexDirection: 'row', alignItems: 'flex-start', gap: 10,
-    backgroundColor: '#0a1f18', borderBottomWidth: 1, borderBottomColor: '#1a3a2a',
-    paddingHorizontal: 16, paddingVertical: 12,
+  // Permission screen
+  permWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 36 },
+  permIconBox: {
+    width: 80, height: 80, borderRadius: 20,
+    backgroundColor: SURFACE, borderWidth: 1, borderColor: BORDER,
+    alignItems: 'center', justifyContent: 'center', marginBottom: 20,
   },
-  fraudTitle: { fontSize: 11, fontWeight: '800', color: GREEN2, letterSpacing: 0.5, marginBottom: 2 },
-  fraudSub:   { fontSize: 11, color: '#6b9e8a', lineHeight: 16 },
+  permTitle: { fontSize: 20, fontWeight: '800', color: '#fff', marginBottom: 10, textAlign: 'center' },
+  permSub:   { fontSize: 14, color: '#6b9e8a', textAlign: 'center', lineHeight: 20, marginBottom: 28 },
+  permBtn:   { width: '80%' },
 
+  // Anti-fraud banner
+  fraudBanner: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: 12,
+    backgroundColor: SURFACE,
+    borderBottomWidth: 1, borderBottomColor: BORDER,
+    paddingHorizontal: 16, paddingVertical: 14,
+  },
+  fraudIconWrap: {
+    width: 34, height: 34, borderRadius: 8,
+    backgroundColor: ACCENT + '18',
+    alignItems: 'center', justifyContent: 'center',
+    marginTop: 1,
+  },
+  fraudTitle: { fontSize: 13, fontWeight: '800', color: '#fff', marginBottom: 3 },
+  fraudSub:   { fontSize: 12, color: '#6b9e8a', lineHeight: 17 },
+
+  // Camera
   cameraWrapper: { height: 420, backgroundColor: '#000' },
   camera:        { width: '100%', height: '100%' },
 
@@ -308,83 +378,112 @@ const styles = StyleSheet.create({
   },
   camPill: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
-    backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 20,
     paddingHorizontal: 10, paddingVertical: 4,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
   },
   camPillText: { fontSize: 10, fontWeight: '700', color: '#fff', letterSpacing: 0.5 },
   liveDot:     { width: 6, height: 6, borderRadius: 3, backgroundColor: '#ff4444' },
 
   cameraOverlay: { flex: 1, position: 'relative', justifyContent: 'center', alignItems: 'center' },
-  cornerTL: { position: 'absolute', top: 0, left: 20, width: 32, height: 32, borderTopWidth: 2, borderLeftWidth: 2, borderColor: GREEN2 },
-  cornerTR: { position: 'absolute', top: 0, right: 20, width: 32, height: 32, borderTopWidth: 2, borderRightWidth: 2, borderColor: GREEN2 },
-  cornerBL: { position: 'absolute', bottom: 0, left: 20, width: 32, height: 32, borderBottomWidth: 2, borderLeftWidth: 2, borderColor: GREEN2 },
-  cornerBR: { position: 'absolute', bottom: 0, right: 20, width: 32, height: 32, borderBottomWidth: 2, borderRightWidth: 2, borderColor: GREEN2 },
-  crossH:   { position: 'absolute', width: 20, height: 1, backgroundColor: GREEN2, opacity: 0.8 },
-  crossV:   { position: 'absolute', width: 1, height: 20, backgroundColor: GREEN2, opacity: 0.8 },
+  cornerTL: { position: 'absolute', top: 0, left: 20, width: 32, height: 32, borderTopWidth: 2, borderLeftWidth: 2, borderColor: ACCENT },
+  cornerTR: { position: 'absolute', top: 0, right: 20, width: 32, height: 32, borderTopWidth: 2, borderRightWidth: 2, borderColor: ACCENT },
+  cornerBL: { position: 'absolute', bottom: 0, left: 20, width: 32, height: 32, borderBottomWidth: 2, borderLeftWidth: 2, borderColor: ACCENT },
+  cornerBR: { position: 'absolute', bottom: 0, right: 20, width: 32, height: 32, borderBottomWidth: 2, borderRightWidth: 2, borderColor: ACCENT },
+  crossH:   { position: 'absolute', width: 20, height: 1, backgroundColor: ACCENT, opacity: 0.8 },
+  crossV:   { position: 'absolute', width: 1, height: 20, backgroundColor: ACCENT, opacity: 0.8 },
 
-  horizonRow: { alignItems: 'center', paddingBottom: 6 },
-  horizonText: { fontSize: 10, color: GREEN2, letterSpacing: 0.8, opacity: 0.8 },
+  horizonRow:     { alignItems: 'center', paddingBottom: 6 },
+  horizonText:    { fontSize: 10, color: ACCENT, letterSpacing: 0.8, opacity: 0.75 },
 
-  detectionRow: { paddingHorizontal: 14, paddingVertical: 10, backgroundColor: 'rgba(0,0,0,0.5)' },
+  detectionRow:   { paddingHorizontal: 14, paddingVertical: 10, backgroundColor: 'rgba(0,0,0,0.5)' },
   detectionTitle: { fontSize: 16, fontWeight: '800', color: '#fff', marginBottom: 5 },
-  gpsRow:    { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  gpsText:   { fontSize: 11, color: GREEN2 },
+  gpsRow:         { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  gpsText:        { fontSize: 11, color: ACCENT },
 
   camBottomBar: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 30, paddingVertical: 16,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: 'rgba(0,0,0,0.65)',
   },
-  camBottomAction: { alignItems: 'center', gap: 4, width: 56 },
-  camBottomLabel:  { fontSize: 10, color: 'rgba(255,255,255,0.6)', fontWeight: '500' },
-  captureBtn:      { alignItems: 'center', justifyContent: 'center' },
-  captureBtnDisabled: { opacity: 0.45 },
+  camBottomAction:     { alignItems: 'center', gap: 4, width: 56 },
+  camBottomLabel:      { fontSize: 10, color: 'rgba(255,255,255,0.5)', fontWeight: '500' },
+  captureBtn:          { alignItems: 'center', justifyContent: 'center' },
+  captureBtnDisabled:  { opacity: 0.4 },
   captureBtnRing: {
     width: 68, height: 68, borderRadius: 34,
     borderWidth: 3, borderColor: GREEN,
     alignItems: 'center', justifyContent: 'center',
-    backgroundColor: 'rgba(26,122,94,0.3)',
+    backgroundColor: 'rgba(26,122,94,0.25)',
   },
   captureBtnInner: { width: 50, height: 50, borderRadius: 25, backgroundColor: GREEN },
 
   retakeBtn: {
-    position: 'absolute', top: 12, right: 12, flexDirection: 'row', alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6, gap: 6,
+    position: 'absolute', top: 12, right: 12,
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
   },
   retakeBtnText: { color: '#fff', fontSize: 13, fontWeight: '600' },
 
-  classSection: { paddingHorizontal: 16, paddingTop: 18, paddingBottom: 4 },
-  classHeader:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  classTitle:   { fontSize: 11, fontWeight: '800', color: '#9ca3af', letterSpacing: 0.8 },
-  classAuto:    { fontSize: 11, fontWeight: '600', color: GREEN2 },
-  typeRow:      { flexDirection: 'row', gap: 10 },
-  typeChip: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', gap: 7,
-    backgroundColor: CARD_BG, borderRadius: 10,
-    paddingHorizontal: 12, paddingVertical: 12,
-    borderWidth: 1.5, borderColor: '#2a3a34',
-  },
-  typeChipSelected: { backgroundColor: GREEN, borderColor: GREEN },
-  typeChipText:     { fontSize: 12, fontWeight: '600', color: '#9ca3af', flex: 1 },
-  typeChipTextSelected: { color: '#fff' },
+  // Form body
+  formBody: { backgroundColor: BG, paddingTop: 6, paddingBottom: 16 },
 
-  toggleRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    marginHorizontal: 16, marginTop: 14,
-    backgroundColor: CARD_BG, borderRadius: 12,
-    paddingHorizontal: 14, paddingVertical: 12,
-    borderWidth: 1, borderColor: '#2a3a34',
+  block: {
+    marginHorizontal: 16, marginTop: 20,
+    backgroundColor: SURFACE,
+    borderRadius: 12, borderWidth: 1, borderColor: BORDER,
+    padding: 14,
   },
-  toggleLabel: { fontSize: 13, fontWeight: '600', color: '#fff', marginBottom: 2 },
-  toggleSub:   { fontSize: 11, color: '#6b7c76' },
 
-  section:      { paddingHorizontal: 16, marginTop: 16 },
-  sectionLabel: { fontSize: 12, fontWeight: '700', color: '#9ca3af', marginBottom: 8, letterSpacing: 0.5, textTransform: 'uppercase' },
+  blockHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 },
+  blockDot:    { width: 6, height: 6, borderRadius: 3, backgroundColor: ACCENT },
+  blockLabel:  { fontSize: 13, fontWeight: '700', color: '#c8ddd6', letterSpacing: 0.2, flex: 1 },
+  blockOptional: { fontSize: 11, color: '#3d5a4e', fontWeight: '600' },
+
+  // Report type cards
+  typeRow: { flexDirection: 'row', gap: 10 },
+  typeCard: {
+    flex: 1, alignItems: 'center', paddingVertical: 14, paddingHorizontal: 10,
+    borderRadius: 10, borderWidth: 1.5, borderColor: BORDER,
+    backgroundColor: BG, gap: 8,
+  },
+  typeCardActive: { borderColor: GREEN, backgroundColor: GREEN + '18' },
+  typeIcon: {
+    width: 40, height: 40, borderRadius: 10,
+    backgroundColor: '#1e3328',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  typeIconActive: { backgroundColor: GREEN },
+  typeLabel:      { fontSize: 12, fontWeight: '600', color: '#6b9e8a', textAlign: 'center' },
+  typeLabelActive: { color: '#fff' },
+  typeCheck: {
+    position: 'absolute', top: 8, right: 8,
+    width: 18, height: 18, borderRadius: 9,
+    backgroundColor: GREEN + '33',
+    alignItems: 'center', justifyContent: 'center',
+  },
+
+  // Toggle
+  toggleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  toggleLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
+  toggleIconBox: {
+    width: 36, height: 36, borderRadius: 8,
+    backgroundColor: GREEN + '18',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  toggleLabel: { fontSize: 13, fontWeight: '700', color: '#fff', marginBottom: 2 },
+  toggleSub:   { fontSize: 11, color: '#4d7a6a' },
+
+  // Description
   textArea: {
-    backgroundColor: CARD_BG, borderRadius: 10, borderWidth: 1.5,
-    borderColor: '#2a3a34', paddingHorizontal: 14, paddingVertical: 12,
+    backgroundColor: BG, borderRadius: 10,
+    borderWidth: 1.5, borderColor: BORDER,
+    paddingHorizontal: 14, paddingVertical: 12,
     fontSize: 14, color: '#fff', minHeight: 90,
   },
-  submitSection: { paddingHorizontal: 16, marginTop: 24 },
+
+  // Submit
+  submitWrap: { marginHorizontal: 16, marginTop: 24 },
 });

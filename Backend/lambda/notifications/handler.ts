@@ -11,8 +11,6 @@ async function listNotifications(event: APIGatewayProxyEvent): Promise<APIGatewa
   const caller = getCaller(event);
   if (!caller) return forbidden();
 
-  console.log('[listNotifications] caller userId:', caller.userId);
-
   const { limit = '50', lastKey, unreadOnly } = event.queryStringParameters ?? {};
 
   const queryParams: Parameters<typeof dbQuery>[0] = {
@@ -39,13 +37,9 @@ async function listNotifications(event: APIGatewayProxyEvent): Promise<APIGatewa
   const items = (result.items ?? []).map(n => ({
     ...n,
     id: n.notificationId as string,
-    // Normalize date — Lambda saves createdAt, sent_log also saves sentAt
     sentAt: (n.sentAt ?? n.createdAt) as string,
-    // Normalize count — sent_log saves sentCount, expose as totalCount
     totalCount: (n.totalCount ?? n.sentCount ?? undefined) as number | undefined,
   }));
-
-  console.log('[listNotifications] returning', items.length, 'items for userId:', caller.userId);
 
   return ok({
     data: items,
@@ -135,13 +129,9 @@ async function sendNotification(event: APIGatewayProxyEvent): Promise<APIGateway
 
   if (!title || !message) return badRequest('title and message are required');
 
-  console.log('[sendNotification] recipients:', recipients);
-
-  // Build scan filter based on recipients value
   const scanParams: Parameters<typeof dbScan>[0] = { TableName: USERS_TABLE };
 
   if (recipients === 'all_citizens') {
-    // Match role = citizen OR CITIZEN
     scanParams.FilterExpression = '#r = :lower OR #r = :upper OR #ut = :lower OR #ut = :upper';
     scanParams.ExpressionAttributeNames = { '#r': 'role', '#ut': 'userType' };
     scanParams.ExpressionAttributeValues = { ':lower': 'citizen', ':upper': 'CITIZEN' };
@@ -150,24 +140,16 @@ async function sendNotification(event: APIGatewayProxyEvent): Promise<APIGateway
     scanParams.ExpressionAttributeNames = { '#r': 'role', '#ut': 'userType' };
     scanParams.ExpressionAttributeValues = { ':lower': 'crew', ':upper': 'CREW' };
   }
-  // all_users → no filter, scan returns everyone
 
   const { items: users } = await dbScan(scanParams);
 
-  console.log('[sendNotification] Users found:', users.length);
-  console.log('[sendNotification] Sample users:', JSON.stringify(
-    users.slice(0, 3).map(u => ({ userId: u.userId, role: u.role, userType: u.userType }))
-  ));
-
   if (users.length === 0) {
-    console.warn('[sendNotification] No users matched filter — check Users table role field values');
     return ok({ sent: 0, message: 'No users matched the recipient filter' });
   }
 
   const now = new Date().toISOString();
   let sent = 0;
 
-  // Write one notification record per user
   await Promise.allSettled(
     users.map(async (user) => {
       if (!user.userId) return;
@@ -189,7 +171,6 @@ async function sendNotification(event: APIGatewayProxyEvent): Promise<APIGateway
     })
   );
 
-  // Write a sent_log record for the admin so history survives page reload
   await dbPut({
     TableName: NOTIFICATIONS_TABLE,
     Item: {
@@ -208,7 +189,6 @@ async function sendNotification(event: APIGatewayProxyEvent): Promise<APIGateway
     },
   });
 
-  console.log('[sendNotification] Saved', sent, 'notification(s) + 1 sent_log');
   return ok({ sent, message: `Notification sent to ${sent} users` });
 }
 
@@ -239,18 +219,43 @@ async function createNotification(event: APIGatewayProxyEvent): Promise<APIGatew
   return created({ notification });
 }
 
+// ── POST /notifications/register-push-token ───────────────────────────────────
+async function registerPushToken(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
+  const caller = getCaller(event);
+  if (!caller) return forbidden();
+
+  const { expoPushToken } = JSON.parse(event.body ?? '{}');
+  if (!expoPushToken || typeof expoPushToken !== 'string') {
+    return badRequest('expoPushToken is required');
+  }
+
+  await dbUpdate({
+    TableName: USERS_TABLE,
+    Key: { userId: caller.userId },
+    UpdateExpression: 'SET expoPushToken = :token, updatedAt = :now',
+    ExpressionAttributeValues: {
+      ':token': expoPushToken,
+      ':now': new Date().toISOString(),
+    },
+    ConditionExpression: 'attribute_exists(userId)',
+  });
+
+  return ok({ registered: true });
+}
+
 // ── Router ────────────────────────────────────────────────────────────────────
 export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
   try {
     const { httpMethod, resource } = event;
     console.log(`[handler] ${httpMethod} ${resource}`);
 
-    if (httpMethod === 'GET'    && resource === '/notifications')                        return listNotifications(event);
-    if (httpMethod === 'POST'   && resource === '/notifications')                        return createNotification(event);
-    if (httpMethod === 'POST'   && resource === '/notifications/send')                   return sendNotification(event);
-    if (httpMethod === 'POST'   && resource === '/notifications/read-all')               return markAllRead(event);
-    if (httpMethod === 'PATCH'  && resource === '/notifications/{notificationId}/read')  return markAsRead(event);
-    if (httpMethod === 'DELETE' && resource === '/notifications/{notificationId}')       return deleteNotification(event);
+    if (httpMethod === 'GET'    && resource === '/notifications')                              return listNotifications(event);
+    if (httpMethod === 'POST'   && resource === '/notifications')                              return createNotification(event);
+    if (httpMethod === 'POST'   && resource === '/notifications/send')                         return sendNotification(event);
+    if (httpMethod === 'POST'   && resource === '/notifications/read-all')                     return markAllRead(event);
+    if (httpMethod === 'POST'   && resource === '/notifications/register-push-token')          return registerPushToken(event);
+    if (httpMethod === 'PATCH'  && resource === '/notifications/{notificationId}/read')        return markAsRead(event);
+    if (httpMethod === 'DELETE' && resource === '/notifications/{notificationId}')             return deleteNotification(event);
 
     return {
       statusCode: 404,

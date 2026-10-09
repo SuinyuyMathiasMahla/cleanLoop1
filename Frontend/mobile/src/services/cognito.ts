@@ -5,6 +5,9 @@ const COGNITO_URL = `https://cognito-idp.${COGNITO_REGION}.amazonaws.com/`;
 const CLIENT_ID = process.env.EXPO_PUBLIC_COGNITO_CLIENT_ID ?? '';
 const COGNITO_DOMAIN = process.env.EXPO_PUBLIC_COGNITO_DOMAIN ?? 'cleanloop-dev';
 
+// Stores the OAuth state param between googleSignIn() and handleOAuthCallback()
+let _pendingOAuthState: string | null = null;
+
 async function cognitoRequest(target: string, body: Record<string, unknown>) {
   const response = await fetch(COGNITO_URL, {
     method: 'POST',
@@ -125,7 +128,6 @@ export async function signIn(email: string, password: string): Promise<CognitoTo
     },
   });
 
-  // Crew accounts created via AdminCreateUser require a password change on first login
   if (data.ChallengeName === 'NEW_PASSWORD_REQUIRED') {
     throw new CognitoError(
       'NewPasswordRequired',
@@ -192,13 +194,18 @@ export async function confirmForgotPassword(
   });
 }
 
-export async function googleSignIn(): Promise<CognitoTokens> {
+// Opens the Google sign-in browser. Fire-and-forget — the result comes back
+// via the deep-link redirect handled in callback.tsx → handleOAuthCallback().
+export function googleSignIn(): void {
   if (!CLIENT_ID || !COGNITO_DOMAIN) {
     throw new CognitoError('ConfigurationError', 'Google sign-in is not configured for this build.');
   }
-  const redirectUri = 'cleanloop://auth/callback';
   const state = createOAuthState();
-  const authorizeUrl = new URL(`https://${COGNITO_DOMAIN}.auth.${COGNITO_REGION}.amazoncognito.com/oauth2/authorize`);
+  _pendingOAuthState = state;
+  const redirectUri = 'cleanloop://auth/callback';
+  const authorizeUrl = new URL(
+    `https://${COGNITO_DOMAIN}.auth.${COGNITO_REGION}.amazoncognito.com/oauth2/authorize`
+  );
   authorizeUrl.search = new URLSearchParams({
     client_id: CLIENT_ID,
     response_type: 'code',
@@ -208,34 +215,34 @@ export async function googleSignIn(): Promise<CognitoTokens> {
     state,
   }).toString();
 
-  return new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => {
-      subscription.remove();
-      reject(new CognitoError('OAuthTimeout', 'Google sign-in was not completed. Please try again.'));
-    }, 180000);
-    const subscription = Linking.addEventListener('url', ({ url }) => {
-      if (!url.startsWith(redirectUri)) return;
-      subscription.remove();
-      clearTimeout(timeout);
-      const callbackUrl = new URL(url);
-      if (callbackUrl.searchParams.get('state') !== state) {
-        reject(new CognitoError('OAuthStateMismatch', 'Google sign-in could not be verified.'));
-        return;
-      }
-      const error = callbackUrl.searchParams.get('error');
-      const code = callbackUrl.searchParams.get('code');
-      if (error || !code) {
-        reject(new CognitoError(error ?? 'OAuthError', callbackUrl.searchParams.get('error_description') ?? 'Google sign-in was cancelled.'));
-        return;
-      }
-      void exchangeAuthorizationCode(code, redirectUri).then(resolve, reject);
-    });
-    Linking.openURL(authorizeUrl.toString()).catch(error => {
-      subscription.remove();
-      clearTimeout(timeout);
-      reject(error);
-    });
+  Linking.openURL(authorizeUrl.toString()).catch(() => {
+    throw new CognitoError('OAuthOpenError', 'Could not open Google sign-in.');
   });
+}
+
+// Called by callback.tsx with the full deep-link URL after the browser redirects back.
+export async function handleOAuthCallback(url: string): Promise<CognitoTokens> {
+  const callbackUrl = new URL(url);
+  const returnedState = callbackUrl.searchParams.get('state');
+
+  // Only validate state if we launched this sign-in in the same JS session.
+  // On a cold start the module is fresh, so _pendingOAuthState is null — skip the check.
+  if (_pendingOAuthState !== null && returnedState !== _pendingOAuthState) {
+    throw new CognitoError('OAuthStateMismatch', 'Google sign-in could not be verified.');
+  }
+  _pendingOAuthState = null;
+
+  const error = callbackUrl.searchParams.get('error');
+  const code = callbackUrl.searchParams.get('code');
+
+  if (error || !code) {
+    throw new CognitoError(
+      error ?? 'OAuthError',
+      callbackUrl.searchParams.get('error_description') ?? 'Google sign-in was cancelled.'
+    );
+  }
+
+  return exchangeAuthorizationCode(code, 'cleanloop://auth/callback');
 }
 
 function createOAuthState(): string {
@@ -248,21 +255,31 @@ function createOAuthState(): string {
 }
 
 async function exchangeAuthorizationCode(code: string, redirectUri: string): Promise<CognitoTokens> {
-  const response = await fetch(`https://${COGNITO_DOMAIN}.auth.${COGNITO_REGION}.amazoncognito.com/oauth2/token`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      grant_type: 'authorization_code',
-      client_id: CLIENT_ID,
-      code,
-      redirect_uri: redirectUri,
-    }).toString(),
-  });
+  const response = await fetch(
+    `https://${COGNITO_DOMAIN}.auth.${COGNITO_REGION}.amazoncognito.com/oauth2/token`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        grant_type: 'authorization_code',
+        client_id: CLIENT_ID,
+        code,
+        redirect_uri: redirectUri,
+      }).toString(),
+    }
+  );
   const data = await response.json();
   if (!response.ok || !(data.id_token ?? data.IdToken) || !(data.access_token ?? data.AccessToken)) {
-    throw new CognitoError(data.error ?? 'OAuthTokenExchangeFailed', data.error_description ?? 'Could not complete Google sign-in.');
+    throw new CognitoError(
+      data.error ?? 'OAuthTokenExchangeFailed',
+      data.error_description ?? 'Could not complete Google sign-in.'
+    );
   }
-  return { idToken: data.id_token ?? data.IdToken, accessToken: data.access_token ?? data.AccessToken, refreshToken: data.refresh_token ?? data.RefreshToken ?? '' };
+  return {
+    idToken: data.id_token ?? data.IdToken,
+    accessToken: data.access_token ?? data.AccessToken,
+    refreshToken: data.refresh_token ?? data.RefreshToken ?? '',
+  };
 }
 
 export function parseJwt(token: string): Record<string, unknown> {

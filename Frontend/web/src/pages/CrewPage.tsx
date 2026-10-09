@@ -175,12 +175,21 @@ export function CrewPage() {
     setSubmitError(null);
   };
 
+  const activeMembers = crew.filter((c) => c.status === 'active').length;
+  const openTasks = crew.reduce((sum, c) => sum + (c.activeTasks ?? 0), 0);
+  const summary = [
+    { label: 'Crew members', value: total || crew.length, tone: 'text-gray-900' },
+    { label: 'Active', value: activeMembers, tone: 'text-emerald-600' },
+    { label: 'Inactive', value: Math.max(0, crew.length - activeMembers), tone: 'text-gray-500' },
+    { label: 'Open tasks', value: openTasks, tone: 'text-orange-600' },
+  ];
+
   return (
-    <div className="p-6 space-y-5">
+    <div className="p-6 space-y-6 max-w-[1400px]">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Crew</h1>
-          <p className="text-sm text-gray-500 mt-0.5">{total} crew members</p>
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900">Crew</h1>
+          <p className="text-sm text-gray-500 mt-1">{total} crew members</p>
         </div>
         <Button
           variant="primary"
@@ -193,26 +202,37 @@ export function CrewPage() {
       </div>
 
       {error && (
-        <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg px-4 py-2 text-sm text-red-700">
+        <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-2 text-sm text-red-700">
           <AlertCircle className="w-4 h-4 flex-shrink-0" /> {error}
         </div>
       )}
 
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {summary.map((item) => (
+          <div key={item.label} className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+            <p className="text-xs font-medium text-gray-500">{item.label}</p>
+            <p className={`mt-2 text-3xl font-bold tracking-tight tabular-nums ${item.tone}`}>
+              {isLoading ? '-' : item.value}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-100 bg-gray-50">
-                <th className="text-left px-5 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wide">Member</th>
-                <th className="text-left px-5 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wide">Contact</th>
-                <th className="text-left px-5 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wide">Location</th>
-                <th className="text-left px-5 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wide">Active Tasks</th>
-                <th className="text-left px-5 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wide">Last Login</th>
-                <th className="text-left px-5 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wide">Status</th>
-                <th className="text-left px-5 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wide">Actions</th>
+              <tr className="border-b border-gray-100 bg-gray-50/80">
+                <th className="text-left px-5 py-3 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">Member</th>
+                <th className="text-left px-5 py-3 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">Contact</th>
+                <th className="text-left px-5 py-3 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">Location</th>
+                <th className="text-left px-5 py-3 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">Active Tasks</th>
+                <th className="text-left px-5 py-3 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">Last Login</th>
+                <th className="text-left px-5 py-3 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">Status</th>
+                <th className="text-left px-5 py-3 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50">
+            <tbody className="divide-y divide-gray-100">
               {isLoading ? (
                 <tr><td colSpan={7}><TableSkeleton rows={5} cols={7} /></td></tr>
               ) : crew.length === 0 ? (
@@ -230,17 +250,16 @@ export function CrewPage() {
                 </td></tr>
               ) : (
                 crew.map((member) => (
-                  <tr key={member.crewId} className="table-row-hover">
+                  <tr key={member.crewId} className="table-row-hover hover:bg-gray-50/70">
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0">
-                          <span className="text-sm font-semibold text-primary-700">
+                        <div className="w-9 h-9 rounded-full bg-primary-50 ring-1 ring-primary-100 flex items-center justify-center flex-shrink-0">
+                          <span className="text-sm font-bold text-primary-700">
                             {member.name[0]?.toUpperCase()}
                           </span>
                         </div>
                         <div>
                           <p className="font-medium text-gray-900">{member.name}</p>
-                          <p className="text-xs text-gray-400">{member.crewId.slice(-8)}</p>
                         </div>
                       </div>
                     </td>
@@ -265,8 +284,10 @@ export function CrewPage() {
                       )}
                     </td>
                     <td className="px-5 py-3.5">
-                      <span className="flex items-center gap-1.5 text-gray-700">
-                        <CheckSquare className="w-4 h-4 text-gray-400" />
+                      <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold tabular-nums ${
+                        member.activeTasks > 0 ? 'bg-orange-50 text-orange-700' : 'bg-gray-100 text-gray-500'
+                      }`}>
+                        <CheckSquare className="w-3.5 h-3.5" />
                         {member.activeTasks}
                       </span>
                     </td>
@@ -333,7 +354,7 @@ export function CrewPage() {
       >
         <div className="space-y-4">
           {submitError && (
-            <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-sm text-red-700">
+            <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-xl px-3 py-2 text-sm text-red-700">
               <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
               <span>{submitError}</span>
             </div>

@@ -1,0 +1,22 @@
+{
+  "cli": {
+    "version": ">= 5.0.0"
+  },
+  "build": {
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://wydh97x2hj.execute-api.us-east-1.amazonaws.com/dev",
+        "EXPO_PUBLIC_AWS_REGION": "us-east-1",
+        "EXPO_PUBLIC_USER_POOL_ID": "us-east-1_NUKIgRsjH",
+        "EXPO_PUBLIC_USER_POOL_CLIENT_ID": "39n14trvkv2s7ii4tvrffa8keq",
+        "EXPO_PUBLIC_COGNITO_REGION": "us-east-1",
+        "EXPO_PUBLIC_COGNITO_CLIENT_ID": "39n14trvkv2s7ii4tvrffa8keq"
+      }
+    },
+    "production": {}
+  }
+}

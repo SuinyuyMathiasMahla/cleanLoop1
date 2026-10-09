@@ -44,9 +44,6 @@ function processQueue(error: unknown, token: string | null) {
 
 api.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
-    // Never add auth headers to S3 presigned URL requests —
-    // presigned URLs use query-string signing; an Authorization header
-    // causes S3 to reject the request with a SigV4 parse error.
     const url = config.url ?? '';
     const isS3 = url.startsWith('https://') && url.includes('.amazonaws.com');
     if (!isS3) {
@@ -128,13 +125,6 @@ export function getApiErrorMessage(error: unknown): string {
   return 'Something went wrong. Please try again.';
 }
 
-/**
- * Upload a local file directly to an S3 presigned PUT URL.
- * Uses XMLHttpRequest — React Native's XHR handles local file:// and
- * content:// URIs natively, streaming bytes directly without loading
- * the file into JS memory. No Authorization header is sent — S3
- * presigned URLs are self-authenticating via query-string signature.
- */
 export async function uploadToS3(
   presignedUrl: string,
   localUri: string,
@@ -156,8 +146,6 @@ export async function uploadToS3(
     xhr.onerror = () => reject(new Error('S3 upload network error'));
     xhr.ontimeout = () => reject(new Error('S3 upload timed out'));
 
-    // React Native XHR accepts a local URI object directly as the body —
-    // it reads and streams the file natively without fetch/FileReader.
     xhr.send({ uri: localUri, type: contentType, name: 'upload' } as any);
   });
 }
@@ -232,8 +220,12 @@ export const reportsApi = {
     api.get<{ url: string; key: string }>(
       `/reports/presigned-upload?contentType=${encodeURIComponent(contentType)}&filename=${encodeURIComponent(filename)}`
     ),
-  toggleLike: (id: string) => api.post<{ reportId: string; liked: boolean; likeCount: number }>(`/reports/${id}/like`),
-  addComment: (id: string, text: string) => api.post(`/reports/${id}/comments`, { text }),
+
+  toggleLike: (id: string) =>
+    api.post<{ reportId: string; liked: boolean; likeCount: number }>(`/reports/${id}/like`),
+
+  addComment: (id: string, text: string) =>
+    api.post(`/reports/${id}/comments`, { text }),
 };
 
 // ---------- Tasks ----------
@@ -292,10 +284,13 @@ export interface Notification {
 }
 
 export const notificationsApi = {
-  getAll: () => api.get<{ data?: Notification[]; notifications?: Notification[]; items?: Notification[] }>('/notifications'),
+  getAll: () =>
+    api.get<{ data?: Notification[]; notifications?: Notification[]; items?: Notification[] }>('/notifications'),
   markRead: (id: string) => api.patch(`/notifications/${id}/read`),
   markAllRead: () => api.post('/notifications/read-all'),
   delete: (id: string) => api.delete(`/notifications/${id}`),
+  registerPushToken: (expoPushToken: string) =>
+    api.post('/notifications/register-push-token', { expoPushToken }),
 };
 
 // ---------- Profile ----------

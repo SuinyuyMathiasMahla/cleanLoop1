@@ -124,19 +124,23 @@ export function NotificationsPage() {
   const maxChars  = 500;
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6 max-w-[1400px]">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Notifications</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Send notifications to users in the system</p>
+        <h1 className="text-2xl font-bold tracking-tight text-gray-900">Notifications</h1>
+        <p className="text-sm text-gray-500 mt-1">Send notifications to users in the system</p>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
         {/* ── Compose ── */}
         <div className="xl:col-span-2 space-y-5">
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-            <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <Bell className="w-4 h-4 text-primary-600" /> Send Notification
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+            <h2 className="font-semibold text-gray-900 mb-1 flex items-center gap-2">
+              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary-50">
+                <Bell className="w-4 h-4 text-primary-600" />
+              </span>
+              Send notification
             </h2>
+            <p className="mb-5 text-xs text-gray-400">Delivered in the app to everyone in the selected group.</p>
 
             {sendSuccess && (
               <div className="mb-4 flex items-center gap-2 bg-green-50 border border-green-200 rounded-lg px-3 py-2 text-sm text-green-700">
@@ -144,7 +148,7 @@ export function NotificationsPage() {
               </div>
             )}
             {sendError && (
-              <div className="mb-4 flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-sm text-red-700">
+              <div className="mb-4 flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-3 py-2 text-sm text-red-700">
                 <AlertCircle className="w-4 h-4" /> {sendError}
               </div>
             )}
@@ -205,9 +209,9 @@ export function NotificationsPage() {
 
           {/* Preview */}
           {(form.title || form.message) && (
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4">
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Preview</p>
-              <div className="bg-gray-900 rounded-2xl p-4 text-white">
+              <div className="bg-gray-900 rounded-2xl p-4 text-white shadow-inner">
                 <div className="flex items-center gap-2 mb-3">
                   <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center flex-shrink-0">
                     <Bell className="w-4 h-4 text-white" />
@@ -231,7 +235,7 @@ export function NotificationsPage() {
 
         {/* ── History ── */}
         <div className="xl:col-span-3">
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
               <h2 className="font-semibold text-gray-900">Sent Notifications</h2>
               <button
@@ -244,14 +248,14 @@ export function NotificationsPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-100 bg-gray-50">
-                    <th className="text-left px-5 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wide">Title</th>
-                    <th className="text-left px-5 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wide">Recipients</th>
-                    <th className="text-left px-5 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wide">Sent</th>
-                    <th className="text-left px-5 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wide">Count</th>
+                  <tr className="border-b border-gray-100 bg-gray-50/80">
+                    <th className="text-left px-5 py-3 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">Title</th>
+                    <th className="text-left px-5 py-3 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">Recipients</th>
+                    <th className="text-left px-5 py-3 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">Sent</th>
+                    <th className="text-left px-5 py-3 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">Count</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-50">
+                <tbody className="divide-y divide-gray-100">
                   {loading ? (
                     <tr><td colSpan={4}><TableSkeleton rows={5} cols={4} /></td></tr>
                   ) : notifications.length === 0 ? (
@@ -268,13 +272,15 @@ export function NotificationsPage() {
                       const dateObj = dateStr ? new Date(dateStr) : null;
                       const validDate = dateObj && !isNaN(dateObj.getTime());
                       return (
-                        <tr key={n.notificationId} className="hover:bg-gray-50 transition-colors">
+                        <tr key={n.notificationId} className="hover:bg-gray-50/70 transition-colors">
                           <td className="px-5 py-3.5">
                             <p className="font-medium text-gray-900">{n.title}</p>
                             <p className="text-xs text-gray-400 truncate max-w-[200px] mt-0.5">{n.message}</p>
                           </td>
-                          <td className="px-5 py-3.5 text-gray-600 text-sm">
-                            {RECIPIENT_LABELS[n.recipients ?? ''] ?? n.recipients ?? '—'}
+                          <td className="px-5 py-3.5 text-sm">
+                            <span className="inline-flex items-center rounded-full bg-primary-50 px-2.5 py-1 text-xs font-medium text-primary-700">
+                              {RECIPIENT_LABELS[n.recipients ?? ''] ?? n.recipients ?? '—'}
+                            </span>
                           </td>
                           <td className="px-5 py-3.5 text-gray-500 whitespace-nowrap text-xs">
                             {validDate ? (
@@ -284,8 +290,11 @@ export function NotificationsPage() {
                               </>
                             ) : '—'}
                           </td>
-                          <td className="px-5 py-3.5 text-sm text-gray-700">
-                            {n.totalCount != null ? n.totalCount : '—'}
+                          <td className="px-5 py-3.5 text-sm">
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold tabular-nums text-gray-700">
+                              <Users className="h-3 w-3" />
+                              {n.totalCount != null ? n.totalCount : '—'}
+                            </span>
                           </td>
                         </tr>
                       );

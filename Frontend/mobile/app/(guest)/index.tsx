@@ -15,148 +15,355 @@ import { Ionicons } from '@expo/vector-icons';
 import { useReportStore } from '@/store/reportStore';
 import { ReportCard } from '@/components/citizen/ReportCard';
 
-const HERO_GREEN = '#1a7a5e';
-const HERO_DARK  = '#14604a';
-const CARD_BG    = '#1e2d27';
+const FOREST = '#0f3d2e';
+const MINT = '#d9f2e3';
+const LIGHT_GREEN = '#e8f5f0';
 
 function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, { label: string; color: string; bg: string }> = {
-    pending:     { label: 'Pending',     color: '#92400e', bg: '#fef3c7' },
-    in_progress: { label: 'In Progress', color: '#1e40af', bg: '#dbeafe' },
-    assigned:    { label: 'Assigned',    color: '#1e40af', bg: '#dbeafe' },
-    resolved:    { label: 'Resolved',    color: '#065f46', bg: '#d1fae5' },
+  const map: Record<
+    string,
+    { label: string; color: string; bg: string }
+  > = {
+    pending: {
+      label: 'Pending',
+      color: '#92400e',
+      bg: '#fef3c7',
+    },
+    in_progress: {
+      label: 'In Progress',
+      color: '#1e40af',
+      bg: '#dbeafe',
+    },
+    assigned: {
+      label: 'Assigned',
+      color: '#1e40af',
+      bg: '#dbeafe',
+    },
+    resolved: {
+      label: 'Resolved',
+      color: '#065f46',
+      bg: '#d1fae5',
+    },
   };
+
   const s = map[status] ?? map.pending;
+
   return (
-    <View style={[styles.badge, { backgroundColor: s.bg }]}>
-      <Text style={[styles.badgeText, { color: s.color }]}>{s.label}</Text>
+    <View
+      style={[
+        styles.badge,
+        { backgroundColor: s.bg },
+      ]}
+    >
+      <Text
+        style={[
+          styles.badgeText,
+          { color: s.color },
+        ]}
+      >
+        {s.label}
+      </Text>
     </View>
   );
 }
 
 function timeAgo(dateStr?: string) {
   if (!dateStr) return '';
-  const diff = Date.now() - new Date(dateStr).getTime();
+
+  const diff =
+    Date.now() - new Date(dateStr).getTime();
+
   const h = Math.floor(diff / 3600000);
+
   if (h < 1) return 'Just now';
   if (h < 24) return `${h}h ago`;
+
   return `${Math.floor(h / 24)}d ago`;
 }
 
 export default function GuestLanding() {
   const router = useRouter();
-  const { publicReports, fetchPublicReports, isLoading } = useReportStore();
 
-  useEffect(() => { fetchPublicReports(); }, []);
-  const onRefresh = useCallback(() => { fetchPublicReports(); }, []);
-  const completedReports = publicReports.filter((report) => report.status === 'resolved');
+  const {
+    publicReports,
+    fetchPublicReports,
+    isLoading,
+  } = useReportStore();
+
+  useEffect(() => {
+    fetchPublicReports();
+  }, []);
+
+  const onRefresh = useCallback(() => {
+    fetchPublicReports();
+  }, []);
+
+  const completedReports = publicReports.filter(
+    (report) => report.status === 'resolved'
+  );
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-
-      {/* ── TOP NAV ── */}
-      <View style={styles.nav}>
-        <View style={styles.navLeft}>
-          <View style={styles.navLogoCircle}>
-            <Ionicons name="leaf" size={16} color="#fff" />
-          </View>
-          <Text style={styles.navName}>CleanLoop</Text>
-        </View>
-        <View style={styles.navRight}>
-          <TouchableOpacity style={styles.loginBtn} onPress={() => router.navigate('/auth/login')}>
-            <Text style={styles.loginBtnText}>Login</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.signupBtn} onPress={() => router.navigate('/auth/register')}>
-            <Text style={styles.signupBtnText}>Sign Up</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
+    <SafeAreaView
+      style={styles.safe}
+      edges={['top']}
+    >
       <ScrollView
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={isLoading} onRefresh={onRefresh} tintColor="#fff" />}
+        refreshControl={
+          <RefreshControl
+            refreshing={isLoading}
+            onRefresh={onRefresh}
+            tintColor={FOREST}
+          />
+        }
       >
+        {/* =========================================
+            TOP HEADER
+        ========================================= */}
+        <View style={styles.header}>
+          <View style={styles.headerLeft}>
+            <View style={styles.logoCircle}>
+              <Ionicons
+                name="leaf"
+                size={18}
+                color={FOREST}
+              />
+            </View>
 
-        {/* ── HERO with background image ── */}
-        <ImageBackground
-          source={require('../../assets/images/recycling-hero.png')}
-          style={styles.heroCard}
-          imageStyle={styles.heroBgImage}
-          resizeMode="cover"
-        >
-          <View style={styles.heroOverlay}>
+            <View>
+              <Text style={styles.brandName}>
+                CleanLoop
+              </Text>
+              <Text style={styles.brandSub}>
+                Cleaner communities
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.headerRight}>
+            <TouchableOpacity
+              style={styles.loginButton}
+              onPress={() =>
+                router.navigate('/auth/login')
+              }
+              activeOpacity={0.8}
+            >
+              <Text style={styles.loginButtonText}>
+                Login
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.signupButton}
+              onPress={() =>
+                router.navigate('/auth/register')
+              }
+              activeOpacity={0.8}
+            >
+              <Text style={styles.signupButtonText}>
+                Sign Up
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* =========================================
+            HERO
+        ========================================= */}
+        <View style={styles.hero}>
+          {/* Decorative rings */}
+          <View
+            style={[
+              styles.ring,
+              styles.ringLarge,
+            ]}
+          />
+
+          <View
+            style={[
+              styles.ring,
+              styles.ringMedium,
+            ]}
+          />
+
+          <View
+            style={[
+              styles.ring,
+              styles.ringSmall,
+            ]}
+          />
+
+          <View style={styles.heroContent}>
             <View style={styles.heroBadgeRow}>
               <View style={styles.heroBadge}>
-                <Ionicons name="location" size={11} color="#fff" />
-                <Text style={styles.heroBadgeText}>GPS Enabled</Text>
+                <Ionicons
+                  name="location-outline"
+                  size={13}
+                  color={MINT}
+                />
+
+                <Text style={styles.heroBadgeText}>
+                  GPS Enabled
+                </Text>
               </View>
+
               <View style={styles.heroBadge}>
-                <Ionicons name="time-outline" size={11} color="#fff" />
-                <Text style={styles.heroBadgeText}>Avg 24h Cleanup</Text>
+                <Ionicons
+                  name="time-outline"
+                  size={13}
+                  color={MINT}
+                />
+
+                <Text style={styles.heroBadgeText}>
+                  Fast Cleanup
+                </Text>
               </View>
             </View>
-            <Text style={styles.heroHeadline}>
-              Report waste.{'\n'}Keep your city{'\n'}clean.
+
+            <Text style={styles.heroTitle}>
+              Report waste.{'\n'}
+              Keep your city{'\n'}
+              clean.
             </Text>
+
             <Text style={styles.heroSub}>
-              Join thousands making communities cleaner.
+              Help make your neighbourhood cleaner
+              by reporting overflowing bins and
+              illegal dumping.
             </Text>
           </View>
-        </ImageBackground>
+        </View>
 
-        {/* ── BODY ── */}
-        <View style={styles.body}>
+        {/* =========================================
+            WHITE CONTENT SHEET
+        ========================================= */}
+        <View style={styles.sheet}>
+          {/* =====================================
+              REPORT WASTE CARD
+          ===================================== */}
+          <View style={styles.actionCard}>
+            <View style={styles.actionHeader}>
+              <View style={styles.actionTitleArea}>
+                <View style={styles.liveRow}>
+                  <View style={styles.liveDot} />
 
-          {/* Report Waste Card */}
-          <View style={styles.actionCardWrap}>
-            <View style={styles.actionCard}>
-              <View style={styles.actionCardTop}>
-                <View>
-                  <View style={styles.liveRow}>
-                    <View style={styles.liveDot} />
-                    <Text style={styles.liveText}>LIVE</Text>
-                  </View>
-                  <Text style={styles.actionCardTitle}>Report Waste Now</Text>
+                  <Text style={styles.liveText}>
+                    QUICK REPORT
+                  </Text>
                 </View>
-                <View style={styles.cameraChip}>
-                  <Ionicons name="camera-outline" size={13} color={HERO_GREEN} />
-                  <Text style={styles.cameraChipText}>Camera</Text>
-                </View>
+
+                <Text style={styles.actionTitle}>
+                  Report Waste Now
+                </Text>
               </View>
-              <Text style={styles.actionCardSub}>
-                Snap a photo, tag your location, and our crews will handle the rest.
+
+              <View style={styles.cameraChip}>
+                <Ionicons
+                  name="camera-outline"
+                  size={16}
+                  color={FOREST}
+                />
+
+                <Text style={styles.cameraChipText}>
+                  Camera
+                </Text>
+              </View>
+            </View>
+
+            <Text style={styles.actionDescription}>
+              Snap a photo, tag your location, and
+              our cleanup crews will handle the rest.
+            </Text>
+
+            <TouchableOpacity
+              style={styles.reportButton}
+              onPress={() =>
+                router.push('/(guest)/report')
+              }
+              activeOpacity={0.85}
+            >
+              <Ionicons
+                name="camera"
+                size={18}
+                color="#fff"
+              />
+
+              <Text style={styles.reportButtonText}>
+                Report Waste Now
               </Text>
-              <TouchableOpacity
-                style={styles.greenBtn}
-                onPress={() => router.push('/(guest)/report')}
-                activeOpacity={0.85}
-              >
-                <Ionicons name="camera" size={16} color="#fff" />
-                <Text style={styles.greenBtnText}>Report Waste Now</Text>
-              </TouchableOpacity>
+
+              <Ionicons
+                name="arrow-forward"
+                size={18}
+                color="#fff"
+              />
+            </TouchableOpacity>
+          </View>
+
+          {/* =====================================
+              COMMUNITY FEED
+          ===================================== */}
+          <View style={styles.sectionHeader}>
+            <View>
+              <Text style={styles.sectionTitle}>
+                Community Feed
+              </Text>
+
+              <Text style={styles.sectionSub}>
+                Completed cleanups from your area
+              </Text>
+            </View>
+
+            <View style={styles.sectionIcon}>
+              <Ionicons
+                name="people-outline"
+                size={19}
+                color={FOREST}
+              />
             </View>
           </View>
 
-          {/* Community Feed */}
-          <Text style={styles.sectionTitle}>Community Feed</Text>
-          <Text style={styles.sectionSub}>Completed cleanups from your area</Text>
-
-          {isLoading && completedReports.length === 0 ? (
-            <ActivityIndicator color={HERO_GREEN} style={{ marginVertical: 20 }} />
+          {isLoading &&
+          completedReports.length === 0 ? (
+            <ActivityIndicator
+              color={FOREST}
+              style={{
+                marginVertical: 30,
+              }}
+            />
           ) : completedReports.length === 0 ? (
             <View style={styles.emptyFeed}>
-              <Ionicons name="leaf-outline" size={32} color="#bbb" />
-              <Text style={styles.emptyFeedText}>No completed cleanups yet.</Text>
+              <View style={styles.emptyIcon}>
+                <Ionicons
+                  name="leaf-outline"
+                  size={28}
+                  color={FOREST}
+                />
+              </View>
+
+              <Text style={styles.emptyFeedTitle}>
+                No completed cleanups yet
+              </Text>
+
+              <Text style={styles.emptyFeedText}>
+                Community cleanup activity will
+                appear here.
+              </Text>
             </View>
           ) : (
             <View style={styles.communityCards}>
-              {completedReports.slice(0, 3).map((report) => (
-                <ReportCard key={report.reportId} report={report} style={styles.communityReportCard} />
-              ))}
+              {completedReports
+                .slice(0, 3)
+                .map((report) => (
+                  <ReportCard
+                    key={report.reportId}
+                    report={report}
+                    style={styles.communityReportCard}
+                  />
+                ))}
             </View>
           )}
-
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -164,107 +371,394 @@ export default function GuestLanding() {
 }
 
 const styles = StyleSheet.create({
-  safe:   { flex: 1, backgroundColor: HERO_GREEN },
-  scroll: { flexGrow: 1, paddingBottom: 40 },
+  // ============================================
+  // ROOT
+  // ============================================
 
-  nav: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 18, paddingVertical: 12,
-    backgroundColor: HERO_GREEN,
+  safe: {
+    flex: 1,
+    backgroundColor: FOREST,
   },
-  navLeft:       { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  navLogoCircle: {
-    width: 30, height: 30, borderRadius: 15,
-    backgroundColor: 'rgba(255,255,255,0.25)',
-    alignItems: 'center', justifyContent: 'center',
-  },
-  navName:      { fontSize: 18, fontWeight: '800', color: '#fff', letterSpacing: -0.3 },
-  navRight:     { flexDirection: 'row', gap: 8 },
-  loginBtn: {
-    paddingHorizontal: 14, paddingVertical: 7,
-    borderRadius: 20, backgroundColor: '#fff',
-  },
-  loginBtnText:  { fontSize: 13, fontWeight: '700', color: HERO_GREEN },
-  signupBtn: {
-    paddingHorizontal: 14, paddingVertical: 7,
-    borderRadius: 20, backgroundColor: HERO_DARK,
-    borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.35)',
-  },
-  signupBtnText: { fontSize: 13, fontWeight: '700', color: '#fff' },
 
-  heroCard:    { minHeight: 220 },
-  heroBgImage: { opacity: 0.75 },
-  heroOverlay: {
-    backgroundColor: 'rgba(15, 50, 35, 0.55)',
-    paddingHorizontal: 22, paddingTop: 8, paddingBottom: 30,
+  scroll: {
+    flexGrow: 1,
+    backgroundColor: '#f5f8f6',
+    paddingBottom: 30,
   },
-  heroBadgeRow: { flexDirection: 'row', gap: 8, marginBottom: 16 },
+
+  // ============================================
+  // HEADER
+  // ============================================
+
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: FOREST,
+    paddingHorizontal: 18,
+    paddingTop: 12,
+    paddingBottom: 16,
+  },
+
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
+  },
+
+  logoCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#ffffff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  brandName: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#ffffff',
+    letterSpacing: -0.3,
+  },
+
+  brandSub: {
+    fontSize: 10,
+    color: MINT,
+    marginTop: 1,
+  },
+
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+  },
+
+  loginButton: {
+    paddingHorizontal: 13,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.25)',
+  },
+
+  loginButtonText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#ffffff',
+  },
+
+  signupButton: {
+    paddingHorizontal: 13,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#ffffff',
+  },
+
+  signupButtonText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: FOREST,
+  },
+
+  // ============================================
+  // HERO
+  // ============================================
+
+  hero: {
+    backgroundColor: FOREST,
+    minHeight: 300,
+    paddingHorizontal: 22,
+    paddingBottom: 58,
+    overflow: 'hidden',
+  },
+
+  heroContent: {
+    zIndex: 2,
+  },
+
+  ring: {
+    position: 'absolute',
+    borderRadius: 999,
+    borderColor: 'rgba(217,242,227,0.14)',
+  },
+
+  ringLarge: {
+    width: 300,
+    height: 300,
+    borderWidth: 1.5,
+    top: -130,
+    right: -125,
+  },
+
+  ringMedium: {
+    width: 200,
+    height: 200,
+    borderWidth: 1.5,
+    top: -60,
+    right: -65,
+  },
+
+  ringSmall: {
+    width: 95,
+    height: 95,
+    borderWidth: 11,
+    top: 18,
+    right: 5,
+    borderColor: 'rgba(34,197,94,0.25)',
+  },
+
+  heroBadgeRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 10,
+    marginBottom: 22,
+  },
+
   heroBadge: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(255,255,255,0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.14)',
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
   },
-  heroBadgeText: { fontSize: 11, fontWeight: '600', color: '#fff' },
-  heroHeadline: {
-    fontSize: 34, fontWeight: '900', color: '#fff',
-    lineHeight: 40, letterSpacing: -0.8, marginBottom: 10,
-  },
-  heroSub: { fontSize: 14, color: 'rgba(255,255,255,0.72)', lineHeight: 20 },
 
-  body: {
-    backgroundColor: '#f2f6f4',
-    paddingHorizontal: 18, paddingTop: 24,
+  heroBadgeText: {
+    fontSize: 10.5,
+    fontWeight: '600',
+    color: MINT,
   },
-  communityCards: { marginHorizontal: -14 },
-  communityReportCard: { marginHorizontal: 0 },
+
+  heroTitle: {
+    fontSize: 34,
+    lineHeight: 40,
+    fontWeight: '800',
+    color: '#ffffff',
+    letterSpacing: -0.8,
+    marginBottom: 10,
+  },
+
+  heroSub: {
+    maxWidth: 330,
+    fontSize: 14,
+    lineHeight: 21,
+    color: MINT,
+  },
+
+  // ============================================
+  // WHITE SHEET
+  // ============================================
+
+  sheet: {
+    backgroundColor: '#ffffff',
+    marginTop: -28,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    paddingHorizontal: 20,
+    paddingTop: 26,
+    paddingBottom: 35,
+    minHeight: 400,
+  },
+
+  // ============================================
+  // REPORT CARD
+  // ============================================
 
   actionCard: {
-    backgroundColor: '#fff',
-    borderRadius: 4, padding: 18, marginBottom: 14,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06, shadowRadius: 8, elevation: 2,
-  },
-  actionCardWrap: { marginHorizontal: -14 },
-  actionCardTop: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'flex-start', marginBottom: 8,
-  },
-  liveRow:  { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 4 },
-  liveDot:  { width: 7, height: 7, borderRadius: 4, backgroundColor: '#22c55e' },
-  liveText: { fontSize: 10, fontWeight: '800', color: '#22c55e', letterSpacing: 0.8 },
-  cameraChip: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: '#e8f5f0', borderRadius: 12,
-    paddingHorizontal: 9, paddingVertical: 4,
-  },
-  cameraChipText:  { fontSize: 11, fontWeight: '600', color: HERO_GREEN },
-  actionCardTitle: { fontSize: 17, fontWeight: '800', color: '#0f1f1a' },
-  actionCardSub:   { fontSize: 13, color: '#6b7c76', lineHeight: 18, marginBottom: 14 },
-  greenBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    backgroundColor: HERO_GREEN, borderRadius: 12, paddingVertical: 14,
-  },
-  greenBtnText: { fontSize: 15, fontWeight: '700', color: '#fff' },
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#e1ebe6',
+    borderRadius: 22,
+    padding: 18,
+    marginBottom: 28,
 
-  sectionTitle: { fontSize: 17, fontWeight: '800', color: '#0f1f1a', marginBottom: 2 },
-  sectionSub:   { fontSize: 12, color: '#6b7c76', marginBottom: 14 },
-  feedCard: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: '#fff', borderRadius: 12, padding: 14, marginBottom: 10,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.07,
+    shadowRadius: 12,
+    elevation: 3,
   },
-  feedIcon: {
-    width: 38, height: 38, borderRadius: 10,
-    backgroundColor: '#e8f5f0',
-    alignItems: 'center', justifyContent: 'center',
+
+  actionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 9,
   },
-  feedTitle:    { fontSize: 13, fontWeight: '700', color: '#0f1f1a', marginBottom: 4 },
-  feedMeta:     { flexDirection: 'row', alignItems: 'center' },
-  feedLocation: { fontSize: 11, color: '#6b7c76', marginLeft: 2 },
-  feedTime:     { fontSize: 11, color: '#aaa' },
-  badge:        { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
-  badgeText:    { fontSize: 10, fontWeight: '700' },
-  emptyFeed:     { alignItems: 'center', paddingVertical: 30, gap: 8 },
-  emptyFeedText: { fontSize: 14, color: '#aaa' },
+
+  actionTitleArea: {
+    flex: 1,
+  },
+
+  liveRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 5,
+  },
+
+  liveDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: '#22c55e',
+  },
+
+  liveText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#22a05a',
+    letterSpacing: 0.9,
+  },
+
+  actionTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#10251d',
+    letterSpacing: -0.3,
+  },
+
+  cameraChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: LIGHT_GREEN,
+    borderRadius: 15,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
+
+  cameraChipText: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: FOREST,
+  },
+
+  actionDescription: {
+    fontSize: 13.5,
+    lineHeight: 20,
+    color: '#6b7c76',
+    marginBottom: 16,
+  },
+
+  reportButton: {
+    height: 52,
+    borderRadius: 15,
+    backgroundColor: FOREST,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 9,
+  },
+
+  reportButtonText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#ffffff',
+    letterSpacing: 0.1,
+  },
+
+  // ============================================
+  // COMMUNITY SECTION
+  // ============================================
+
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#10251d',
+    letterSpacing: -0.3,
+    marginBottom: 3,
+  },
+
+  sectionSub: {
+    fontSize: 12.5,
+    color: '#74847e',
+  },
+
+  sectionIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: LIGHT_GREEN,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  communityCards: {
+    marginHorizontal: -2,
+  },
+
+  communityReportCard: {
+    marginHorizontal: 0,
+    marginBottom: 10,
+  },
+
+  // ============================================
+  // EMPTY STATE
+  // ============================================
+
+  emptyFeed: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 35,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+    backgroundColor: '#f8fbf9',
+    borderWidth: 1,
+    borderColor: '#e5eee9',
+  },
+
+  emptyIcon: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    backgroundColor: LIGHT_GREEN,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+
+  emptyFeedTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#263b33',
+    marginBottom: 5,
+  },
+
+  emptyFeedText: {
+    fontSize: 12.5,
+    color: '#87958f',
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+
+  // ============================================
+  // STATUS BADGE
+  // ============================================
+
+  badge: {
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+
+  badgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+  },
 });

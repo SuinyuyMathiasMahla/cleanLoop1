@@ -65,8 +65,11 @@ export class AuthStack extends cdk.Stack {
     const supportedIdentityProviders: cognito.UserPoolClientIdentityProvider[] = [
       cognito.UserPoolClientIdentityProvider.COGNITO,
     ];
+
+    let googleProvider: cognito.UserPoolIdentityProviderGoogle | undefined;
+
     if (googleClientId && googleClientSecret) {
-      new cognito.UserPoolIdentityProviderGoogle(this, 'GoogleIdentityProvider', {
+      googleProvider = new cognito.UserPoolIdentityProviderGoogle(this, 'GoogleIdentityProvider', {
         userPool: this.userPool,
         clientId: googleClientId,
         clientSecret: googleClientSecret,
@@ -96,6 +99,10 @@ export class AuthStack extends cdk.Stack {
       idTokenValidity: cdk.Duration.hours(1),
       preventUserExistenceErrors: true,
     });
+
+    if (googleProvider) {
+      this.userPoolClient.node.addDependency(googleProvider);
+    }
 
     new cdk.CfnOutput(this, 'UserPoolIdOutput', { value: this.userPool.userPoolId });
     new cdk.CfnOutput(this, 'UserPoolClientIdOutput', { value: this.userPoolClient.userPoolClientId });

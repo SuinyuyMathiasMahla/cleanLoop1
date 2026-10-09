@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { Plus, Calendar, Trash2, Edit2, AlertCircle } from 'lucide-react';
-import { format, formatDistanceToNow } from 'date-fns';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Plus, Trash2, AlertCircle } from 'lucide-react';
+import { format, isValid } from 'date-fns';
 import { useTaskStore, Task, TaskStatus, CreateTaskInput } from '../store/taskStore';
 import { useReportStore } from '../store/reportStore';
 import { useCrewStore } from '../store/crewStore';
@@ -40,6 +40,26 @@ const TASK_STATUS_OPTIONS = [
   { value: 'cancelled', label: 'Cancelled' },
 ];
 
+const COLUMN_COUNT = 6;
+
+const toValidDate = (value?: string | number | Date | null): Date | null => {
+  if (value === undefined || value === null || value === '') return null;
+  const d = value instanceof Date ? value : new Date(value);
+  return isValid(d) ? d : null;
+};
+
+/** Formatted date that never throws on a missing or invalid value. */
+const safeFormat = (value: string | number | Date | null | undefined, pattern: string) => {
+  const d = toValidDate(value);
+  return d ? format(d, pattern) : '-';
+};
+
+const isOverdue = (task: { status: string; dueAt?: string }) => {
+  if (task.status === 'completed' || task.status === 'cancelled') return false;
+  const due = toValidDate(task.dueAt);
+  return !!due && due.getTime() < Date.now();
+};
+
 export function TasksPage() {
   const { tasks, total, isLoading, error, fetchTasks, createTask, updateTask, deleteTask, clearError } = useTaskStore();
   const { reports, fetchReports } = useReportStore();
@@ -59,6 +79,25 @@ export function TasksPage() {
 
   const pendingReports = reports.filter((r) => r.status === 'pending');
   const activeCrew = crew.filter((c) => c.status === 'active');
+
+  // Look up crew members by their Cognito user id (all crew, not just active,
+  // so tasks led by an inactive member still show an email).
+  const crewById = useMemo(() => new Map(crew.map((c) => [c.crewId, c])), [crew]);
+
+  // Prefer the email returned by the API, then the crew store, then fall back
+  // to the name and finally the raw id.
+  const getLeadLabel = (task: Task) =>
+    (task as Task & { crewLeadEmail?: string }).crewLeadEmail ||
+    crewById.get(task.crewLeadId)?.email ||
+    task.crewLeadName ||
+    task.crewLeadId;
+
+  const closeModal = () => {
+    setShowCreateModal(false);
+    setForm(EMPTY_FORM);
+    setFormErrors({});
+    setSubmitError(null);
+  };
 
   const validate = () => {
     const errs: Partial<TaskFormData> = {};
@@ -86,8 +125,7 @@ export function TasksPage() {
         notes: form.notes || undefined,
       };
       await createTask(input);
-      setShowCreateModal(false);
-      setForm(EMPTY_FORM);
+      closeModal();
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : 'Failed to create task');
     } finally {
@@ -119,13 +157,20 @@ export function TasksPage() {
     }));
   };
 
+  const summary = [
+    { label: 'Scheduled', value: tasks.filter((t) => t.status === 'scheduled').length, tone: 'text-blue-600' },
+    { label: 'In progress', value: tasks.filter((t) => t.status === 'in_progress').length, tone: 'text-orange-600' },
+    { label: 'Completed', value: tasks.filter((t) => t.status === 'completed').length, tone: 'text-emerald-600' },
+    { label: 'Overdue', value: tasks.filter((t) => isOverdue(t as any)).length, tone: 'text-red-600' },
+  ];
+
   return (
-    <div className="p-6 space-y-5">
+    <div className="p-6 space-y-6 max-w-[1400px]">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Tasks</h1>
-          <p className="text-sm text-gray-500 mt-0.5">{total} tasks total</p>
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900">Tasks</h1>
+          <p className="text-sm text-gray-500 mt-1">{total} tasks total</p>
         </div>
         <Button
           variant="primary"
@@ -138,31 +183,42 @@ export function TasksPage() {
       </div>
 
       {error && (
-        <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg px-4 py-2 text-sm text-red-700">
+        <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-2 text-sm text-red-700">
           <AlertCircle className="w-4 h-4" /> {error}
         </div>
       )}
 
+      {/* Summary */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {summary.map((item) => (
+          <div key={item.label} className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+            <p className="text-xs font-medium text-gray-500">{item.label}</p>
+            <p className={`mt-2 text-3xl font-bold tracking-tight tabular-nums ${item.tone}`}>
+              {isLoading ? '-' : item.value}
+            </p>
+          </div>
+        ))}
+      </div>
+
       {/* Tasks table */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-100 bg-gray-50">
-                <th className="text-left px-5 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wide">Title</th>
-                <th className="text-left px-5 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wide">Reports</th>
-                <th className="text-left px-5 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wide">Crew Lead</th>
-                <th className="text-left px-5 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wide">Scheduled</th>
-                <th className="text-left px-5 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wide">Due</th>
-                <th className="text-left px-5 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wide">Status</th>
-                <th className="text-left px-5 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wide">Actions</th>
+              <tr className="border-b border-gray-100 bg-gray-50/80">
+                <th className="text-left px-5 py-3 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">Title</th>
+                <th className="text-left px-5 py-3 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">Crew Lead</th>
+                <th className="text-left px-5 py-3 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">Scheduled</th>
+                <th className="text-left px-5 py-3 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">Due</th>
+                <th className="text-left px-5 py-3 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">Status</th>
+                <th className="text-left px-5 py-3 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50">
+            <tbody className="divide-y divide-gray-100">
               {isLoading ? (
-                <tr><td colSpan={7}><TableSkeleton rows={6} cols={7} /></td></tr>
+                <tr><td colSpan={COLUMN_COUNT}><TableSkeleton rows={6} cols={COLUMN_COUNT} /></td></tr>
               ) : tasks.length === 0 ? (
-                <tr><td colSpan={7}>
+                <tr><td colSpan={COLUMN_COUNT}>
                   <EmptyState
                     title="No tasks yet"
                     description="Create tasks to assign crew to pending reports."
@@ -176,26 +232,33 @@ export function TasksPage() {
                 </td></tr>
               ) : (
                 tasks.map((task) => (
-                  <tr key={task.taskId} className="table-row-hover">
+                  <tr key={task.taskId} className="table-row-hover hover:bg-gray-50/70">
                     <td className="px-5 py-3.5">
                       <p className="font-medium text-gray-900">{task.title}</p>
                       {task.description && (
                         <p className="text-xs text-gray-400 mt-0.5 truncate max-w-[200px]">{task.description}</p>
                       )}
                     </td>
-                    <td className="px-5 py-3.5">
-                      <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full font-medium">
-                        {task.reportIds.length} report{task.reportIds.length !== 1 ? 's' : ''}
+                    <td className="px-5 py-3.5 text-gray-700" title={task.crewLeadId}>
+                      <div className="flex items-center gap-2.5">
+                        <div className="h-7 w-7 shrink-0 rounded-full bg-primary-50 text-primary-700 flex items-center justify-center text-[11px] font-bold">
+                          {(getLeadLabel(task) || '?').charAt(0).toUpperCase()}
+                        </div>
+                        <span className="truncate max-w-[200px]">{getLeadLabel(task)}</span>
+                      </div>
+                    </td>
+                    <td className="px-5 py-3.5 text-gray-500 whitespace-nowrap text-xs">
+                      {safeFormat(task.scheduledAt, 'MMM d, HH:mm')}
+                    </td>
+                    <td className="px-5 py-3.5 whitespace-nowrap text-xs">
+                      <span className={isOverdue(task as any) ? 'font-medium text-red-600' : 'text-gray-500'}>
+                        {safeFormat(task.dueAt, 'MMM d, HH:mm')}
                       </span>
-                    </td>
-                    <td className="px-5 py-3.5 text-gray-700">
-                      {task.crewLeadName || task.crewLeadId}
-                    </td>
-                    <td className="px-5 py-3.5 text-gray-500 whitespace-nowrap text-xs">
-                      {format(new Date(task.scheduledAt), 'MMM d, HH:mm')}
-                    </td>
-                    <td className="px-5 py-3.5 text-gray-500 whitespace-nowrap text-xs">
-                      {format(new Date(task.dueAt), 'MMM d, HH:mm')}
+                      {isOverdue(task as any) && (
+                        <span className="ml-2 rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-semibold text-red-600">
+                          Overdue
+                        </span>
+                      )}
                     </td>
                     <td className="px-5 py-3.5">
                       <StatusBadge status={task.status} />
@@ -231,12 +294,12 @@ export function TasksPage() {
       {/* Create Task Modal */}
       <Modal
         isOpen={showCreateModal}
-        onClose={() => { setShowCreateModal(false); setForm(EMPTY_FORM); setFormErrors({}); setSubmitError(null); }}
+        onClose={closeModal}
         title="Create Task"
         size="lg"
         footer={
           <>
-            <Button variant="secondary" onClick={() => setShowCreateModal(false)}>Cancel</Button>
+            <Button variant="secondary" onClick={closeModal}>Cancel</Button>
             <Button variant="primary" isLoading={submitting} onClick={handleSubmit}>
               Create Task
             </Button>
@@ -245,7 +308,7 @@ export function TasksPage() {
       >
         <div className="space-y-4">
           {submitError && (
-            <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-sm text-red-700">
+            <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-3 py-2 text-sm text-red-700">
               <AlertCircle className="w-4 h-4" /> {submitError}
             </div>
           )}

@@ -15,7 +15,11 @@ export interface Report {
   photoUrl?: string;
   submittedBy: string;
   submitterPhone?: string;
-  assignedTo?: string;
+  assignedTo?: string; // legacy field, kept for backwards compatibility
+  assignedCrewId?: string;
+  assignedCrewName?: string;
+  assignedTaskId?: string;
+  assignedDistanceKm?: number;
   createdAt: string;
   updatedAt: string;
   ward?: string;
@@ -69,6 +73,7 @@ export const useReportStore = create<ReportState>((set, get) => ({
       if (filters.dateTo) params.dateTo = filters.dateTo;
 
       const res = await reportsApi.list(params);
+      console.log('first report from API:', res.data.reports?.[0] ?? res.data.items?.[0]);
       set({
         reports: res.data.reports || res.data.items || [],
         total: res.data.total || 0,

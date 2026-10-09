@@ -8,6 +8,7 @@ import {
   signOut,
   refreshTokens,
   googleSignIn,
+  handleOAuthCallback,
   parseJwt,
   isTokenExpired,
   getCognitoErrorMessage,
@@ -38,7 +39,8 @@ interface AuthState {
   pendingEmail: string | null;
 
   login: (email: string, password: string) => Promise<void>;
-  loginWithGoogle: () => Promise<void>;
+  loginWithGoogle: () => void;
+  completeGoogleSignIn: (url: string) => Promise<void>;
   register: (email: string, password: string, name: string, phone: string) => Promise<void>;
   confirmOtp: (email: string, code: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -74,15 +76,12 @@ async function storageDelete(key: string): Promise<void> {
 }
 // ---------------------------------------------------
 
-// FIX: Cognito stores/sends roles as UPPERCASE ('CREW', 'CITIZEN', 'ADMIN')
-// Always normalize to lowercase before comparing
 function extractRole(payload: Record<string, unknown>): UserRole {
   const customRole = payload['custom:role'] as string | undefined;
   if (customRole) {
     const normalized = customRole.toLowerCase();
     if (['citizen', 'crew', 'admin'].includes(normalized)) return normalized as UserRole;
   }
-  // Fallback: check Cognito groups (also UPPERCASE)
   const groups = payload['cognito:groups'] as string[] | undefined;
   if (groups && groups.length > 0) {
     const group = groups[0].toLowerCase();
@@ -135,7 +134,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const tokens = await signIn(email, password);
-      // Always derive role fresh from JWT on login
       const user = buildUserFromTokens(tokens);
       await storeTokens(tokens);
       await storageSet('user', JSON.stringify(user));
@@ -146,10 +144,21 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-  loginWithGoogle: async () => {
+  // Just opens the browser — result is handled by completeGoogleSignIn via callback.tsx
+  loginWithGoogle: () => {
+    set({ error: null });
+    try {
+      googleSignIn();
+    } catch (err) {
+      set({ error: getCognitoErrorMessage(err) });
+    }
+  },
+
+  // Called by callback.tsx with the deep-link URL after Google redirects back
+  completeGoogleSignIn: async (url: string) => {
     set({ isLoading: true, error: null });
     try {
-      const tokens = await googleSignIn();
+      const tokens = await handleOAuthCallback(url);
       const user = buildUserFromTokens(tokens);
       await storeTokens(tokens);
       await storageSet('user', JSON.stringify(user));
@@ -213,7 +222,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (isTokenExpired(idToken)) {
         try {
           const newTokens = await refreshTokens(refreshToken);
-          // Re-derive role from the fresh token
           const user = buildUserFromTokens(newTokens);
           await storeTokens(newTokens);
           await storageSet('user', JSON.stringify(user));
@@ -227,21 +235,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
 
       const tokens: AuthTokens = { idToken, accessToken, refreshToken };
-
-      // FIX: ALWAYS re-derive role from JWT — never trust the cached role.
-      // The cached user may have been saved when the role was wrong.
       const freshUser = buildUserFromTokens(tokens);
 
-      // Only borrow name/email from cache if JWT doesn't provide them
       if (userJson) {
         const cached = JSON.parse(userJson) as AuthUser;
         if (!freshUser.name && cached.name) freshUser.name = cached.name;
         if (!freshUser.email && cached.email) freshUser.email = cached.email;
       }
 
-      // Persist the corrected user so future launches are also correct
       await storageSet('user', JSON.stringify(freshUser));
-
       set({ user: freshUser, tokens, isLoading: false });
     } catch {
       await clearTokens();

@@ -80,34 +80,29 @@ export class ApiStack extends cdk.Stack {
 
     // ── Integration helpers ───────────────────────────────────────────────────
     const reportsInt = new apigateway.LambdaIntegration(reportsHandler);
-    const tasksInt = new apigateway.LambdaIntegration(tasksHandler);
-    const crewInt = new apigateway.LambdaIntegration(crewHandler);
-    const notifInt = new apigateway.LambdaIntegration(notificationsHandler);
+    const tasksInt   = new apigateway.LambdaIntegration(tasksHandler);
+    const crewInt    = new apigateway.LambdaIntegration(crewHandler);
+    const notifInt   = new apigateway.LambdaIntegration(notificationsHandler);
 
     // ── /reports ──────────────────────────────────────────────────────────────
     const reports = api.root.addResource('reports');
     reports.addMethod('POST', reportsInt, authOptions);
     reports.addMethod('GET', reportsInt, authOptions);
 
-    // /reports/guest — unauthenticated submit
     const reportsGuest = reports.addResource('guest');
     reportsGuest.addMethod('POST', reportsInt, publicOptions);
 
-    // /reports/public — public feed
     const reportsPublic = reports.addResource('public');
     reportsPublic.addMethod('GET', reportsInt, publicOptions);
     const reportsPublicAuthenticated = reportsPublic.addResource('authenticated');
     reportsPublicAuthenticated.addMethod('GET', reportsInt, authOptions);
 
-    // /reports/mine — signed-in citizen's own reports
     const reportsMine = reports.addResource('mine');
     reportsMine.addMethod('GET', reportsInt, authOptions);
 
-    // /reports/presigned-upload
     const presignedUpload = reports.addResource('presigned-upload');
     presignedUpload.addMethod('GET', reportsInt, publicOptions);
 
-    // /reports/{reportId}
     const reportById = reports.addResource('{reportId}');
     reportById.addMethod('GET', reportsInt, authOptions);
     reportById.addMethod('PATCH', reportsInt, authOptions);
@@ -118,7 +113,6 @@ export class ApiStack extends cdk.Stack {
     const reportComments = reportById.addResource('comments');
     reportComments.addMethod('POST', reportsInt, authOptions);
 
-    // /reports/{reportId}/status
     const reportStatus = reportById.addResource('status');
     reportStatus.addMethod('GET', reportsInt, publicOptions);
     reportStatus.addMethod('PATCH', reportsInt, authOptions);
@@ -128,25 +122,20 @@ export class ApiStack extends cdk.Stack {
     tasks.addMethod('POST', tasksInt, authOptions);
     tasks.addMethod('GET', tasksInt, authOptions);
 
-    // /tasks/mine — crew member's assigned tasks
     const tasksMine = tasks.addResource('mine');
     tasksMine.addMethod('GET', tasksInt, authOptions);
 
-    // /tasks/{taskId}
     const taskById = tasks.addResource('{taskId}');
     taskById.addMethod('GET', tasksInt, authOptions);
     taskById.addMethod('PATCH', tasksInt, authOptions);
     taskById.addMethod('DELETE', tasksInt, authOptions);
 
-    // /tasks/{taskId}/status
     const taskStatus = taskById.addResource('status');
     taskStatus.addMethod('PATCH', tasksInt, authOptions);
 
-    // /tasks/{taskId}/evidence-upload — presigned S3 PUT URL for crew photos
     const taskEvidenceUpload = taskById.addResource('evidence-upload');
     taskEvidenceUpload.addMethod('GET', tasksInt, authOptions);
 
-    // /tasks/{taskId}/evidence-photos — presigned S3 GET URLs for stored photos
     const taskEvidencePhotos = taskById.addResource('evidence-photos');
     taskEvidencePhotos.addMethod('GET', tasksInt, authOptions);
     taskEvidencePhotos.addMethod('DELETE', tasksInt, authOptions);
@@ -166,19 +155,19 @@ export class ApiStack extends cdk.Stack {
     notifications.addMethod('GET', notifInt, authOptions);
     notifications.addMethod('POST', notifInt, authOptions);
 
-    // /notifications/send
     const notifSend = notifications.addResource('send');
     notifSend.addMethod('POST', notifInt, authOptions);
 
-    // /notifications/read-all
     const notifReadAll = notifications.addResource('read-all');
     notifReadAll.addMethod('POST', notifInt, authOptions);
 
-    // /notifications/{notificationId}
+    // NEW ↓
+    const notifRegisterPushToken = notifications.addResource('register-push-token');
+    notifRegisterPushToken.addMethod('POST', notifInt, authOptions);
+
     const notifById = notifications.addResource('{notificationId}');
     notifById.addMethod('DELETE', notifInt, authOptions);
 
-    // /notifications/{notificationId}/read
     const notifRead = notifById.addResource('read');
     notifRead.addMethod('PATCH', notifInt, authOptions);
 
