@@ -1,728 +1,343 @@
-import React, { useRef, useState } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
+  RefreshControl,
   ActivityIndicator,
   StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
   StatusBar,
-  TextInput,
-  TextInputProps,
 } from 'react-native';
-import { Stack, useRouter } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
+import { AppHeader } from '@/components/common/AppHeader';
+import { Rings } from '@/components/common/Rings';
+import { ReportCard } from '@/components/citizen/ReportCard';
 import { useAuthStore } from '@/store/authStore';
+import { useReportStore } from '@/store/reportStore';
+import { firstName, greeting } from '@/utils/format';
 import { colors } from '@/theme/colors';
 
-const FOREST = '#0f3d2e';
-const MINT = '#d9f2e3';
+export default function CitizenHome() {
+  const router = useRouter();
+  const user = useAuthStore((s) => s.user);
+  const { publicReports, myReports, isLoading, fetchPublicReports, fetchMyReports } = useReportStore();
 
-interface FieldProps {
-  label: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  value: string;
-  onChangeText: (t: string) => void;
-  error?: string;
-  placeholder?: string;
-  secure?: boolean;
-  keyboardType?: TextInputProps['keyboardType'];
-  autoComplete?: TextInputProps['autoComplete'];
-  autoCapitalize?: TextInputProps['autoCapitalize'];
-  returnKeyType?: TextInputProps['returnKeyType'];
-  onSubmitEditing?: () => void;
-  inputRef?: React.RefObject<TextInput | null>;
-}
+  const load = useCallback(() => {
+    fetchPublicReports();
+    fetchMyReports();
+  }, [fetchPublicReports, fetchMyReports]);
 
-function Field({
-  label,
-  icon,
-  value,
-  onChangeText,
-  error,
-  placeholder,
-  secure,
-  keyboardType = 'default',
-  autoComplete,
-  autoCapitalize = 'none',
-  returnKeyType,
-  onSubmitEditing,
-  inputRef,
-}: FieldProps) {
-  const [focused, setFocused] = useState(false);
-  const [hidden, setHidden] = useState(!!secure);
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load]),
+  );
+
+  const completed = useMemo(
+    () => publicReports.filter((r) => r.status === 'resolved'),
+    [publicReports],
+  );
+
+  const open = myReports.filter((r) => r.status !== 'resolved').length;
+  const resolved = myReports.filter((r) => r.status === 'resolved').length;
 
   return (
-    <View style={styles.fieldWrap}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-
-      <View
-        style={[
-          styles.fieldBox,
-          focused && styles.fieldBoxFocused,
-          !!error && styles.fieldBoxError,
-        ]}
-      >
-        <Ionicons
-          name={icon}
-          size={20}
-          color={
-            error
-              ? colors.danger
-              : focused
-              ? colors.primary
-              : colors.gray[500]
-          }
-        />
-
-        <TextInput
-          ref={inputRef as React.RefObject<TextInput>}
-          style={styles.fieldInput}
-          value={value}
-          onChangeText={onChangeText}
-          placeholder={placeholder}
-          placeholderTextColor={colors.gray[500]}
-          secureTextEntry={hidden}
-          keyboardType={keyboardType}
-          autoCapitalize={autoCapitalize}
-          autoCorrect={false}
-          autoComplete={autoComplete}
-          returnKeyType={returnKeyType}
-          onSubmitEditing={onSubmitEditing}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-        />
-
-        {secure && (
-          <TouchableOpacity
-            onPress={() => setHidden((h) => !h)}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            accessibilityLabel={hidden ? 'Show password' : 'Hide password'}
-          >
-            <Ionicons
-              name={hidden ? 'eye-outline' : 'eye-off-outline'}
-              size={20}
-              color={colors.gray[500]}
+    <View style={styles.root}>
+      <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
+      <SafeAreaView edges={['top']} style={styles.safe}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scroll}
+          stickyHeaderIndices={[0]}
+          refreshControl={
+            <RefreshControl
+              refreshing={isLoading}
+              onRefresh={load}
+              tintColor={colors.primary}
+              colors={[colors.primary]}
             />
-          </TouchableOpacity>
-        )}
-      </View>
+          }
+        >
+          {/* HERO */}
+          <View style={styles.hero}>
+            <Rings />
+            <AppHeader role="citizen" />
+          </View>
 
-      {!!error && <Text style={styles.fieldError}>{error}</Text>}
+          <View style={styles.heroCopy}>
+            <Text style={styles.hello}>
+              {greeting()}, {firstName(user?.name)} 👋
+            </Text>
+            <Text style={styles.heroTitle}>
+              Report waste.{'\n'}Keep your city{'\n'}clean.
+            </Text>
+            <Text style={styles.heroSub}>
+              Help make your neighbourhood cleaner by reporting overflowing bins and illegal dumping.
+            </Text>
+          </View>
+
+          {/* SHEET */}
+          <View style={styles.sheet}>
+            {/* Quick report */}
+            <View style={styles.actionCard}>
+              <View style={styles.actionHeader}>
+                <View style={{ flex: 1 }}>
+                  <View style={styles.liveRow}>
+                    <View style={styles.liveDot} />
+                    <Text style={styles.liveText}>QUICK REPORT</Text>
+                  </View>
+                  <Text style={styles.actionTitle}>Report Waste Now</Text>
+                </View>
+                <View style={styles.cameraChip}>
+                  <Ionicons name="camera-outline" size={16} color={colors.primary} />
+                  <Text style={styles.cameraChipText}>Camera</Text>
+                </View>
+              </View>
+              <Text style={styles.actionDescription}>
+                Snap a photo, tag your location, and our cleanup crews will handle the rest.
+              </Text>
+              <TouchableOpacity
+                style={styles.reportButton}
+                onPress={() => router.navigate('/(citizen)/tabs/report' as any)}
+                activeOpacity={0.85}
+              >
+                <Ionicons name="camera" size={18} color="#fff" />
+                <Text style={styles.reportButtonText}>Report Waste Now</Text>
+                <Ionicons name="arrow-forward" size={18} color="#fff" />
+              </TouchableOpacity>
+            </View>
+
+            {/* My activity */}
+            <View style={styles.statsRow}>
+              <StatTile
+                label="My reports"
+                value={myReports.length}
+                icon="document-text-outline"
+                onPress={() => router.navigate('/(citizen)/tabs/my-reports' as any)}
+              />
+              <StatTile
+                label="In progress"
+                value={open}
+                icon="reload-outline"
+                onPress={() => router.navigate('/(citizen)/tabs/my-reports' as any)}
+              />
+              <StatTile
+                label="Resolved"
+                value={resolved}
+                icon="checkmark-circle-outline"
+                onPress={() => router.navigate('/(citizen)/tabs/my-reports' as any)}
+              />
+            </View>
+
+            {/* Community feed */}
+            <View style={styles.sectionHeader}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.sectionTitle}>Community Feed</Text>
+                <Text style={styles.sectionSub}>Completed cleanups from your area</Text>
+              </View>
+              <View style={styles.sectionIcon}>
+                <Ionicons name="people-outline" size={19} color={colors.primary} />
+              </View>
+            </View>
+
+            {isLoading && completed.length === 0 ? (
+              <ActivityIndicator color={colors.primary} style={{ marginVertical: 30 }} />
+            ) : completed.length === 0 ? (
+              <View style={styles.emptyFeed}>
+                <View style={styles.emptyIcon}>
+                  <Ionicons name="leaf-outline" size={28} color={colors.primary} />
+                </View>
+                <Text style={styles.emptyTitle}>No completed cleanups yet</Text>
+                <Text style={styles.emptyText}>Community cleanup activity will appear here.</Text>
+              </View>
+            ) : (
+              <>
+                {completed.slice(0, 5).map((report) => (
+                  <ReportCard
+                    key={report.reportId ?? report.id}
+                    report={report as any}
+                    style={styles.feedCard}
+                  />
+                ))}
+                {completed.length > 5 && (
+                  <TouchableOpacity
+                    style={styles.seeAll}
+                    onPress={() => router.navigate('/(citizen)/tabs/my-reports' as any)}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.seeAllText}>See all reports</Text>
+                    <Ionicons name="arrow-forward" size={15} color={colors.primary} />
+                  </TouchableOpacity>
+                )}
+              </>
+            )}
+          </View>
+        </ScrollView>
+      </SafeAreaView>
     </View>
   );
 }
 
-export default function RegisterScreen() {
-  const router = useRouter();
-  const insets = useSafeAreaInsets();
-
-  const {
-    register,
-    loginWithGoogle,
-    isLoading,
-    error,
-    clearError,
-  } = useAuthStore();
-
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [errors, setErrors] = useState<Record<string, string>>({});
-
-  const emailRef = useRef<TextInput>(null);
-  const phoneRef = useRef<TextInput>(null);
-  const passwordRef = useRef<TextInput>(null);
-  const confirmRef = useRef<TextInput>(null);
-
-  const longEnough = password.length >= 8;
-  const matches =
-    confirmPassword.length > 0 && password === confirmPassword;
-
-  function validate(): boolean {
-    const newErrors: Record<string, string> = {};
-
-    if (!name.trim()) {
-      newErrors.name = 'Enter your full name';
-    }
-
-    if (!email.trim()) {
-      newErrors.email = 'Enter your email address';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      newErrors.email = 'Enter a valid email address';
-    }
-
-    if (!phone.trim()) {
-      newErrors.phone = 'Enter your phone number';
-    } else if (!/^\+?[\d\s\-()]{8,}$/.test(phone)) {
-      newErrors.phone =
-        'Include your country code, for example +237 6XX XXX XXX';
-    }
-
-    if (!password) {
-      newErrors.password = 'Choose a password';
-    } else if (password.length < 8) {
-      newErrors.password = 'Use at least 8 characters';
-    }
-
-    if (password !== confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  }
-
-  async function handleRegister() {
-    if (!validate()) return;
-
-    clearError();
-
-    try {
-      await register(
-        email.trim().toLowerCase(),
-        password,
-        name.trim(),
-        phone.trim()
-      );
-
-      router.push('/auth/verify');
-    } catch {
-      // error shown via store.error
-    }
-  }
-
-  async function handleGoogle() {
-    // Errors are stored in the auth store and shown in the banner below.
-    await loginWithGoogle();
-  }
-
+function StatTile({
+  label,
+  value,
+  icon,
+  onPress,
+}: {
+  label: string;
+  value: number;
+  icon: keyof typeof Ionicons.glyphMap;
+  onPress: () => void;
+}) {
   return (
-    <>
-      {/* Hide the default Expo Router header */}
-      <Stack.Screen options={{ headerShown: false }} />
-
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={styles.root}
-      >
-        <StatusBar
-          barStyle="light-content"
-          backgroundColor={FOREST}
-        />
-
-        <ScrollView
-          contentContainerStyle={styles.scroll}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Compact hero */}
-          <View
-            style={[
-              styles.hero,
-              { paddingTop: insets.top + 12 },
-            ]}
-          >
-            <View style={[styles.ring, styles.ringLarge]} />
-            <View style={[styles.ring, styles.ringMedium]} />
-            <View style={[styles.ring, styles.ringSmall]} />
-
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => router.back()}
-              accessibilityLabel="Go back"
-              activeOpacity={0.8}
-            >
-              <Ionicons
-                name="arrow-back"
-                size={22}
-                color={colors.white}
-              />
-            </TouchableOpacity>
-
-            <Text style={styles.heroTitle}>
-              Create your account
-            </Text>
-
-            <Text style={styles.heroSub}>
-              Report overflowing bins and illegal dumping in your
-              neighbourhood.
-            </Text>
-          </View>
-
-          {/* Form sheet */}
-          <View style={styles.sheet}>
-            {!!error && (
-              <View style={styles.errorBanner}>
-                <Ionicons
-                  name="alert-circle"
-                  size={18}
-                  color={colors.danger}
-                />
-
-                <Text style={styles.errorBannerText}>
-                  {error}
-                </Text>
-              </View>
-            )}
-
-            <Field
-              label="Full name"
-              icon="person-outline"
-              value={name}
-              onChangeText={setName}
-              placeholder="Jane Smith"
-              autoCapitalize="words"
-              autoComplete="name"
-              error={errors.name}
-              returnKeyType="next"
-              onSubmitEditing={() =>
-                emailRef.current?.focus()
-              }
-            />
-
-            <Field
-              label="Email"
-              icon="mail-outline"
-              value={email}
-              onChangeText={setEmail}
-              placeholder="you@example.com"
-              keyboardType="email-address"
-              autoComplete="email"
-              error={errors.email}
-              returnKeyType="next"
-              onSubmitEditing={() =>
-                phoneRef.current?.focus()
-              }
-              inputRef={emailRef}
-            />
-
-            <Field
-              label="Phone number"
-              icon="call-outline"
-              value={phone}
-              onChangeText={setPhone}
-              placeholder="+237 6XX XXX XXX"
-              keyboardType="phone-pad"
-              autoComplete="tel"
-              error={errors.phone}
-              returnKeyType="next"
-              onSubmitEditing={() =>
-                passwordRef.current?.focus()
-              }
-              inputRef={phoneRef}
-            />
-
-            <Field
-              label="Password"
-              icon="lock-closed-outline"
-              value={password}
-              onChangeText={setPassword}
-              placeholder="Create a password"
-              secure
-              autoComplete="password-new"
-              error={errors.password}
-              returnKeyType="next"
-              onSubmitEditing={() =>
-                confirmRef.current?.focus()
-              }
-              inputRef={passwordRef}
-            />
-
-            {/* Live password rule */}
-            <View style={styles.ruleRow}>
-              <Ionicons
-                name={
-                  longEnough
-                    ? 'checkmark-circle'
-                    : 'ellipse-outline'
-                }
-                size={16}
-                color={
-                  longEnough
-                    ? colors.primary
-                    : colors.gray[500]
-                }
-              />
-
-              <Text
-                style={[
-                  styles.ruleText,
-                  longEnough && styles.ruleTextMet,
-                ]}
-              >
-                At least 8 characters
-              </Text>
-            </View>
-
-            <Field
-              label="Confirm password"
-              icon="shield-checkmark-outline"
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              placeholder="Repeat your password"
-              secure
-              autoComplete="password-new"
-              error={errors.confirmPassword}
-              returnKeyType="go"
-              onSubmitEditing={handleRegister}
-              inputRef={confirmRef}
-            />
-
-            {matches && (
-              <View
-                style={[
-                  styles.ruleRow,
-                  styles.ruleRowAfterField,
-                ]}
-              >
-                <Ionicons
-                  name="checkmark-circle"
-                  size={16}
-                  color={colors.primary}
-                />
-
-                <Text
-                  style={[
-                    styles.ruleText,
-                    styles.ruleTextMet,
-                  ]}
-                >
-                  Passwords match
-                </Text>
-              </View>
-            )}
-
-            <TouchableOpacity
-              style={[
-                styles.primaryButton,
-                isLoading &&
-                  styles.primaryButtonDisabled,
-              ]}
-              onPress={handleRegister}
-              disabled={isLoading}
-              activeOpacity={0.85}
-            >
-              {isLoading ? (
-                <ActivityIndicator color={colors.white} />
-              ) : (
-                <Text style={styles.primaryButtonText}>
-                  Create account
-                </Text>
-              )}
-            </TouchableOpacity>
-
-            <View style={styles.divider}>
-              <View style={styles.dividerLine} />
-
-              <Text style={styles.dividerText}>or</Text>
-
-              <View style={styles.dividerLine} />
-            </View>
-
-            <TouchableOpacity
-              style={styles.googleButton}
-              onPress={handleGoogle}
-              activeOpacity={0.85}
-            >
-              <View style={styles.googleBadge}>
-                <Text style={styles.googleBadgeText}>
-                  G
-                </Text>
-              </View>
-
-              <Text style={styles.googleText}>
-                Sign up with Google
-              </Text>
-            </TouchableOpacity>
-
-            <View style={styles.footer}>
-              <Text style={styles.footerText}>
-                Already have an account?{' '}
-              </Text>
-
-              <TouchableOpacity
-                onPress={() => router.back()}
-              >
-                <Text style={styles.footerLink}>
-                  Sign in
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </>
+    <TouchableOpacity style={styles.stat} onPress={onPress} activeOpacity={0.8}>
+      <View style={styles.statIcon}>
+        <Ionicons name={icon} size={17} color={colors.primary} />
+      </View>
+      <Text style={styles.statValue}>{value}</Text>
+      <Text style={styles.statLabel}>{label}</Text>
+    </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: FOREST,
-  },
+  root: { flex: 1, backgroundColor: colors.primary },
+  safe: { flex: 1, backgroundColor: colors.primary },
+  scroll: { flexGrow: 1, backgroundColor: colors.background, paddingBottom: 24 },
 
-  scroll: {
-    flexGrow: 1,
+  hero: { backgroundColor: colors.primary, overflow: 'hidden' },
+  heroCopy: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 22,
+    paddingTop: 8,
+    paddingBottom: 30,
   },
-
-  // ---- hero ----
-  hero: {
-    backgroundColor: FOREST,
-    paddingHorizontal: 24,
-    paddingBottom: 52,
-    overflow: 'hidden',
-  },
-
-  ring: {
-    position: 'absolute',
-    borderRadius: 999,
-    borderColor: 'rgba(217, 242, 227, 0.14)',
-  },
-
-  ringLarge: {
-    width: 280,
-    height: 280,
-    borderWidth: 1.5,
-    top: -100,
-    right: -110,
-  },
-
-  ringMedium: {
-    width: 180,
-    height: 180,
-    borderWidth: 1.5,
-    top: -50,
-    right: -60,
-  },
-
-  ringSmall: {
-    width: 90,
-    height: 90,
-    borderWidth: 11,
-    top: 0,
-    right: -8,
-    borderColor: 'rgba(34, 197, 94, 0.28)',
-  },
-
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 26,
-  },
-
+  hello: { fontSize: 14, fontWeight: '600', color: colors.mint, marginBottom: 6 },
   heroTitle: {
-    fontSize: 30,
+    fontSize: 34,
+    lineHeight: 40,
     fontWeight: '800',
-    color: colors.white,
-    letterSpacing: -0.7,
-    marginBottom: 8,
+    color: '#fff',
+    letterSpacing: -0.8,
+    marginBottom: 10,
   },
+  heroSub: { maxWidth: 330, fontSize: 14, lineHeight: 21, color: colors.mint },
 
-  heroSub: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: MINT,
-    maxWidth: 320,
-  },
-
-  // ---- sheet ----
   sheet: {
-    flex: 1,
-    marginTop: -28,
-    backgroundColor: colors.white,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    paddingHorizontal: 24,
-    paddingTop: 28,
-    paddingBottom: 36,
+    backgroundColor: colors.background,
+    paddingHorizontal: 18,
+    paddingTop: 18,
+    minHeight: 420,
   },
 
-  errorBanner: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 8,
-    backgroundColor: '#fef2f2',
+  actionCard: {
+    backgroundColor: '#fff',
     borderWidth: 1,
-    borderColor: '#fecaca',
-    borderRadius: 12,
-    paddingHorizontal: 14,
+    borderColor: colors.border,
+    borderRadius: 1,
+    padding: 16,
+    marginBottom: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.07,
+    shadowRadius: 12,
+    elevation: 3,
+  },
+  actionHeader: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 9 },
+  liveRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 5 },
+  liveDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.accent },
+  liveText: { fontSize: 10, fontWeight: '800', color: '#22a05a', letterSpacing: 0.9 },
+  actionTitle: { fontSize: 20, fontWeight: '800', color: colors.gray[900], letterSpacing: -0.3 },
+  cameraChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: colors.primaryLight,
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
+  cameraChipText: { fontSize: 10.5, fontWeight: '700', color: colors.primary },
+  actionDescription: { fontSize: 13.5, lineHeight: 20, color: colors.gray[500], marginBottom: 16 },
+  reportButton: {
+    height: 52,
+    borderRadius: 6,
+    backgroundColor: colors.primary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 9,
+  },
+  reportButtonText: { fontSize: 15, fontWeight: '700', color: '#fff', letterSpacing: 0.1 },
+
+  statsRow: { flexDirection: 'row', gap: 10, marginBottom: 26 },
+  stat: {
+    flex: 1,
+    backgroundColor: '#fff',
+    borderRadius: 1,
+    borderWidth: 1,
+    borderColor: colors.border,
     paddingVertical: 12,
-    marginBottom: 20,
+    alignItems: 'center',
   },
-
-  errorBannerText: {
-    flex: 1,
-    fontSize: 13,
-    lineHeight: 18,
-    color: colors.danger,
+  statIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
   },
+  statValue: { fontSize: 20, fontWeight: '800', color: colors.gray[900] },
+  statLabel: { fontSize: 11, fontWeight: '600', color: colors.gray[500], marginTop: 1 },
 
-  // ---- fields ----
-  fieldWrap: {
-    marginBottom: 18,
+  sectionHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 14 },
+  sectionTitle: { fontSize: 20, fontWeight: '800', color: colors.gray[900], letterSpacing: -0.3, marginBottom: 3 },
+  sectionSub: { fontSize: 12.5, color: colors.gray[500] },
+  sectionIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-
-  fieldLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.gray[700],
-    marginBottom: 8,
-  },
-
-  fieldBox: {
+  feedCard: { marginHorizontal: 0 },
+  seeAll: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    height: 54,
-    paddingHorizontal: 14,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: colors.gray[200],
-    backgroundColor: '#f8faf9',
-  },
-
-  fieldBoxFocused: {
-    borderColor: colors.primary,
-    backgroundColor: colors.white,
-  },
-
-  fieldBoxError: {
-    borderColor: colors.danger,
-    backgroundColor: '#fff7f7',
-  },
-
-  fieldInput: {
-    flex: 1,
-    fontSize: 16,
-    color: colors.gray[900],
-    paddingVertical: 0,
-  },
-
-  fieldError: {
-    marginTop: 6,
-    fontSize: 12.5,
-    color: colors.danger,
-  },
-
-  ruleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    justifyContent: 'center',
     gap: 6,
-    marginTop: -8,
-    marginBottom: 18,
+    height: 48,
+    borderRadius: 6,
+    backgroundColor: colors.primaryLight,
+    marginTop: 2,
   },
+  seeAllText: { fontSize: 14, fontWeight: '700', color: colors.primary },
 
-  ruleRowAfterField: {
-    marginTop: -10,
+  emptyFeed: {
+    alignItems: 'center',
+    paddingVertical: 34,
+    paddingHorizontal: 20,
+    borderRadius: 1,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-
-  ruleText: {
-    fontSize: 13,
-    color: colors.gray[500],
-  },
-
-  ruleTextMet: {
-    color: colors.primary,
-  },
-
-  // ---- buttons ----
-  primaryButton: {
-    height: 54,
-    borderRadius: 14,
-    backgroundColor: FOREST,
+  emptyIcon: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    backgroundColor: colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 6,
+    marginBottom: 12,
   },
-
-  primaryButtonDisabled: {
-    opacity: 0.7,
-  },
-
-  primaryButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.white,
-    letterSpacing: 0.2,
-  },
-
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 22,
-  },
-
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: colors.gray[200],
-  },
-
-  dividerText: {
-    marginHorizontal: 14,
-    fontSize: 13,
-    color: colors.gray[500],
-  },
-
-  googleButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-    height: 54,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: colors.gray[200],
-    backgroundColor: colors.white,
-  },
-
-  googleBadge: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: '#eef3fe',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  googleBadgeText: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#4285f4',
-  },
-
-  googleText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.gray[700],
-  },
-
-  // ---- footer ----
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 26,
-  },
-
-  footerText: {
-    fontSize: 14,
-    color: colors.gray[500],
-  },
-
-  footerLink: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.primary,
-  },
+  emptyTitle: { fontSize: 15, fontWeight: '700', color: colors.gray[900], marginBottom: 5 },
+  emptyText: { fontSize: 12.5, color: colors.gray[500], textAlign: 'center', lineHeight: 18 },
 });

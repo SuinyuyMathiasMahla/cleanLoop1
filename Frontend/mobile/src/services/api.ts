@@ -244,6 +244,13 @@ export interface Task {
   addresses: string[];
   notes?: string;
   evidencePhotoKeys?: string[];
+  crewRoster?: { userId: string; name: string; isLead: boolean }[];
+  companionAttendance?: { userId: string; name: string; present: boolean; markedAt: string }[];
+}
+
+export interface CompanionAttendanceInput {
+  userId: string;
+  present: boolean;
 }
 
 export const tasksApi = {
@@ -251,10 +258,16 @@ export const tasksApi = {
 
   getById: (id: string) => api.get<{ task: Task }>(`/tasks/${id}`),
 
-  updateStatus: (id: string, status: string, evidencePhotoKeys?: string[]) =>
+  updateStatus: (
+    id: string,
+    status: string,
+    evidencePhotoKeys?: string[],
+    companionAttendance?: CompanionAttendanceInput[],
+  ) =>
     api.patch<{ taskId: string; status: string }>(`/tasks/${id}/status`, {
       status,
       ...(evidencePhotoKeys ? { evidencePhotoKeys } : {}),
+      ...(companionAttendance ? { companionAttendance } : {}),
     }),
 
   getEvidenceUploadUrl: (id: string, contentType = 'image/jpeg', filename = 'evidence.jpg') =>
@@ -274,7 +287,7 @@ export const tasksApi = {
 export interface Notification {
   notificationId?: string;
   id: string;
-  type: 'task_assigned' | 'task_updated' | 'report_new' | 'task_overdue' | 'general';
+  type: 'task_assigned' | 'task_updated' | 'report_new' | 'report_resolved' | 'task_overdue' | 'general';
   title: string;
   body: string;
   read: boolean;

@@ -7,7 +7,6 @@ import {
   ScrollView,
   RefreshControl,
   ActivityIndicator,
-  ImageBackground,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -195,32 +194,6 @@ export default function GuestLanding() {
           />
 
           <View style={styles.heroContent}>
-            <View style={styles.heroBadgeRow}>
-              <View style={styles.heroBadge}>
-                <Ionicons
-                  name="location-outline"
-                  size={13}
-                  color={MINT}
-                />
-
-                <Text style={styles.heroBadgeText}>
-                  GPS Enabled
-                </Text>
-              </View>
-
-              <View style={styles.heroBadge}>
-                <Ionicons
-                  name="time-outline"
-                  size={13}
-                  color={MINT}
-                />
-
-                <Text style={styles.heroBadgeText}>
-                  Fast Cleanup
-                </Text>
-              </View>
-            </View>
-
             <Text style={styles.heroTitle}>
               Report waste.{'\n'}
               Keep your city{'\n'}
@@ -437,7 +410,7 @@ const styles = StyleSheet.create({
   loginButton: {
     paddingHorizontal: 13,
     paddingVertical: 8,
-    borderRadius: 20,
+    borderRadius: 6,
     backgroundColor: 'rgba(255,255,255,0.12)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.25)',
@@ -452,7 +425,7 @@ const styles = StyleSheet.create({
   signupButton: {
     paddingHorizontal: 13,
     paddingVertical: 8,
-    borderRadius: 20,
+    borderRadius: 6,
     backgroundColor: '#ffffff',
   },
 
@@ -509,31 +482,6 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(34,197,94,0.25)',
   },
 
-  heroBadgeRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 10,
-    marginBottom: 22,
-  },
-
-  heroBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    backgroundColor: 'rgba(255,255,255,0.10)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.14)',
-    borderRadius: 20,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-
-  heroBadgeText: {
-    fontSize: 10.5,
-    fontWeight: '600',
-    color: MINT,
-  },
-
   heroTitle: {
     fontSize: 34,
     lineHeight: 40,
@@ -556,9 +504,9 @@ const styles = StyleSheet.create({
 
   sheet: {
     backgroundColor: '#ffffff',
-    marginTop: -28,
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
+    marginTop: -12,
+    borderTopLeftRadius: 1,
+    borderTopRightRadius: 1,
     paddingHorizontal: 20,
     paddingTop: 26,
     paddingBottom: 35,
@@ -573,7 +521,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderWidth: 1,
     borderColor: '#e1ebe6',
-    borderRadius: 22,
+    borderRadius: 1,
     padding: 18,
     marginBottom: 28,
 
@@ -631,7 +579,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 5,
     backgroundColor: LIGHT_GREEN,
-    borderRadius: 15,
+    borderRadius: 6,
     paddingHorizontal: 10,
     paddingVertical: 7,
   },
@@ -651,7 +599,7 @@ const styles = StyleSheet.create({
 
   reportButton: {
     height: 52,
-    borderRadius: 15,
+    borderRadius: 6,
     backgroundColor: FOREST,
     flexDirection: 'row',
     alignItems: 'center',
@@ -717,7 +665,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 35,
     paddingHorizontal: 20,
-    borderRadius: 20,
+    borderRadius: 1,
     backgroundColor: '#f8fbf9',
     borderWidth: 1,
     borderColor: '#e5eee9',

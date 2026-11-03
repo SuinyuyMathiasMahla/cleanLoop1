@@ -47,6 +47,10 @@ export function TaskCard({
   const timeStr = scheduledDate.toLocaleTimeString(undefined, {
     hour: '2-digit', minute: '2-digit',
   });
+  const crewCount = new Set([
+    ...(task.crewIds ?? []),
+    ...(task.crewLeadId ? [task.crewLeadId] : []),
+  ]).size;
 
   return (
     <TouchableOpacity
@@ -79,7 +83,10 @@ export function TaskCard({
           <MetaChip icon="calendar-outline" text={dateStr} />
           <MetaChip icon="time-outline" text={timeStr} />
           <MetaChip icon="document-text-outline" text={`${task.reportIds.length} rep.`} />
-          <MetaChip icon="people-outline" text={`${task.crewIds.length} crew`} />
+          <MetaChip
+            icon="people-outline"
+            text={`${crewCount} crew`}
+          />
         </View>
 
         <StatusBadge status={task.status} />
@@ -161,7 +168,7 @@ const metaStyles = StyleSheet.create({
 const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.white,
-    borderRadius: 12,
+    borderRadius: 1,
     marginHorizontal: 16,
     marginBottom: 10,
     shadowColor: '#000',

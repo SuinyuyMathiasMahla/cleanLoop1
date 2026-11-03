@@ -474,8 +474,8 @@ const styles = StyleSheet.create({
   // ---- hero ----
   hero: {
     backgroundColor: FOREST,
-    paddingHorizontal: 24,
-    paddingBottom: 52,
+    paddingHorizontal: 20,
+    paddingBottom: 32,
     overflow: 'hidden',
   },
 
@@ -538,13 +538,13 @@ const styles = StyleSheet.create({
   // ---- sheet ----
   sheet: {
     flex: 1,
-    marginTop: -28,
+    marginTop: -12,
     backgroundColor: colors.white,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    paddingHorizontal: 24,
-    paddingTop: 28,
-    paddingBottom: 36,
+    borderTopLeftRadius: 1,
+    borderTopRightRadius: 1,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 24,
   },
 
   errorBanner: {
@@ -554,7 +554,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fef2f2',
     borderWidth: 1,
     borderColor: '#fecaca',
-    borderRadius: 12,
+    borderRadius: 6,
     paddingHorizontal: 14,
     paddingVertical: 12,
     marginBottom: 20,
@@ -569,24 +569,24 @@ const styles = StyleSheet.create({
 
   // ---- fields ----
   fieldWrap: {
-    marginBottom: 18,
+    marginBottom: 14,
   },
 
   fieldLabel: {
     fontSize: 14,
     fontWeight: '600',
     color: colors.gray[700],
-    marginBottom: 8,
+    marginBottom: 6,
   },
 
   fieldBox: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    height: 54,
-    paddingHorizontal: 14,
-    borderRadius: 14,
-    borderWidth: 1.5,
+    height: 50,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    borderWidth: 1,
     borderColor: colors.gray[200],
     backgroundColor: '#f8faf9',
   },
@@ -637,8 +637,8 @@ const styles = StyleSheet.create({
 
   // ---- buttons ----
   primaryButton: {
-    height: 54,
-    borderRadius: 14,
+    height: 50,
+    borderRadius: 6,
     backgroundColor: FOREST,
     alignItems: 'center',
     justifyContent: 'center',
@@ -659,7 +659,7 @@ const styles = StyleSheet.create({
   divider: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 22,
+    marginVertical: 16,
   },
 
   dividerLine: {
@@ -679,9 +679,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 12,
-    height: 54,
-    borderRadius: 14,
-    borderWidth: 1.5,
+    height: 50,
+    borderRadius: 6,
+    borderWidth: 1,
     borderColor: colors.gray[200],
     backgroundColor: colors.white,
   },

@@ -9,11 +9,13 @@ export default function Index() {
     return <LoadingSpinner fullScreen />;
   }
 
-  if (!user) {
+  const role = user?.role?.toLowerCase();
+
+  if (!user || role === 'admin') {
     return <Redirect href="/(guest)" />;
   }
 
-  if (user.role === 'crew') {
+  if (role === 'crew') {
     return <Redirect href="/(crew)/tabs" />;
   }
 

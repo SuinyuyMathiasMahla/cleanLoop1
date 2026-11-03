@@ -1,13 +1,30 @@
 import { create } from 'zustand';
 import { Platform } from 'react-native';
-import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import Constants from 'expo-constants';
 import { notificationsApi, Notification, getApiErrorMessage } from '../services/api';
 
+// expo-notifications THROWS when it is merely imported inside Expo Go on Android (removed in SDK 53).
+// A top-level `import` therefore crashed every route that touched this store. Load it lazily instead,
+// and skip it in Expo Go. Push notifications work in a development build / production build.
+const isExpoGo =
+  Constants.executionEnvironment === 'storeClient' || Constants.appOwnership === 'expo';
+
+type NotificationsModule = typeof import('expo-notifications');
+let Notifications: NotificationsModule | null = null;
+
+if (!(isExpoGo && Platform.OS === 'android') && Platform.OS !== 'web') {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    Notifications = require('expo-notifications') as NotificationsModule;
+  } catch (err) {
+    console.log('expo-notifications unavailable, push disabled:', err);
+  }
+}
+
 // Show notifications while the app is open. Guarded so a missing native module can't crash startup.
 try {
-  Notifications.setNotificationHandler({
+  Notifications?.setNotificationHandler({
     handleNotification: async () => ({
       shouldShowBanner: true,
       shouldShowList: true,
@@ -31,6 +48,8 @@ interface NotificationState {
   fetchNotifications: () => Promise<void>;
   markRead: (id: string) => Promise<void>;
   markAllRead: () => Promise<void>;
+  remove: (id: string) => Promise<void>;
+  reset: () => void;
   registerPushToken: () => Promise<void>;
   clearError: () => void;
 }
@@ -67,7 +86,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       await notificationsApi.markRead(id);
       set((state) => {
         const notifications = state.notifications.map((n) =>
-          n.id === id || n.notificationId === id ? { ...n, read: true } : n
+          (n.notificationId ?? n.id) === id ? { ...n, read: true } : n
         );
         return { notifications, unreadCount: notifications.filter((n) => !n.read).length };
       });
@@ -75,6 +94,24 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       set({ error: getApiErrorMessage(err) });
     }
   },
+
+  remove: async (id: string) => {
+    const previous = get().notifications;
+    const notifications = previous.filter((n) => (n.notificationId ?? n.id) !== id);
+    set({ notifications, unreadCount: notifications.filter((n) => !n.read).length });
+    try {
+      await notificationsApi.delete(id);
+    } catch (err) {
+      // Roll back the optimistic removal
+      set({
+        notifications: previous,
+        unreadCount: previous.filter((n) => !n.read).length,
+        error: getApiErrorMessage(err),
+      });
+    }
+  },
+
+  reset: () => set({ notifications: [], unreadCount: 0, error: null }),
 
   markAllRead: async () => {
     try {
@@ -93,7 +130,8 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   // Never throws: push is a nice-to-have and must not break the app.
   registerPushToken: async () => {
     try {
-      if (Platform.OS === 'web' || !Device.isDevice) return; // needs a real phone
+      // Needs a real phone and a build where expo-notifications is available (not Expo Go on Android).
+      if (!Notifications || Platform.OS === 'web' || !Device.isDevice) return;
 
       const existing = await Notifications.getPermissionsAsync();
       let status = existing.status;

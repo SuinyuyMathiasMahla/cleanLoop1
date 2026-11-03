@@ -8,6 +8,7 @@ import { dbDelete, dbGet, dbPut, dbUpdate, dbQuery, dbScan } from '../shared/dyn
 import { ok, created, badRequest, forbidden, notFound, serverError } from '../shared/response';
 import { getCaller, isAdmin, isCrew } from '../shared/auth';
 import { getPresignedGetUrl } from '../shared/s3';
+import { notifyCitizenCommunity } from '../shared/notifications';
 
 const s3  = new S3Client({});
 const eb  = new EventBridgeClient({});
@@ -233,34 +234,17 @@ async function writeNotification(
 
 async function notifyCommunityOfReport(report: Record<string, any>, submitterId?: string) {
   if (!NOTIFICATIONS_TABLE) return;
-
-  let lastKey: Record<string, unknown> | undefined;
-  do {
-    const result = await dbScan({
-      TableName: USERS_TABLE,
-      FilterExpression: '#r IN (:citizen, :citizenUpper, :crew, :crewUpper)',
-      ExpressionAttributeNames: { '#r': 'role' },
-      ExpressionAttributeValues: {
-        ':citizen': 'citizen',
-        ':citizenUpper': 'CITIZEN',
-        ':crew': 'crew',
-        ':crewUpper': 'CREW',
-      },
-      Limit: 100,
-      ...(lastKey ? { ExclusiveStartKey: lastKey } : {}),
-    });
-
-    const recipients = result.items.filter(user => user.userId && user.userId !== submitterId);
-    await Promise.allSettled(recipients.map(user => writeNotification(
-      user.userId as string,
-      'report_new',
-      'New community report',
-      `A ${report.type === 'overflow' ? 'overflowing bin' : 'illegal dumping'} issue was reported at ${report.address}.`,
-      undefined,
-      report.reportId as string,
-    )));
-    lastKey = result.lastKey as Record<string, unknown> | undefined;
-  } while (lastKey);
+  await notifyCitizenCommunity(
+    USERS_TABLE,
+    NOTIFICATIONS_TABLE,
+    {
+      type: 'report_new',
+      title: 'New community report',
+      body: `A ${report.type === 'overflow' ? 'overflowing bin' : 'illegal dumping'} issue was reported at ${report.address}.`,
+      reportId: report.reportId as string,
+    },
+    submitterId,
+  );
 }
 
 // ── createReport ─────────────────────────────────────────────────────────────
@@ -602,14 +586,25 @@ async function updateReportStatus(event: APIGatewayProxyEvent): Promise<APIGatew
   if (!status || !allowed.includes(status)) return badRequest(`status must be one of: ${allowed.join(', ')}`);
 
   const now = new Date().toISOString();
-  await dbUpdate({
+  const result = await dbUpdate({
     TableName: REPORTS_TABLE,
     Key: { reportId },
     UpdateExpression: 'SET #s = :s, updatedAt = :now',
     ExpressionAttributeNames: { '#s': 'status' },
     ExpressionAttributeValues: { ':s': status, ':now': now },
     ConditionExpression: 'attribute_exists(reportId)',
+    ReturnValues: 'ALL_OLD',
   }).catch(() => { throw new Error('Report not found'); });
+
+  if (status === 'resolved' && result.Attributes?.status !== 'resolved') {
+    const report = result.Attributes ?? {};
+    await notifyCitizenCommunity(USERS_TABLE, NOTIFICATIONS_TABLE, {
+      type: 'report_resolved',
+      title: 'Report resolved',
+      body: `The waste issue reported at ${report.address ?? 'the reported location'} has been resolved.`,
+      reportId,
+    }).catch(error => console.error('Community report-resolution notification error:', error));
+  }
 
   return ok({ reportId, status });
 }
@@ -628,6 +623,51 @@ async function getPresignedUpload(event: APIGatewayProxyEvent): Promise<APIGatew
   return ok({ url, key });
 }
 
+// ── GET/PATCH /profile ────────────────────────────────────────────────────────
+async function getProfile(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
+  const caller = getCaller(event);
+  if (!caller) return forbidden();
+  const user = await dbGet({ TableName: USERS_TABLE, Key: { userId: caller.userId } });
+  return ok({
+    userId: caller.userId,
+    email: user?.email ?? caller.email,
+    name: user?.name ?? '',
+    phone: user?.phone ?? '',
+    role: caller.role,
+  });
+}
+
+async function updateProfile(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
+  const caller = getCaller(event);
+  if (!caller) return forbidden();
+  const { name, phone } = JSON.parse(event.body ?? '{}');
+  const sets: string[] = [];
+  const values: Record<string, unknown> = {};
+  const names: Record<string, string> = {};
+  if (typeof name === 'string') {
+    const trimmed = name.trim();
+    if (!trimmed || trimmed.length > 80) return badRequest('name must be 1-80 characters');
+    sets.push('#n = :name');
+    names['#n'] = 'name';
+    values[':name'] = trimmed;
+  }
+  if (typeof phone === 'string') {
+    const trimmed = phone.trim();
+    if (!/^\+?[\d\s\-()]{8,20}$/.test(trimmed)) return badRequest('phone is not valid');
+    sets.push('phone = :phone');
+    values[':phone'] = trimmed;
+  }
+  if (sets.length === 0) return badRequest('Nothing to update');
+  await dbUpdate({
+    TableName: USERS_TABLE,
+    Key: { userId: caller.userId },
+    UpdateExpression: `SET ${sets.join(', ')}`,
+    ...(Object.keys(names).length ? { ExpressionAttributeNames: names } : {}),
+    ExpressionAttributeValues: values,
+  });
+  return getProfile(event);
+}
+
 export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
   try {
     if ((event as unknown as { source?: string }).source === 'aws.events') {
@@ -637,6 +677,8 @@ export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayPr
     const { httpMethod, resource, path: reqPath } = event;
     console.log(`${httpMethod} ${reqPath}`);
 
+    if (httpMethod === 'GET'   && resource === '/profile')                    return getProfile(event);
+    if (httpMethod === 'PATCH' && resource === '/profile')                    return updateProfile(event);
     if (httpMethod === 'POST'  && resource === '/reports')                    return createReport(event);
     if (httpMethod === 'POST'  && resource === '/reports/guest')              return createReport(event);
     if (httpMethod === 'GET'   && resource === '/reports')                    return listReports(event);

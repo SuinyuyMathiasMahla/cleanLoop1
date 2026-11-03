@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Plus, Trash2, AlertCircle } from 'lucide-react';
+import { Plus, Trash2, AlertCircle, UserPlus } from 'lucide-react';
 import { format, isValid } from 'date-fns';
 import { useTaskStore, Task, TaskStatus, CreateTaskInput } from '../store/taskStore';
 import { useReportStore } from '../store/reportStore';
@@ -32,6 +32,8 @@ const EMPTY_FORM: TaskFormData = {
   dueAt: '',
   notes: '',
 };
+
+type TaskFormErrors = Partial<Omit<TaskFormData, 'crewMemberIds'>> & { crewMemberIds?: string };
 
 const TASK_STATUS_OPTIONS = [
   { value: 'scheduled', label: 'Scheduled' },
@@ -67,9 +69,13 @@ export function TasksPage() {
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [form, setForm] = useState<TaskFormData>(EMPTY_FORM);
-  const [formErrors, setFormErrors] = useState<Partial<TaskFormData>>({});
+  const [formErrors, setFormErrors] = useState<TaskFormErrors>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [editingCrewTask, setEditingCrewTask] = useState<Task | null>(null);
+  const [selectedCompanionIds, setSelectedCompanionIds] = useState<string[]>([]);
+  const [crewEditError, setCrewEditError] = useState<string | null>(null);
+  const [savingCrew, setSavingCrew] = useState(false);
 
   useEffect(() => {
     fetchTasks();
@@ -84,13 +90,55 @@ export function TasksPage() {
   // so tasks led by an inactive member still show an email).
   const crewById = useMemo(() => new Map(crew.map((c) => [c.crewId, c])), [crew]);
 
-  // Prefer the email returned by the API, then the crew store, then fall back
-  // to the name and finally the raw id.
+  // Display the lead's name where available, with email and ID fallbacks.
   const getLeadLabel = (task: Task) =>
+    task.crewLeadName ||
+    crewById.get(task.crewLeadId)?.name ||
     (task as Task & { crewLeadEmail?: string }).crewLeadEmail ||
     crewById.get(task.crewLeadId)?.email ||
-    task.crewLeadName ||
     task.crewLeadId;
+
+  const getCompanionIds = (task: Task) => task.crewIds ?? task.crewMemberIds ?? [];
+
+  const openCrewEditor = (task: Task) => {
+    setEditingCrewTask(task);
+    setSelectedCompanionIds(getCompanionIds(task).filter((id) => id !== task.crewLeadId));
+    setCrewEditError(null);
+  };
+
+  const closeCrewEditor = () => {
+    setEditingCrewTask(null);
+    setSelectedCompanionIds([]);
+    setCrewEditError(null);
+  };
+
+  const toggleCompanion = (id: string) => {
+    setSelectedCompanionIds((selected) => {
+      if (selected.includes(id)) return selected.filter((item) => item !== id);
+      if (selected.length >= 3) return selected;
+      return [...selected, id];
+    });
+    setCrewEditError(null);
+  };
+
+  const saveCompanions = async () => {
+    if (!editingCrewTask) return;
+    if (selectedCompanionIds.length < 1 || selectedCompanionIds.length > 3) {
+      setCrewEditError('Select between 1 and 3 companions.');
+      return;
+    }
+
+    setSavingCrew(true);
+    setCrewEditError(null);
+    try {
+      await updateTask(editingCrewTask.taskId, { crewIds: selectedCompanionIds });
+      closeCrewEditor();
+    } catch (err) {
+      setCrewEditError(err instanceof Error ? err.message : 'Failed to update the task crew.');
+    } finally {
+      setSavingCrew(false);
+    }
+  };
 
   const closeModal = () => {
     setShowCreateModal(false);
@@ -100,9 +148,11 @@ export function TasksPage() {
   };
 
   const validate = () => {
-    const errs: Partial<TaskFormData> = {};
+    const errs: TaskFormErrors = {};
     if (!form.title.trim()) errs.title = 'Title is required';
     if (!form.crewLeadId) errs.crewLeadId = 'Crew lead is required';
+    if (form.crewMemberIds.length < 1) errs.crewMemberIds = 'Select at least 1 companion';
+    if (form.crewMemberIds.length > 3) errs.crewMemberIds = 'Select no more than 3 companions';
     if (!form.scheduledAt) errs.scheduledAt = 'Scheduled date is required';
     if (!form.dueAt) errs.dueAt = 'Due date is required';
     setFormErrors(errs);
@@ -153,7 +203,9 @@ export function TasksPage() {
       ...f,
       crewMemberIds: f.crewMemberIds.includes(id)
         ? f.crewMemberIds.filter((c) => c !== id)
-        : [...f.crewMemberIds, id],
+        : f.crewMemberIds.length < 3
+          ? [...f.crewMemberIds, id]
+          : f.crewMemberIds,
     }));
   };
 
@@ -207,7 +259,7 @@ export function TasksPage() {
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50/80">
                 <th className="text-left px-5 py-3 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">Title</th>
-                <th className="text-left px-5 py-3 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">Crew Lead</th>
+                <th className="text-left px-5 py-3 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">Crew Head</th>
                 <th className="text-left px-5 py-3 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">Scheduled</th>
                 <th className="text-left px-5 py-3 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">Due</th>
                 <th className="text-left px-5 py-3 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">Status</th>
@@ -240,12 +292,33 @@ export function TasksPage() {
                       )}
                     </td>
                     <td className="px-5 py-3.5 text-gray-700" title={task.crewLeadId}>
-                      <div className="flex items-center gap-2.5">
-                        <div className="h-7 w-7 shrink-0 rounded-full bg-primary-50 text-primary-700 flex items-center justify-center text-[11px] font-bold">
-                          {(getLeadLabel(task) || '?').charAt(0).toUpperCase()}
+                      <div className="flex items-center gap-2">
+                        <div className="flex min-w-0 flex-1 items-center gap-2.5">
+                          <div className="h-7 w-7 shrink-0 rounded-full bg-primary-50 text-primary-700 flex items-center justify-center text-[11px] font-bold">
+                            {(getLeadLabel(task) || '?').charAt(0).toUpperCase()}
+                          </div>
+                          <div className="min-w-0">
+                            <span className="block truncate max-w-[180px]">{getLeadLabel(task)}</span>
+                            <span className="block text-[10px] font-medium uppercase tracking-wide text-gray-400">Crew head</span>
+                          </div>
                         </div>
-                        <span className="truncate max-w-[200px]">{getLeadLabel(task)}</span>
+                        {task.status !== 'completed' && task.status !== 'cancelled' && (
+                          <button
+                            type="button"
+                            onClick={() => openCrewEditor(task)}
+                            className="inline-flex shrink-0 items-center gap-1 rounded-md border border-primary-200 px-2 py-1 text-[11px] font-semibold text-primary-700 hover:bg-primary-50 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                            aria-label={`Add companions to ${task.title}`}
+                          >
+                            <UserPlus className="h-3.5 w-3.5" />
+                            Add companions
+                          </button>
+                        )}
                       </div>
+                      {getCompanionIds(task).length > 0 && (
+                        <p className="mt-1 pl-9 text-[11px] text-gray-500">
+                          With {getCompanionIds(task).map((id) => crewById.get(id)?.name ?? id).join(', ')}
+                        </p>
+                      )}
                     </td>
                     <td className="px-5 py-3.5 text-gray-500 whitespace-nowrap text-xs">
                       {safeFormat(task.scheduledAt, 'MMM d, HH:mm')}
@@ -360,7 +433,11 @@ export function TasksPage() {
           <Select
             label="Crew Lead"
             value={form.crewLeadId}
-            onChange={(e) => setForm((f) => ({ ...f, crewLeadId: e.target.value }))}
+            onChange={(e) => setForm((f) => ({
+              ...f,
+              crewLeadId: e.target.value,
+              crewMemberIds: f.crewMemberIds.filter((id) => id !== e.target.value),
+            }))}
             options={activeCrew.map((c) => ({ value: c.crewId, label: c.name }))}
             placeholder="Select crew lead..."
             error={formErrors.crewLeadId as string}
@@ -370,7 +447,7 @@ export function TasksPage() {
           {/* Additional crew members */}
           <div>
             <label className="text-sm font-medium text-gray-700 block mb-2">
-              Additional Crew Members ({form.crewMemberIds.length} selected)
+              Companions ({form.crewMemberIds.length}/3 selected · at least 1 required)
             </label>
             <div className="border border-gray-200 rounded-lg max-h-36 overflow-y-auto p-2 space-y-1">
               {activeCrew.filter((c) => c.crewId !== form.crewLeadId).length === 0 ? (
@@ -384,6 +461,7 @@ export function TasksPage() {
                         type="checkbox"
                         checked={form.crewMemberIds.includes(c.crewId)}
                         onChange={() => toggleCrewMember(c.crewId)}
+                        disabled={!form.crewMemberIds.includes(c.crewId) && form.crewMemberIds.length >= 3}
                         className="rounded text-primary-600 focus:ring-primary-500"
                       />
                       <span className="text-sm text-gray-700">{c.name} · {c.email}</span>
@@ -391,6 +469,9 @@ export function TasksPage() {
                   ))
               )}
             </div>
+            {formErrors.crewMemberIds && (
+              <p className="mt-1 text-xs text-red-600">{formErrors.crewMemberIds}</p>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -419,6 +500,57 @@ export function TasksPage() {
             placeholder="Any special instructions for the crew..."
             rows={2}
           />
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={!!editingCrewTask}
+        onClose={closeCrewEditor}
+        title="Add task companions"
+        size="md"
+        footer={
+          <>
+            <Button variant="secondary" onClick={closeCrewEditor}>Cancel</Button>
+            <Button variant="primary" isLoading={savingCrew} onClick={saveCompanions}>
+              Save crew
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <div className="rounded-lg border border-primary-100 bg-primary-50 p-3 text-sm text-primary-900">
+            <p className="font-semibold">Crew head: {editingCrewTask ? getLeadLabel(editingCrewTask) : ''}</p>
+            <p className="mt-1 text-primary-700">Choose 1–3 companions. Automatic assignment keeps its selected crew head.</p>
+          </div>
+          {crewEditError && (
+            <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-sm text-red-700">
+              <AlertCircle className="h-4 w-4" /> {crewEditError}
+            </div>
+          )}
+          <div className="border border-gray-200 rounded-lg max-h-64 overflow-y-auto p-2 space-y-1">
+            {activeCrew.filter((member) => member.crewId !== editingCrewTask?.crewLeadId).length === 0 ? (
+              <p className="py-3 text-center text-sm text-gray-500">No other active crew members are available.</p>
+            ) : (
+              activeCrew
+                .filter((member) => member.crewId !== editingCrewTask?.crewLeadId)
+                .map((member) => (
+                  <label key={member.crewId} className="flex items-center gap-3 rounded px-2 py-2 hover:bg-gray-50 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedCompanionIds.includes(member.crewId)}
+                      onChange={() => toggleCompanion(member.crewId)}
+                      disabled={!selectedCompanionIds.includes(member.crewId) && selectedCompanionIds.length >= 3}
+                      className="rounded text-primary-600 focus:ring-primary-500"
+                    />
+                    <span className="min-w-0">
+                      <span className="block text-sm font-medium text-gray-800">{member.name}</span>
+                      <span className="block truncate text-xs text-gray-500">{member.email}</span>
+                    </span>
+                  </label>
+                ))
+            )}
+          </div>
+          <p className="text-xs text-gray-500">{selectedCompanionIds.length} of 3 companions selected. At least 1 is required.</p>
         </div>
       </Modal>
     </div>

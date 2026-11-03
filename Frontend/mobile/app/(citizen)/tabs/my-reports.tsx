@@ -1,219 +1,203 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import {
-  View,
-  Text,
-  FlatList,
-  RefreshControl,
-  TouchableOpacity,
-  StyleSheet,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import React, { useCallback, useMemo, useState } from 'react';
+import { View, Text, FlatList, RefreshControl, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
+import { ScreenShell } from '@/components/common/ScreenShell';
 import { ReportCard } from '@/components/citizen/ReportCard';
 import { EmptyState } from '@/components/common/EmptyState';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { useReportStore } from '@/store/reportStore';
-import { useAuthStore } from '@/store/authStore';
 import { colors } from '@/theme/colors';
-import { useLocalSearchParams, useRouter } from 'expo-router';
 
-type FilterTab = 'all' | 'pending' | 'assigned' | 'in_progress' | 'resolved';
+type Scope = 'mine' | 'community';
+type FilterKey = 'all' | 'pending' | 'assigned' | 'in_progress' | 'resolved';
 
-const PRIMARY = '#1a7a5e';
-const DARK    = '#0f1f1a';
-const MUTED   = '#6b7c76';
-
-const FILTER_TABS: { key: FilterTab; label: string; icon: string }[] = [
-  { key: 'all',         label: 'All',         icon: 'apps-outline' },
-  { key: 'pending',     label: 'Pending',     icon: 'time-outline' },
-  { key: 'assigned',    label: 'Assigned',    icon: 'person-outline' },
-  { key: 'in_progress', label: 'In Progress', icon: 'reload-outline' },
-  { key: 'resolved',    label: 'Resolved',    icon: 'checkmark-circle-outline' },
+const FILTERS: { key: FilterKey; label: string }[] = [
+  { key: 'all', label: 'All' },
+  { key: 'pending', label: 'Pending' },
+  { key: 'assigned', label: 'Assigned' },
+  { key: 'in_progress', label: 'In progress' },
+  { key: 'resolved', label: 'Resolved' },
 ];
-
-const STATUS_COLOR: Record<string, string> = {
-  pending:     '#FFC107',
-  assigned:    '#2196F3',
-  in_progress: '#FF9800',
-  resolved:    '#4CAF50',
-};
 
 export default function MyReportsScreen() {
   const router = useRouter();
-  const { user } = useAuthStore();
-  const { status } = useLocalSearchParams<{ status?: string }>();
   const {
-    publicReports, publicNextKey, myReports,
-    isLoading, fetchPublicReports, loadMorePublicReports, fetchMyReports,
+    publicReports,
+    publicNextKey,
+    myReports,
+    isLoading,
+    fetchPublicReports,
+    loadMorePublicReports,
+    fetchMyReports,
   } = useReportStore();
 
-  const initialTab = FILTER_TABS.some(t => t.key === status) ? status as FilterTab : 'all';
-  const [activeTab, setActiveTab] = useState<FilterTab>(initialTab);
+  const [scope, setScope] = useState<Scope>('mine');
+  const [filter, setFilter] = useState<FilterKey>('all');
 
-  const isSignedIn = !!user;
-  const reports = isSignedIn ? publicReports : myReports;
+  const load = useCallback(() => {
+    if (scope === 'mine') fetchMyReports();
+    else fetchPublicReports(filter === 'all' ? undefined : filter);
+  }, [scope, filter, fetchMyReports, fetchPublicReports]);
 
-  useEffect(() => {
-    if (isSignedIn) {
-      fetchPublicReports(activeTab === 'all' ? undefined : activeTab);
-    } else {
-      fetchMyReports();
-    }
-  }, [isSignedIn, activeTab]);
+  // Reload whenever the tab is focused (e.g. right after submitting a report)
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load]),
+  );
 
-  const onRefresh = useCallback(() => {
-    if (isSignedIn) {
-      fetchPublicReports(activeTab === 'all' ? undefined : activeTab);
-    } else {
-      fetchMyReports();
-    }
-  }, [isSignedIn, activeTab]);
+  const source = scope === 'mine' ? myReports : publicReports;
+  const filtered = useMemo(
+    () => (filter === 'all' ? source : source.filter((r) => r.status === filter)),
+    [source, filter],
+  );
 
-  const filtered =
-    activeTab === 'all' ? reports : reports.filter(r => r.status === activeTab);
+  const filterLabel = FILTERS.find((f) => f.key === filter)?.label.toLowerCase() ?? '';
 
-  const activeColor = activeTab !== 'all' ? (STATUS_COLOR[activeTab] ?? PRIMARY) : PRIMARY;
+  const header = (
+    <>
+      <View style={styles.segment}>
+        {(['mine', 'community'] as Scope[]).map((s) => {
+          const active = scope === s;
+          return (
+            <TouchableOpacity
+              key={s}
+              style={[styles.segmentBtn, active && styles.segmentBtnActive]}
+              onPress={() => setScope(s)}
+              activeOpacity={0.85}
+            >
+              <Ionicons
+                name={s === 'mine' ? 'person-outline' : 'people-outline'}
+                size={15}
+                color={active ? colors.primary : colors.mint}
+              />
+              <Text style={[styles.segmentText, active && styles.segmentTextActive]}>
+                {s === 'mine' ? 'My reports' : 'Community'}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    </>
+  );
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-
-      {/* HEADER */}
-      <View style={styles.header}>
-        <View style={styles.headerTop}>
-          <View>
-            <Text style={styles.headerTitle}>
-              {isSignedIn ? 'Community Reports' : 'My Reports'}
-            </Text>
-            <Text style={styles.headerSub}>
-              {filtered.length} {filtered.length === 1 ? 'report' : 'reports'}
-              {activeTab !== 'all' ? ` · ${activeTab.replace('_', ' ')}` : ' total'}
-            </Text>
-          </View>
-          <View style={[styles.countBadge, { backgroundColor: activeColor + '22', borderColor: activeColor + '55' }]}>
-            <Text style={[styles.countBadgeText, { color: activeColor }]}>{filtered.length}</Text>
-          </View>
-        </View>
-
-        {/* FILTER TABS */}
+    <ScreenShell
+      role="citizen"
+      title={scope === 'mine' ? 'My Reports' : 'Community Reports'}
+      subtitle={`${filtered.length} ${filtered.length === 1 ? 'report' : 'reports'}${
+        filter !== 'all' ? ` · ${filterLabel}` : ''
+      }`}
+      headerExtra={header}
+    >
+      <View style={styles.filterBar}>
         <FlatList
-          data={FILTER_TABS}
+          data={FILTERS}
           horizontal
           showsHorizontalScrollIndicator={false}
-          keyExtractor={item => item.key}
-          contentContainerStyle={styles.tabsRow}
+          keyExtractor={(item) => item.key}
+          contentContainerStyle={styles.filterRow}
           renderItem={({ item }) => {
-            const isActive = activeTab === item.key;
-            const tColor = item.key !== 'all' ? (STATUS_COLOR[item.key] ?? PRIMARY) : PRIMARY;
+            const active = filter === item.key;
             return (
               <TouchableOpacity
-                style={[
-                  styles.tab,
-                  isActive && { backgroundColor: tColor + '18', borderColor: tColor + '55' },
-                ]}
-                onPress={() => setActiveTab(item.key)}
-                activeOpacity={0.75}
+                style={[styles.chip, active && styles.chipActive]}
+                onPress={() => setFilter(item.key)}
+                activeOpacity={0.8}
               >
-                <Ionicons
-                  name={item.icon as any}
-                  size={13}
-                  color={isActive ? tColor : MUTED}
-                />
-                <Text style={[styles.tabText, isActive && { color: tColor, fontWeight: '700' }]}>
-                  {item.label}
-                </Text>
+                <Text style={[styles.chipText, active && styles.chipTextActive]}>{item.label}</Text>
               </TouchableOpacity>
             );
           }}
         />
       </View>
 
-      {/* CONTENT */}
-      {isLoading && reports.length === 0 ? (
+      {isLoading && source.length === 0 ? (
         <LoadingSpinner fullScreen message="Loading reports..." />
       ) : (
         <FlatList
           data={filtered}
-          keyExtractor={(item, index) => item.reportId ?? String(index)}
-          renderItem={({ item }) => <ReportCard report={item} />}
-          contentContainerStyle={[styles.list, filtered.length === 0 && styles.listEmpty]}
+          keyExtractor={(item, index) => item.reportId ?? item.id ?? String(index)}
+          renderItem={({ item }) => (
+            <ReportCard report={item as any} style={styles.card} />
+          )}
+          contentContainerStyle={[styles.list, filtered.length === 0 && { flex: 1 }]}
           ListEmptyComponent={
             <EmptyState
               icon="document-outline"
-              title={activeTab === 'all' ? 'No reports yet' : `No ${activeTab.replace('_', ' ')} reports`}
+              title={filter === 'all' ? 'No reports yet' : `No ${filterLabel} reports`}
               subtitle={
-                activeTab === 'all'
-                  ? isSignedIn
-                    ? 'No reports in your community yet.'
-                    : "You haven't submitted any reports yet."
-                  : 'No reports with this status.'
+                filter !== 'all'
+                  ? 'No reports with this status.'
+                  : scope === 'mine'
+                  ? "You haven't submitted any reports yet."
+                  : 'No reports in your community yet.'
               }
-              actionLabel={activeTab === 'all' ? 'Report an Issue' : undefined}
-              onAction={activeTab === 'all' ? () => router.push('/(citizen)/tabs/report') : undefined}
+              actionLabel={filter === 'all' && scope === 'mine' ? 'Report an issue' : undefined}
+              onAction={
+                filter === 'all' && scope === 'mine'
+                  ? () => router.navigate('/(citizen)/tabs/report' as any)
+                  : undefined
+              }
             />
           }
           refreshControl={
             <RefreshControl
               refreshing={isLoading}
-              onRefresh={onRefresh}
-              tintColor={PRIMARY}
-              colors={[PRIMARY]}
+              onRefresh={load}
+              tintColor={colors.primary}
+              colors={[colors.primary]}
             />
           }
-          onEndReached={() => { if (isSignedIn && publicNextKey) loadMorePublicReports(); }}
+          onEndReached={() => {
+            if (scope === 'community' && publicNextKey) loadMorePublicReports();
+          }}
           onEndReachedThreshold={0.6}
           showsVerticalScrollIndicator={false}
         />
       )}
-
-    </SafeAreaView>
+    </ScreenShell>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#f0f4f2' },
-
-  // Header
-  header: {
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e4ede8',
-    paddingTop: 14,
-  },
-  headerTop: {
+  segment: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    paddingHorizontal: 18,
-    marginBottom: 14,
+    marginHorizontal: 20,
+    marginTop: 14,
+    backgroundColor: 'rgba(255,255,255,0.10)',
+    borderRadius: 6,
+    padding: 4,
   },
-  headerTitle: { fontSize: 20, fontWeight: '800', color: DARK, letterSpacing: -0.3 },
-  headerSub:   { fontSize: 12, color: MUTED, marginTop: 3, fontWeight: '500' },
-  countBadge: {
-    borderRadius: 4,
-    borderWidth: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    minWidth: 36,
-    alignItems: 'center',
-  },
-  countBadgeText: { fontSize: 14, fontWeight: '800' },
-
-  // Tabs
-  tabsRow: { paddingHorizontal: 14, paddingBottom: 12, gap: 8 },
-  tab: {
+  segmentBtn: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 6,
+  },
+  segmentBtnActive: { backgroundColor: '#fff' },
+  segmentText: { fontSize: 13, fontWeight: '700', color: colors.mint },
+  segmentTextActive: { color: colors.primary },
+
+  filterBar: { paddingTop: 16, paddingBottom: 4 },
+  filterRow: { paddingHorizontal: 16, gap: 8 },
+  chip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#e4ede8',
-    backgroundColor: '#f7faf8',
+    borderColor: colors.border,
+    backgroundColor: '#fff',
   },
-  tabText: { fontSize: 13, fontWeight: '600', color: MUTED },
+  chipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  chipText: { fontSize: 13, fontWeight: '600', color: colors.gray[700] },
+  chipTextActive: { color: '#fff' },
 
-  // List
-  list:      { paddingTop: 12, paddingBottom: 32 },
-  listEmpty: { flex: 1 },
+  list: { paddingTop: 12, paddingBottom: 28 },
+  card: { marginHorizontal: 16 },
 });

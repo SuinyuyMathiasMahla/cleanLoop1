@@ -1,111 +1,40 @@
 import { Tabs } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { View, Text, StyleSheet } from 'react-native';
-import { useEffect } from 'react';
-import { colors } from '@/theme/colors';
 import { useNotificationStore } from '@/store/notificationStore';
-import { CitizenHeader } from '@/components/citizen/CitizenHeader';
-import { useAuthStore } from '@/store/authStore';
+import { useNotificationSync } from '@/hooks/useNotificationSync';
+import { tabIcon, tabScreenOptions } from '@/theme/tabBar';
 
-export default function CitizenLayout() {
+export default function CrewLayout() {
   const unreadCount = useNotificationStore((s) => s.unreadCount);
-  const registerPushToken = useNotificationStore((s) => s.registerPushToken);
-  const user = useAuthStore((s) => s.user);
-
-  useEffect(() => {
-    if (user) registerPushToken();
-  }, [user]);
+  useNotificationSync();
 
   return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: '#6b7c76',
-        tabBarStyle: {
-          backgroundColor: '#0f1f1a',
-          borderTopColor: 'rgba(255,255,255,0.08)',
-          height: 60,
-          paddingBottom: 8,
-        },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
-        header: () => <CitizenHeader />,
-      }}
-    >
+    <Tabs screenOptions={tabScreenOptions}>
       <Tabs.Screen
         name="tabs/index"
-        options={{
-          title: 'Home',
-          headerShown: false,
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="home-outline" size={size} color={color} />
-          ),
-        }}
+        options={{ title: 'Home', tabBarIcon: tabIcon('home', 'home-outline') }}
+      />
+      <Tabs.Screen
+        name="tabs/tasks"
+        options={{ title: 'Tasks', tabBarIcon: tabIcon('clipboard', 'clipboard-outline') }}
       />
       <Tabs.Screen
         name="tabs/report"
-        options={{
-          title: 'Report',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="camera-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="tabs/my-reports"
-        options={{
-          title: 'Reports',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="document-text-outline" size={size} color={color} />
-          ),
-        }}
+        options={{ title: 'Record', tabBarIcon: tabIcon('stats-chart', 'stats-chart-outline') }}
       />
       <Tabs.Screen
         name="tabs/notifications"
         options={{
           title: 'Alerts',
-          tabBarIcon: ({ color, size }) => (
-            <View>
-              <Ionicons name="notifications-outline" size={size} color={color} />
-              {unreadCount > 0 && (
-                <View style={styles.badge}>
-                  <Text style={styles.badgeText}>
-                    {unreadCount > 9 ? '9+' : unreadCount}
-                  </Text>
-                </View>
-              )}
-            </View>
-          ),
+          tabBarIcon: tabIcon('notifications', 'notifications-outline'),
+          tabBarBadge: unreadCount > 0 ? (unreadCount > 9 ? '9+' : unreadCount) : undefined,
         }}
       />
       <Tabs.Screen
         name="tabs/profile"
-        options={{
-          title: 'Profile',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person-outline" size={size} color={color} />
-          ),
-        }}
+        options={{ title: 'Profile', tabBarIcon: tabIcon('person', 'person-outline') }}
       />
+      {/* Task detail is a pushed screen, not a tab */}
+      <Tabs.Screen name="task/[id]" options={{ href: null }} />
     </Tabs>
   );
 }
-
-const styles = StyleSheet.create({
-  badge: {
-    position: 'absolute',
-    top: -4,
-    right: -6,
-    backgroundColor: colors.danger,
-    borderRadius: 8,
-    minWidth: 16,
-    height: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 3,
-  },
-  badgeText: {
-    fontSize: 9,
-    fontWeight: '800',
-    color: '#fff',
-  },
-});

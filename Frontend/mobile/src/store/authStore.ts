@@ -47,6 +47,7 @@ interface AuthState {
   loadStoredAuth: () => Promise<void>;
   clearError: () => void;
   setPendingEmail: (email: string) => void;
+  updateUser: (patch: Partial<Pick<AuthUser, 'name' | 'email'>>) => Promise<void>;
 }
 
 // ---------- platform-safe storage helpers ----------
@@ -129,6 +130,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   clearError: () => set({ error: null }),
   setPendingEmail: (email) => set({ pendingEmail: email }),
+
+  updateUser: async (patch) => {
+    const current = get().user;
+    if (!current) return;
+    const user = { ...current, ...patch };
+    set({ user });
+    try {
+      await storageSet('user', JSON.stringify(user));
+    } catch {
+      // cache only — the in-memory user is already updated
+    }
+  },
 
   login: async (email, password) => {
     set({ isLoading: true, error: null });

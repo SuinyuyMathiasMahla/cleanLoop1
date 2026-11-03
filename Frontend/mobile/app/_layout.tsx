@@ -3,6 +3,8 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useAuthStore } from '@/store/authStore';
+import { useNotificationStore } from '@/store/notificationStore';
+import { useReportStore } from '@/store/reportStore';
 
 function AuthGate() {
   const { user, isLoading, loadStoredAuth } = useAuthStore();
@@ -12,6 +14,14 @@ function AuthGate() {
   useEffect(() => {
     loadStoredAuth();
   }, []);
+
+  // Never show one account's alerts/reports to the next person who signs in
+  useEffect(() => {
+    if (!user) {
+      useNotificationStore.getState().reset();
+      useReportStore.setState({ myReports: [], allReports: [] });
+    }
+  }, [user?.userId]);
 
   useEffect(() => {
     if (isLoading) return;
@@ -34,15 +44,13 @@ function AuthGate() {
       return;
     }
 
-    if (role === 'citizen' && !inCitizenGroup) {
-      router.replace('/(citizen)/tabs');
+    if (role === 'crew') {
+      if (!inCrewGroup) router.replace('/(crew)/tabs');
       return;
     }
 
-    if (role === 'crew' && !inCrewGroup) {
-      router.replace('/(crew)/tabs');
-      return;
-    }
+    // Citizens (and any unknown role) belong in the citizen group
+    if (!inCitizenGroup) router.replace('/(citizen)/tabs');
   }, [user, isLoading, segments]);
 
   return null;
@@ -51,7 +59,7 @@ function AuthGate() {
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
-      <StatusBar style="dark" />
+      <StatusBar style="light" />
       <AuthGate />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" />

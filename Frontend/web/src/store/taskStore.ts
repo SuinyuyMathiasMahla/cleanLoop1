@@ -9,6 +9,7 @@ export interface Task {
   description?: string;
   reportIds: string[];
   crewLeadId: string;
+  crewIds?: string[];
   crewLeadName?: string;
   crewMemberIds: string[];
   scheduledAt: string;

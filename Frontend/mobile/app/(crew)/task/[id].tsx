@@ -11,18 +11,21 @@ import {
   Modal,
   RefreshControl,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { router, useLocalSearchParams } from 'expo-router';
 import { tasksApi, reportsApi, uploadToS3, getApiErrorMessage, AuthExpiredError } from '@/services/api';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { colors } from '@/theme/colors';
+import { isNotStarted } from '@/utils/tasks';
+import { useAuthStore } from '@/store/authStore';
 
 type PhotoItem = { uri: string; key: string; uploaded: boolean; removable?: boolean };
 
 export default function TaskDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const userId = useAuthStore((state) => state.user?.userId);
   const [task, setTask] = useState<any>(null);
   const [reportPhotos, setReportPhotos] = useState<{ reportId: string; uri: string }[]>([]);
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
@@ -31,10 +34,12 @@ export default function TaskDetail() {
   const [isUploading, setIsUploading] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
   const [deletingPhotoKey, setDeletingPhotoKey] = useState<string | null>(null);
+  const [companionAttendance, setCompanionAttendance] = useState<Record<string, boolean>>({});
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [isCameraReady, setIsCameraReady] = useState(false);
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const cameraRef = useRef<CameraView>(null);
+  const insets = useSafeAreaInsets();
 
   function getTaskId() {
     return Array.isArray(id) ? id[0] : id;
@@ -45,6 +50,9 @@ export default function TaskDetail() {
       const { data } = await tasksApi.getById(getTaskId());
       const t = (data as any).task ?? data;
       setTask(t);
+      setCompanionAttendance(Object.fromEntries(
+        (t.companionAttendance ?? []).map((item: { userId: string; present: boolean }) => [item.userId, item.present]),
+      ));
 
       const linkedPhotos = await Promise.all((t.reportIds ?? []).map(async (reportId: string) => {
         try {
@@ -91,6 +99,7 @@ export default function TaskDetail() {
   }
 
   async function uploadEvidencePhoto(uri: string, presigned?: { url: string; key: string }) {
+    if (!isCrewLead) throw new Error('Only the crew head can upload task evidence.');
     const contentType = 'image/jpeg';
     let uploadUrl = presigned?.url;
     let uploadKey = presigned?.key;
@@ -106,7 +115,7 @@ export default function TaskDetail() {
   }
 
   async function handleDeleteEvidencePhoto(photo: PhotoItem) {
-    if (!photo.removable || deletingPhotoKey) return;
+    if (!isCrewLead || !photo.removable || deletingPhotoKey) return;
     setDeletingPhotoKey(photo.key);
     try {
       await tasksApi.deleteEvidencePhoto(getTaskId(), photo.key);
@@ -122,6 +131,10 @@ export default function TaskDetail() {
 
   // ── Add evidence photo ──────────────────────────────────────────────────
   async function handleAddPhoto() {
+    if (!isCrewLead) {
+      Alert.alert('Crew Head Only', 'Only the crew head can upload cleanup evidence.');
+      return;
+    }
     try {
       let granted = cameraPermission?.granted ?? false;
       if (!granted) {
@@ -159,6 +172,10 @@ export default function TaskDetail() {
   // ── Mark task complete ──────────────────────────────────────────────────
   async function handleMarkComplete() {
     const uploadedKeys = photos.filter(p => p.uploaded).map(p => p.key);
+    if (!isCrewLead) {
+      Alert.alert('Crew Head Only', 'Only the crew head can complete this task and submit evidence.');
+      return;
+    }
 
     // Frontend guard mirrors backend requirement
     if (uploadedKeys.length === 0) {
@@ -169,12 +186,27 @@ export default function TaskDetail() {
       return;
     }
 
+    const companionIds = (task.crewIds ?? []).filter((id: string) => id !== task.crewLeadId);
+    if (companionIds.some((id: string) => typeof companionAttendance[id] !== 'boolean')) {
+      Alert.alert('Attendance Required', 'Mark each assigned companion as present or absent before completing this task.');
+      return;
+    }
+
+    const attendanceEntries = companionIds.map((companionId: string) => ({
+      userId: companionId,
+      present: companionAttendance[companionId],
+    }));
     setIsCompleting(true);
     try {
-      await tasksApi.updateStatus(getTaskId(), 'completed', uploadedKeys);
+      await tasksApi.updateStatus(getTaskId(), 'completed', uploadedKeys, attendanceEntries);
+      const attendance = attendanceEntries.map((entry: { userId: string; present: boolean }) => ({
+        ...entry,
+        name: task.crewRoster?.find((member: { userId: string }) => member.userId === entry.userId)?.name ?? 'Crew member',
+        markedAt: new Date().toISOString(),
+      }));
       // Only update local state AFTER the API confirms success
       setTask((prev: any) =>
-        prev ? { ...prev, status: 'completed', evidencePhotoKeys: uploadedKeys } : prev,
+        prev ? { ...prev, status: 'completed', evidencePhotoKeys: uploadedKeys, companionAttendance: attendance } : prev,
       );
       Alert.alert('Task Complete', 'This task has been marked as completed.');
     } catch (err) {
@@ -216,12 +248,17 @@ export default function TaskDetail() {
   const isCompleted = task.status === 'completed';
   const isCancelled = task.status === 'cancelled';
   const canAct = !isCompleted && !isCancelled;
+  const isCrewLead = userId === task.crewLeadId;
   const uploadedCount = photos.filter(p => p.uploaded).length;
+  const crewCount = new Set([
+    ...(task.crewIds ?? []),
+    ...(task.crewLeadId ? [task.crewLeadId] : []),
+  ]).size;
 
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
       {/* Nav bar */}
-      <View style={styles.navBar}>
+      <View style={[styles.navBar, { paddingTop: insets.top + 10 }]}>
         <TouchableOpacity style={styles.navBack} onPress={() => router.back()}>
           <Ionicons name="chevron-back" size={22} color={colors.white} />
         </TouchableOpacity>
@@ -285,14 +322,79 @@ export default function TaskDetail() {
                 <MetaRow icon="document-text-outline" label="Reports" value={`${task.reportIds.length} linked`} />
               ) : null}
             </View>
-            {(task.crewIds ?? []).length > 0 ? (
-              <MetaRow icon="people-outline" label="Crew" value={`${task.crewIds.length} member${task.crewIds.length !== 1 ? 's' : ''}`} />
+            {crewCount > 0 ? (
+              <MetaRow
+                icon="people-outline"
+                label="Crew"
+                value={`${crewCount} member${crewCount !== 1 ? 's' : ''}`}
+              />
             ) : null}
             {task.notes ? (
               <MetaRow icon="reader-outline" label="Notes" value={task.notes} />
             ) : null}
           </View>
         </View>
+
+        {task.crewRoster?.length > 0 ? (
+          <View style={styles.attendanceSection}>
+            <Text style={styles.sectionTitle}>Assigned crew</Text>
+            <Text style={styles.attendanceHint}>
+              {isCompleted ? 'Attendance recorded at task completion.' : isCrewLead
+                ? 'Before completing the task, mark each companion present or absent.'
+                : 'The crew head records companion attendance when the task is completed.'}
+            </Text>
+            {task.crewRoster.filter((member: { isLead: boolean }) => !member.isLead).map(
+              (member: { userId: string; name: string; isLead: boolean }) => {
+                const recorded = (task.companionAttendance ?? []).find(
+                  (entry: { userId: string }) => entry.userId === member.userId,
+                );
+                const value = isCompleted ? recorded?.present : companionAttendance[member.userId];
+                return (
+                  <View key={member.userId} style={styles.attendanceRow}>
+                    <View style={styles.companionIdentity}>
+                      <Ionicons name="person-outline" size={17} color={colors.gray[500]} />
+                      <Text style={styles.companionName}>{member.name}</Text>
+                    </View>
+                    {isCrewLead && canAct ? (
+                      <View style={styles.attendanceOptions}>
+                        <TouchableOpacity
+                          style={[styles.attendanceOption, value === true && styles.presentOptionSelected]}
+                          onPress={() => setCompanionAttendance((current) => ({ ...current, [member.userId]: true }))}
+                          accessibilityRole="button"
+                          accessibilityLabel={`${member.name} present`}
+                        >
+                          <Text style={[styles.attendanceOptionText, value === true && styles.selectedAttendanceText]}>Present</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[styles.attendanceOption, value === false && styles.absentOptionSelected]}
+                          onPress={() => setCompanionAttendance((current) => ({ ...current, [member.userId]: false }))}
+                          accessibilityRole="button"
+                          accessibilityLabel={`${member.name} absent`}
+                        >
+                          <Text style={[styles.attendanceOptionText, value === false && styles.selectedAttendanceText]}>Absent</Text>
+                        </TouchableOpacity>
+                      </View>
+                    ) : (
+                      <View style={[styles.attendanceStatus, value === true ? styles.presentOptionSelected : value === false ? styles.absentOptionSelected : null]}>
+                        <Text style={[styles.attendanceOptionText, value !== undefined && styles.selectedAttendanceText]}>
+                          {value === true ? 'Present' : value === false ? 'Absent' : 'Not recorded'}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                );
+              },
+            )}
+            {task.crewRoster.some((member: { isLead: boolean }) => member.isLead) ? (
+              <View style={styles.leadRow}>
+                <Ionicons name="star" size={16} color="#b7791f" />
+                <Text style={styles.leadName}>
+                  {task.crewRoster.find((member: { isLead: boolean }) => member.isLead)?.name} · Crew head
+                </Text>
+              </View>
+            ) : null}
+          </View>
+        ) : null}
 
         {/* Evidence photos */}
         <View style={styles.photoSection}>
@@ -308,7 +410,7 @@ export default function TaskDetail() {
               {photos.map((photo, i) => (
                 <View key={photo.key ?? i} style={styles.photoThumb}>
                   <Image source={{ uri: photo.uri }} style={styles.photoImage} resizeMode="cover" />
-                  {canAct && photo.removable ? (
+                  {canAct && isCrewLead && photo.removable ? (
                     <TouchableOpacity
                       style={styles.photoDelete}
                       onPress={() => handleDeleteEvidencePhoto(photo)}
@@ -338,7 +440,7 @@ export default function TaskDetail() {
             </View>
           )}
 
-          {canAct ? (
+          {canAct && isCrewLead ? (
             <TouchableOpacity
               style={[styles.addPhotoBtn, isUploading && styles.btnDisabled]}
               onPress={handleAddPhoto}
@@ -360,34 +462,40 @@ export default function TaskDetail() {
         {/* Action buttons */}
         {canAct ? (
           <View style={styles.actions}>
-            {task.status === 'assigned' ? (
+            {isCrewLead && isNotStarted(task) ? (
               <TouchableOpacity style={styles.startBtn} onPress={handleStartTask} activeOpacity={0.8}>
                 <Ionicons name="play-circle-outline" size={20} color={colors.white} />
                 <Text style={styles.startBtnText}>Start Task</Text>
               </TouchableOpacity>
             ) : null}
 
-            <TouchableOpacity
-              style={[styles.completeBtn, isCompleting && styles.btnDisabled]}
-              onPress={handleMarkComplete}
-              disabled={isCompleting}
-              activeOpacity={0.8}
-            >
-              {isCompleting ? (
-                <ActivityIndicator size="small" color={colors.white} />
-              ) : (
-                <Ionicons name="checkmark-circle" size={20} color={colors.white} />
-              )}
-              <Text style={styles.completeBtnText}>
-                {isCompleting ? 'Saving…' : 'Mark Complete'}
-              </Text>
-            </TouchableOpacity>
+            {isCrewLead ? (
+              <>
+                <TouchableOpacity
+                  style={[styles.completeBtn, isCompleting && styles.btnDisabled]}
+                  onPress={handleMarkComplete}
+                  disabled={isCompleting}
+                  activeOpacity={0.8}
+                >
+                  {isCompleting ? (
+                    <ActivityIndicator size="small" color={colors.white} />
+                  ) : (
+                    <Ionicons name="checkmark-circle" size={20} color={colors.white} />
+                  )}
+                  <Text style={styles.completeBtnText}>
+                    {isCompleting ? 'Saving…' : 'Mark Complete'}
+                  </Text>
+                </TouchableOpacity>
 
-            {uploadedCount === 0 ? (
+                {uploadedCount === 0 ? (
               <Text style={styles.completeHint}>
                 Add at least one evidence photo to mark this task complete
               </Text>
-            ) : null}
+                ) : null}
+              </>
+            ) : (
+              <Text style={styles.completeHint}>Only the crew head can upload evidence or complete this task.</Text>
+            )}
           </View>
         ) : null}
 
@@ -497,8 +605,8 @@ function getStatusIcon(status: string): any {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
-  navBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, backgroundColor: colors.primary },
-  navBack: { width: 40, alignItems: 'flex-start' },
+  navBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingBottom: 18, backgroundColor: colors.primary },
+  navBack: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' },
   navTitle: { flex: 1, fontSize: 17, fontWeight: '700', color: colors.white, textAlign: 'center' },
   cameraModal: { flex: 1, backgroundColor: '#000' },
   liveCamera: { flex: 1, justifyContent: 'space-between' },
@@ -511,43 +619,57 @@ const styles = StyleSheet.create({
   cameraHint: { color: colors.white, fontSize: 13, textAlign: 'center', paddingHorizontal: 20 },
   scroll: { padding: 16, gap: 16, paddingBottom: 40 },
   statusRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
+  statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6 },
   statusText: { fontSize: 13, fontWeight: '700' },
   dueText: { fontSize: 12, color: colors.gray[500], fontWeight: '500' },
-  card: { backgroundColor: colors.white, borderRadius: 4, padding: 16, marginHorizontal: -12, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 2 },
+  card: { backgroundColor: colors.white, borderRadius: 1, borderWidth: 1, borderColor: colors.border, padding: 16 },
   taskTitle: { fontSize: 20, fontWeight: '800', color: colors.gray[900], marginBottom: 6 },
   taskDescription: { fontSize: 14, color: colors.gray[700], lineHeight: 20, marginBottom: 12 },
   reportPhotosSection: { marginBottom: 12 },
   reportPhotosLabel: { fontSize: 12, fontWeight: '700', color: colors.gray[500], marginBottom: 8 },
   reportPhotosRow: { gap: 8 },
-  reportPhoto: { width: '100%', aspectRatio: 1.5, borderRadius: 2, backgroundColor: colors.gray[100] },
+  reportPhoto: { width: '100%', aspectRatio: 1.5, borderRadius: 1, backgroundColor: colors.gray[100] },
   metaGrid: { gap: 10, marginTop: 4 },
   metaHighlights: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   metaRow: { flex: 1, flexDirection: 'row', gap: 8, minWidth: 0 },
   metaLabel: { fontSize: 11, fontWeight: '600', color: colors.gray[500], textTransform: 'uppercase', letterSpacing: 0.4 },
   metaValue: { fontSize: 14, color: colors.gray[900], marginTop: 1 },
-  photoSection: { backgroundColor: colors.white, borderRadius: 4, padding: 16, marginHorizontal: -12, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 2 },
+  attendanceSection: { backgroundColor: colors.white, borderRadius: 1, borderWidth: 1, borderColor: colors.border, padding: 16 },
+  attendanceHint: { fontSize: 12, color: colors.gray[500], lineHeight: 18, marginTop: 5, marginBottom: 8 },
+  attendanceRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingVertical: 9, borderTopWidth: 1, borderTopColor: colors.gray[100] },
+  companionIdentity: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
+  companionName: { fontSize: 13, fontWeight: '600', color: colors.gray[700], flexShrink: 1 },
+  attendanceOptions: { flexDirection: 'row', gap: 6 },
+  attendanceOption: { borderWidth: 1, borderColor: colors.gray[200], paddingVertical: 6, paddingHorizontal: 9 },
+  attendanceStatus: { borderWidth: 1, borderColor: colors.gray[200], paddingVertical: 6, paddingHorizontal: 9 },
+  presentOptionSelected: { backgroundColor: '#dcfce7', borderColor: '#86efac' },
+  absentOptionSelected: { backgroundColor: '#fee2e2', borderColor: '#fca5a5' },
+  attendanceOptionText: { fontSize: 11, fontWeight: '600', color: colors.gray[500] },
+  selectedAttendanceText: { color: colors.gray[700] },
+  leadRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.gray[100] },
+  leadName: { fontSize: 12, fontWeight: '700', color: colors.gray[700] },
+  photoSection: { backgroundColor: colors.white, borderRadius: 1, borderWidth: 1, borderColor: colors.border, padding: 16 },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
   sectionTitle: { fontSize: 15, fontWeight: '700', color: colors.gray[900] },
   sectionCount: { fontSize: 12, fontWeight: '600', color: colors.primary },
   photosRow: { flexDirection: 'row', gap: 10, paddingBottom: 4 },
-  photoThumb: { width: 90, height: 90, borderRadius: 10, overflow: 'hidden', position: 'relative' },
+  photoThumb: { width: 90, height: 90, borderRadius: 1, overflow: 'hidden', position: 'relative' },
   photoImage: { width: '100%', height: '100%' },
   photoDelete: { position: 'absolute', top: 4, right: 4, width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.65)', alignItems: 'center', justifyContent: 'center', zIndex: 2 },
   photoCheck: { position: 'absolute', bottom: 4, right: 4, backgroundColor: '#fff', borderRadius: 10 },
   photoEmpty: { alignItems: 'center', paddingVertical: 24, gap: 6 },
   photoEmptyText: { fontSize: 14, fontWeight: '600', color: colors.gray[500] },
   photoEmptySub: { fontSize: 12, color: colors.gray[500], textAlign: 'center' },
-  addPhotoBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 12, paddingVertical: 12, borderRadius: 10, borderWidth: 1.5, borderColor: colors.primary, borderStyle: 'dashed', backgroundColor: colors.primaryLight },
+  addPhotoBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 12, paddingVertical: 12, borderRadius: 6, borderWidth: 1.5, borderColor: colors.primary, borderStyle: 'dashed', backgroundColor: colors.primaryLight },
   addPhotoBtnText: { fontSize: 14, fontWeight: '700', color: colors.primary },
   actions: { gap: 10 },
-  startBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#0284c7', borderRadius: 12, paddingVertical: 14 },
+  startBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#15803d', borderRadius: 6, paddingVertical: 16 },
   startBtnText: { fontSize: 15, fontWeight: '700', color: '#ffffff' },
-  completeBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: colors.primary, borderRadius: 12, paddingVertical: 14 },
+  completeBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: colors.primary, borderRadius: 6, paddingVertical: 16 },
   completeBtnText: { fontSize: 15, fontWeight: '700', color: '#ffffff' },
   btnDisabled: { opacity: 0.5 },
   completeHint: { fontSize: 12, color: colors.gray[500], textAlign: 'center', paddingHorizontal: 16 },
-  completedBanner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: '#dcfce7', borderRadius: 12, paddingVertical: 14 },
+  completedBanner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: '#dcfce7', borderRadius: 6, paddingVertical: 16 },
   completedBannerText: { fontSize: 15, fontWeight: '700', color: '#16a34a' },
   errorContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
   errorText: { fontSize: 16, fontWeight: '600', color: colors.gray[700] },

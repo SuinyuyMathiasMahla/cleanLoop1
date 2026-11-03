@@ -110,6 +110,7 @@ export class ComputeStack extends cdk.Stack {
     tasksTable.grantReadWriteData(this.tasksHandler);
     reportsTable.grantReadWriteData(this.tasksHandler);
     usersTable.grantReadData(this.tasksHandler);
+    notificationsTable.grantWriteData(this.tasksHandler);
     mediaBucket.grantPut(this.tasksHandler);
     mediaBucket.grantRead(this.tasksHandler);
     mediaBucket.grantDelete(this.tasksHandler);

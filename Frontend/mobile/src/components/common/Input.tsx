@@ -72,7 +72,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1.5,
-    borderRadius: 10,
+    borderRadius: 6,
     backgroundColor: colors.white,
   },
   inputNormal: {

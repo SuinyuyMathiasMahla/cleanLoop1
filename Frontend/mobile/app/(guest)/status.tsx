@@ -179,7 +179,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#fee2e2',
-    borderRadius: 10,
+    borderRadius: 6,
     padding: 12,
     marginTop: 16,
     gap: 8,
@@ -192,7 +192,7 @@ const styles = StyleSheet.create({
   },
   resultCard: {
     backgroundColor: colors.white,
-    borderRadius: 14,
+    borderRadius: 1,
     padding: 18,
     marginTop: 24,
     shadowColor: '#000',
@@ -234,7 +234,7 @@ const styles = StyleSheet.create({
   },
   statusMessage: {
     backgroundColor: colors.primaryLight,
-    borderRadius: 8,
+    borderRadius: 1,
     padding: 12,
     marginTop: 4,
   },

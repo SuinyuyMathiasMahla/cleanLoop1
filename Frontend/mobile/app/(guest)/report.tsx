@@ -333,7 +333,7 @@ const styles = StyleSheet.create({
   },
   camPill: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
-    backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 6,
     paddingHorizontal: 10, paddingVertical: 4,
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
   },
@@ -357,7 +357,7 @@ const styles = StyleSheet.create({
   },
   aiLeft:    { flexDirection: 'row', alignItems: 'center', gap: 6 },
   aiLabel:   { fontSize: 11, fontWeight: '600', color: GREEN2 },
-  confBadge: { backgroundColor: GREEN, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 3 },
+  confBadge: { backgroundColor: GREEN, borderRadius: 6, paddingHorizontal: 10, paddingVertical: 3 },
   confText:  { fontSize: 11, fontWeight: '700', color: '#fff' },
 
   detectionRow:   { paddingHorizontal: 14, paddingVertical: 10, backgroundColor: 'rgba(0,0,0,0.5)' },
@@ -383,7 +383,7 @@ const styles = StyleSheet.create({
 
   retakeBtn: {
     position: 'absolute', top: 12, right: 12, flexDirection: 'row', alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6, gap: 6,
+    backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 6, paddingHorizontal: 12, paddingVertical: 6, gap: 6,
   },
   retakeBtnText: { color: '#fff', fontSize: 13, fontWeight: '600' },
 
@@ -394,7 +394,7 @@ const styles = StyleSheet.create({
   typeRow:      { flexDirection: 'row', gap: 10 },
   typeChip: {
     flex: 1, flexDirection: 'row', alignItems: 'center', gap: 7,
-    backgroundColor: CARD_BG, borderRadius: 10,
+    backgroundColor: CARD_BG, borderRadius: 1,
     paddingHorizontal: 12, paddingVertical: 12,
     borderWidth: 1.5, borderColor: '#2a3a34',
   },
@@ -405,7 +405,7 @@ const styles = StyleSheet.create({
   toggleRow: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
     marginHorizontal: 16, marginTop: 14,
-    backgroundColor: CARD_BG, borderRadius: 12,
+    backgroundColor: CARD_BG, borderRadius: 1,
     paddingHorizontal: 14, paddingVertical: 12,
     borderWidth: 1, borderColor: '#2a3a34',
   },
@@ -415,7 +415,7 @@ const styles = StyleSheet.create({
   section:      { paddingHorizontal: 16, marginTop: 16 },
   sectionLabel: { fontSize: 12, fontWeight: '700', color: '#9ca3af', marginBottom: 8, letterSpacing: 0.5, textTransform: 'uppercase' },
   textArea: {
-    backgroundColor: CARD_BG, borderRadius: 10, borderWidth: 1.5,
+    backgroundColor: CARD_BG, borderRadius: 1, borderWidth: 1.5,
     borderColor: '#2a3a34', paddingHorizontal: 14, paddingVertical: 12,
     fontSize: 14, color: '#fff', minHeight: 90,
   },
@@ -426,7 +426,7 @@ const styles = StyleSheet.create({
   successTitle:     { fontSize: 26, fontWeight: '800', color: '#fff', marginBottom: 10, textAlign: 'center' },
   successSubtitle:  { fontSize: 15, color: '#9ca3af', textAlign: 'center', lineHeight: 22, marginBottom: 28 },
   idBox: {
-    backgroundColor: '#0a2a1e', borderRadius: 14, paddingVertical: 20,
+    backgroundColor: '#0a2a1e', borderRadius: 1, paddingVertical: 20,
     paddingHorizontal: 32, alignItems: 'center', marginBottom: 12,
     borderWidth: 1, borderColor: GREEN, width: '100%',
   },

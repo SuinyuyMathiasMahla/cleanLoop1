@@ -6,6 +6,7 @@ import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { ReportsPage } from './pages/ReportsPage';
 import { TasksPage } from './pages/TasksPage';
+import { TaskRecordsPage } from './pages/TaskRecordsPage';
 import { CrewPage } from './pages/CrewPage';
 import { CrewStatisticsPage } from './pages/CrewStatisticsPage';
 import { NotificationsPage } from './pages/NotificationsPage';
@@ -51,6 +52,7 @@ export default function App() {
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/reports" element={<ReportsPage />} />
           <Route path="/tasks" element={<TasksPage />} />
+          <Route path="/task-records" element={<TaskRecordsPage />} />
           <Route path="/crew" element={<CrewPage />} />
           <Route path="/crew-statistics" element={<CrewStatisticsPage />} />
           <Route path="/notifications" element={<NotificationsPage />} />

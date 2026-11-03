@@ -83,8 +83,9 @@ class AuthStack extends cdk.Stack {
         const supportedIdentityProviders = [
             cognito.UserPoolClientIdentityProvider.COGNITO,
         ];
+        let googleProvider;
         if (googleClientId && googleClientSecret) {
-            new cognito.UserPoolIdentityProviderGoogle(this, 'GoogleIdentityProvider', {
+            googleProvider = new cognito.UserPoolIdentityProviderGoogle(this, 'GoogleIdentityProvider', {
                 userPool: this.userPool,
                 clientId: googleClientId,
                 clientSecret: googleClientSecret,
@@ -114,6 +115,9 @@ class AuthStack extends cdk.Stack {
             idTokenValidity: cdk.Duration.hours(1),
             preventUserExistenceErrors: true,
         });
+        if (googleProvider) {
+            this.userPoolClient.node.addDependency(googleProvider);
+        }
         new cdk.CfnOutput(this, 'UserPoolIdOutput', { value: this.userPool.userPoolId });
         new cdk.CfnOutput(this, 'UserPoolClientIdOutput', { value: this.userPoolClient.userPoolClientId });
         new cdk.CfnOutput(this, 'CognitoDomainOutput', { value: domain.domainName });

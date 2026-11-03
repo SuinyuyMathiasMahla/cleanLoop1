@@ -5,6 +5,7 @@ import { dbGet, dbPut, dbUpdate, dbQuery, dbScan, dbDelete } from '../shared/dyn
 import { ok, created, badRequest, forbidden, notFound, serverError } from '../shared/response';
 import { getCaller, isAdmin, isCrew } from '../shared/auth';
 import { getPresignedPutUrl, getPresignedGetUrl } from '../shared/s3';
+import { notifyCitizenCommunity, notifyUsers } from '../shared/notifications';
 
 const ses = new SESClient({});
 const s3 = new S3Client({});
@@ -23,6 +24,26 @@ function normalizeTaskDueAt(scheduledAt: string, requestedDueAt?: string | null)
   if (requestedDueAt && !Number.isFinite(requestedDueTime)) return null;
   const earliestDueTime = scheduledTime + MINIMUM_TASK_DURATION_MS;
   return new Date(requestedDueAt ? Math.max(requestedDueTime, earliestDueTime) : earliestDueTime).toISOString();
+}
+
+async function validateCrewAssignment(
+  crewLeadId: string,
+  crewIds: string[],
+  minimumCompanions: number,
+): Promise<string | null> {
+  if (!crewLeadId) return 'A crew lead is required';
+  if (crewIds.length < minimumCompanions) return `Select at least ${minimumCompanions} companion`;
+  if (crewIds.length > 3) return 'A task can have no more than 3 companions';
+  if (new Set(crewIds).size !== crewIds.length) return 'Companion crew members must be unique';
+  if (crewIds.includes(crewLeadId)) return 'The crew lead cannot also be a companion';
+
+  for (const userId of [crewLeadId, ...crewIds]) {
+    const user = await dbGet({ TableName: USERS_TABLE, Key: { userId } });
+    if (!user || String(user.role).toLowerCase() !== 'crew' || user.status === 'inactive') {
+      return 'Select active crew members for the crew lead and companions';
+    }
+  }
+  return null;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -81,7 +102,49 @@ async function createNotification(
   }).catch(e => console.error('Failed to create notification:', e));
 }
 
-async function notifyCommunityTaskCompleted(task: Record<string, any>) {
+async function notifyCrewAssignment(userId: string, task: Record<string, any>) {
+  const [user, lead] = await Promise.all([
+    dbGet({ TableName: USERS_TABLE, Key: { userId } }),
+    task.crewLeadId && userId !== task.crewLeadId
+      ? dbGet({ TableName: USERS_TABLE, Key: { userId: task.crewLeadId } })
+      : Promise.resolve(null),
+  ]);
+  if (!user) return;
+
+  if (user.email) await sendCrewEmail(user.email as string, user.name as string, task);
+
+  const isCompanion = !!task.crewLeadId && userId !== task.crewLeadId;
+  await notifyUsers(NOTIFICATIONS_TABLE, [{
+    userId,
+    expoPushToken: user.expoPushToken as string | undefined,
+  }], {
+    type: 'task_assigned',
+    title: isCompanion ? 'Assigned as a task companion' : 'New task assigned',
+    body: isCompanion
+      ? `You have been assigned to accompany ${lead?.name ?? 'the crew head'} on "${task.title}" scheduled for ${new Date(task.scheduledAt).toLocaleDateString()}.`
+      : `You are the crew head for "${task.title}" scheduled for ${new Date(task.scheduledAt).toLocaleDateString()}.`,
+    taskId: task.taskId as string,
+  });
+}
+
+async function notifyCommunityTaskCompleted(
+  task: Record<string, any>,
+  resolvedReports: Record<string, any>[] = [],
+) {
+  const reportIds = (task.reportIds as string[] | undefined) ?? [];
+  if (reportIds.length > 0) {
+    await Promise.all(resolvedReports.map(async (report) => {
+      await notifyCitizenCommunity(USERS_TABLE, NOTIFICATIONS_TABLE, {
+        type: 'report_resolved',
+        title: 'Report resolved',
+        body: `The waste issue reported at ${report.address ?? 'the reported location'} has been resolved.`,
+        reportId: report.reportId as string,
+        taskId: task.taskId as string,
+      });
+    }));
+    return;
+  }
+
   let lastKey: Record<string, unknown> | undefined;
   do {
     const result = await dbScan({
@@ -120,10 +183,16 @@ async function createTask(event: APIGatewayProxyEvent): Promise<APIGatewayProxyR
   const body = JSON.parse(event.body ?? '{}');
   const { title, description, reportIds = [], crewLeadId, scheduledAt, notes } = body;
   const dueAt = normalizeTaskDueAt(scheduledAt, body.dueAt);
-  const crewIds: string[] = body.crewIds ?? body.crewMemberIds ?? [];
+  const rawCrewIds = body.crewIds ?? body.crewMemberIds ?? [];
+  if (!Array.isArray(rawCrewIds) || rawCrewIds.some((id: unknown) => typeof id !== 'string')) {
+    return badRequest('crewIds must be an array of crew member IDs');
+  }
+  const crewIds: string[] = rawCrewIds;
 
   if (!title || !scheduledAt) return badRequest('title and scheduledAt are required');
   if (!dueAt) return badRequest('scheduledAt and dueAt must be valid dates');
+  const assignmentError = await validateCrewAssignment(crewLeadId, crewIds, 1);
+  if (assignmentError) return badRequest(assignmentError);
 
   const taskId = crypto.randomUUID();
   const now = new Date().toISOString();
@@ -161,22 +230,7 @@ async function createTask(event: APIGatewayProxyEvent): Promise<APIGatewayProxyR
 
   if (allCrewIds.length > 0) {
     await Promise.allSettled(
-      allCrewIds.map(async (userId: string) => {
-        const user = await dbGet({ TableName: USERS_TABLE, Key: { userId } });
-        if (!user) return;
-
-        if (user.email) {
-          await sendCrewEmail(user.email as string, user.name as string, task);
-        }
-
-        await createNotification(
-          userId,
-          'task_assigned',
-          'New task assigned',
-          `You have been assigned to "${title}" scheduled for ${new Date(scheduledAt).toLocaleDateString()}.`,
-          taskId,
-        );
-      })
+      allCrewIds.map((userId: string) => notifyCrewAssignment(userId, task))
     );
   }
 
@@ -188,7 +242,11 @@ async function listTasks(event: APIGatewayProxyEvent): Promise<APIGatewayProxyRe
   const caller = getCaller(event);
   if (!caller) return forbidden();
 
-  const { status, limit = '500' } = event.queryStringParameters ?? {};
+  const { status, limit = '500', lastKey } = event.queryStringParameters ?? {};
+  const pageLimit = Math.min(Math.max(parseInt(limit, 10) || 500, 1), 500);
+  const exclusiveStartKey = lastKey
+    ? JSON.parse(Buffer.from(lastKey, 'base64').toString())
+    : undefined;
 
   if (isAdmin(caller)) {
     if (status) {
@@ -198,12 +256,25 @@ async function listTasks(event: APIGatewayProxyEvent): Promise<APIGatewayProxyRe
         KeyConditionExpression: '#s = :s',
         ExpressionAttributeNames: { '#s': 'status' },
         ExpressionAttributeValues: { ':s': status },
-        Limit: parseInt(limit),
+        Limit: pageLimit,
+        ...(exclusiveStartKey ? { ExclusiveStartKey: exclusiveStartKey } : {}),
       });
-      return ok({ tasks: result.items, total: result.items.length });
+      return ok({
+        tasks: result.items,
+        total: result.items.length,
+        nextKey: result.lastKey ? Buffer.from(JSON.stringify(result.lastKey)).toString('base64') : null,
+      });
     }
-    const result = await dbScan({ TableName: TASKS_TABLE, Limit: parseInt(limit) });
-    return ok({ tasks: result.items, total: result.items.length });
+    const result = await dbScan({
+      TableName: TASKS_TABLE,
+      Limit: pageLimit,
+      ...(exclusiveStartKey ? { ExclusiveStartKey: exclusiveStartKey } : {}),
+    });
+    return ok({
+      tasks: result.items,
+      total: result.items.length,
+      nextKey: result.lastKey ? Buffer.from(JSON.stringify(result.lastKey)).toString('base64') : null,
+    });
   }
 
   if (isCrew(caller)) {
@@ -252,7 +323,19 @@ async function getTask(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResu
     }
   }
 
-  return ok({ task });
+  const crewIds = [...new Set([
+    ...((task.crewIds as string[]) ?? []),
+    ...(task.crewLeadId ? [task.crewLeadId as string] : []),
+  ])];
+  const crewRoster = await Promise.all(crewIds.map(async userId => {
+    const member = await dbGet({ TableName: USERS_TABLE, Key: { userId } });
+    return {
+      userId,
+      name: (member?.name as string | undefined) ?? 'Crew member',
+      isLead: userId === task.crewLeadId,
+    };
+  }));
+  return ok({ task: { ...task, crewRoster } });
 }
 
 // ── PATCH /tasks/{taskId} ─────────────────────────────────────────────────────
@@ -264,6 +347,22 @@ async function updateTask(event: APIGatewayProxyEvent): Promise<APIGatewayProxyR
   if (!taskId) return badRequest('taskId required');
 
   const body = JSON.parse(event.body ?? '{}');
+  const existingTask = await dbGet({ TableName: TASKS_TABLE, Key: { taskId } });
+  if (!existingTask) return notFound('Task not found');
+  if (body.crewMemberIds !== undefined && body.crewIds === undefined) body.crewIds = body.crewMemberIds;
+
+  if (body.crewIds !== undefined || body.crewLeadId !== undefined) {
+    if (body.crewIds !== undefined &&
+        (!Array.isArray(body.crewIds) || body.crewIds.some((id: unknown) => typeof id !== 'string'))) {
+      return badRequest('crewIds must be an array of crew member IDs');
+    }
+    const nextCrewLeadId = body.crewLeadId ?? existingTask.crewLeadId;
+    const nextCrewIds = body.crewIds ?? existingTask.crewIds ?? [];
+    if (!Array.isArray(nextCrewIds)) return badRequest('crewIds must be an array of crew member IDs');
+    const assignmentError = await validateCrewAssignment(nextCrewLeadId, nextCrewIds, 1);
+    if (assignmentError) return badRequest(assignmentError);
+  }
+
   const allowed = ['title', 'description', 'reportIds', 'crewIds', 'crewLeadId', 'scheduledAt', 'dueAt', 'notes'];
   const updates: string[] = [];
   const names: Record<string, string> = {};
@@ -290,22 +389,31 @@ async function updateTask(event: APIGatewayProxyEvent): Promise<APIGatewayProxyR
     ConditionExpression: 'attribute_exists(taskId)',
   });
 
-  const existingTask = await dbGet({ TableName: TASKS_TABLE, Key: { taskId } });
   if (existingTask) {
-    const allCrewIds = [...new Set([
+    const previousAssignees = new Set([
       ...((existingTask.crewIds as string[]) ?? []),
       ...(existingTask.crewLeadId ? [existingTask.crewLeadId as string] : []),
+    ]);
+    const updatedTask = await dbGet({ TableName: TASKS_TABLE, Key: { taskId } });
+    const allCrewIds = [...new Set([
+      ...((updatedTask?.crewIds as string[]) ?? []),
+      ...(updatedTask?.crewLeadId ? [updatedTask.crewLeadId as string] : []),
     ])];
     await Promise.allSettled(
-      allCrewIds.map(uid =>
-        createNotification(
-          uid,
-          'task_updated',
-          'Task updated',
-          `The task "${existingTask.title}" has been updated by an administrator.`,
-          taskId,
-        )
-      )
+      allCrewIds.map(async (uid) => {
+        if (previousAssignees.has(uid)) {
+          await createNotification(
+            uid,
+            'task_updated',
+            'Task updated',
+            `The task "${updatedTask?.title ?? existingTask.title}" has been updated by an administrator.`,
+            taskId,
+          );
+          return;
+        }
+
+        await notifyCrewAssignment(uid, updatedTask ?? existingTask);
+      }),
     );
   }
 
@@ -320,7 +428,7 @@ async function updateTaskStatus(event: APIGatewayProxyEvent): Promise<APIGateway
   const { taskId } = event.pathParameters ?? {};
   if (!taskId) return badRequest('taskId required');
 
-  const { status, evidencePhotoKeys } = JSON.parse(event.body ?? '{}');
+  const { status, evidencePhotoKeys, companionAttendance } = JSON.parse(event.body ?? '{}');
   const allowedAdmin = ['scheduled', 'assigned', 'in_progress', 'completed', 'cancelled'];
   const allowedCrew = ['in_progress', 'completed'];
 
@@ -336,6 +444,9 @@ async function updateTaskStatus(event: APIGatewayProxyEvent): Promise<APIGateway
     if (!crewIds.includes(caller.userId) && task.crewLeadId !== caller.userId) {
       return forbidden('Not assigned to this task');
     }
+    if (status === 'completed' && caller.userId !== task.crewLeadId) {
+      return forbidden('Only the crew head can complete the task and submit evidence');
+    }
   } else {
     return forbidden();
   }
@@ -347,15 +458,48 @@ async function updateTaskStatus(event: APIGatewayProxyEvent): Promise<APIGateway
       return badRequest('At least one evidence photo is required to complete a task');
     }
 
+    const companionIds = [...new Set((task.crewIds as string[] | undefined) ?? [])]
+      .filter(userId => userId !== task.crewLeadId);
+    if (!Array.isArray(companionAttendance)) {
+      return badRequest('Record whether each assigned companion was present before completing the task');
+    }
+
+    const attendanceById = new Map<string, boolean>();
+    for (const attendance of companionAttendance) {
+      if (
+        !attendance ||
+        typeof attendance.userId !== 'string' ||
+        typeof attendance.present !== 'boolean' ||
+        attendanceById.has(attendance.userId)
+      ) {
+        return badRequest('Companion attendance entries must contain unique userIds and present values');
+      }
+      attendanceById.set(attendance.userId, attendance.present);
+    }
+    if (attendanceById.size !== companionIds.length || companionIds.some(userId => !attendanceById.has(userId))) {
+      return badRequest('Record attendance for every assigned companion');
+    }
+    const markedAt = new Date().toISOString();
+    const attendanceRecords = await Promise.all(companionIds.map(async userId => {
+      const member = await dbGet({ TableName: USERS_TABLE, Key: { userId } });
+      return {
+        userId,
+        name: (member?.name as string | undefined) ?? 'Crew member',
+        present: attendanceById.get(userId)!,
+        markedAt,
+      };
+    }));
+
     await dbUpdate({
       TableName: TASKS_TABLE,
       Key: { taskId },
-      UpdateExpression: 'SET #s = :s, updatedAt = :now, completedAt = :now, evidencePhotoKeys = :keys',
+      UpdateExpression: 'SET #s = :s, updatedAt = :now, completedAt = :now, evidencePhotoKeys = :keys, companionAttendance = :attendance',
       ExpressionAttributeNames: { '#s': 'status' },
       ExpressionAttributeValues: {
         ':s': status,
         ':now': new Date().toISOString(),
         ':keys': keys,
+        ':attendance': attendanceRecords,
       },
       ConditionExpression: 'attribute_exists(taskId)',
     });
@@ -372,9 +516,14 @@ async function updateTaskStatus(event: APIGatewayProxyEvent): Promise<APIGateway
     });
   }
 
+  const reportIdsToComplete = (task.reportIds as string[] | undefined) ?? [];
+  const reportsBeforeCompletion = status === 'completed'
+    ? await Promise.all(reportIdsToComplete.map(reportId => dbGet({ TableName: REPORTS_TABLE, Key: { reportId } })))
+    : [];
+
   if (status === 'completed') {
-    await Promise.allSettled(
-      ((task.reportIds as string[]) ?? []).map(reportId => dbUpdate({
+    const reportResults = await Promise.allSettled(
+      reportIdsToComplete.map(reportId => dbUpdate({
         TableName: REPORTS_TABLE,
         Key: { reportId },
         UpdateExpression: 'SET #s = :resolved, completedAt = :now, updatedAt = :now',
@@ -383,7 +532,15 @@ async function updateTaskStatus(event: APIGatewayProxyEvent): Promise<APIGateway
         ConditionExpression: 'attribute_exists(reportId)',
       }))
     );
-    if (notifyCommunity) {
+    const reportsResolvedNow = reportsBeforeCompletion.filter((report, index) =>
+      report &&
+      report.status !== 'resolved' &&
+      reportResults[index]?.status === 'fulfilled',
+    );
+    if (reportsResolvedNow.length > 0) {
+      await notifyCommunityTaskCompleted(task, reportsResolvedNow)
+        .catch(error => console.error('Community task-completion notification error:', error));
+    } else if (notifyCommunity && reportIdsToComplete.length === 0) {
       await notifyCommunityTaskCompleted(task)
         .catch(error => console.error('Community task-completion notification error:', error));
     }
@@ -430,11 +587,11 @@ async function getEvidenceUploadUrl(event: APIGatewayProxyEvent): Promise<APIGat
   const task = await dbGet({ TableName: TASKS_TABLE, Key: { taskId } });
   if (!task) return notFound('Task not found');
 
-  if (isCrew(caller) && !isAdmin(caller)) {
-    const crewIds = (task.crewIds as string[]) ?? [];
-    if (!crewIds.includes(caller.userId) && task.crewLeadId !== caller.userId) {
-      return forbidden('Not assigned to this task');
-    }
+  if (task.status === 'completed' || task.status === 'cancelled') {
+    return forbidden('Evidence can only be uploaded while the task is active');
+  }
+  if (!isCrew(caller) || caller.userId !== task.crewLeadId) {
+    return forbidden('Only the crew head can upload task evidence');
   }
 
   const { contentType = 'image/jpeg', filename = 'evidence.jpg' } = event.queryStringParameters ?? {};
@@ -486,9 +643,8 @@ async function deleteEvidencePhoto(event: APIGatewayProxyEvent): Promise<APIGate
   if (!task) return notFound('Task not found');
 
   if (!isAdmin(caller)) {
-    const crewIds = (task.crewIds as string[]) ?? [];
-    if (!isCrew(caller) || (!crewIds.includes(caller.userId) && task.crewLeadId !== caller.userId)) {
-      return forbidden('Not assigned to this task');
+    if (!isCrew(caller) || caller.userId !== task.crewLeadId) {
+      return forbidden('Only the crew head can manage task evidence');
     }
     if (task.status === 'completed' || task.status === 'cancelled') {
       return forbidden('Evidence can only be removed before task completion');
