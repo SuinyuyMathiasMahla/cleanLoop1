@@ -432,7 +432,7 @@ export function ReportsPage() {
               <InfoItem
                 icon={<User className="w-4 h-4" />}
                 label="Submitted by"
-                value={viewReport.submittedBy}
+                value={viewReport.submitterName || 'Community member'}
               />
               <InfoItem
                 icon={<Calendar className="w-4 h-4" />}
