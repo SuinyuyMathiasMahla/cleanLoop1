@@ -18,68 +18,6 @@ const FOREST = '#0f3d2e';
 const MINT = '#d9f2e3';
 const LIGHT_GREEN = '#e8f5f0';
 
-function StatusBadge({ status }: { status: string }) {
-  const map: Record<
-    string,
-    { label: string; color: string; bg: string }
-  > = {
-    pending: {
-      label: 'Pending',
-      color: '#92400e',
-      bg: '#fef3c7',
-    },
-    in_progress: {
-      label: 'In Progress',
-      color: '#1e40af',
-      bg: '#dbeafe',
-    },
-    assigned: {
-      label: 'Assigned',
-      color: '#1e40af',
-      bg: '#dbeafe',
-    },
-    resolved: {
-      label: 'Resolved',
-      color: '#065f46',
-      bg: '#d1fae5',
-    },
-  };
-
-  const s = map[status] ?? map.pending;
-
-  return (
-    <View
-      style={[
-        styles.badge,
-        { backgroundColor: s.bg },
-      ]}
-    >
-      <Text
-        style={[
-          styles.badgeText,
-          { color: s.color },
-        ]}
-      >
-        {s.label}
-      </Text>
-    </View>
-  );
-}
-
-function timeAgo(dateStr?: string) {
-  if (!dateStr) return '';
-
-  const diff =
-    Date.now() - new Date(dateStr).getTime();
-
-  const h = Math.floor(diff / 3600000);
-
-  if (h < 1) return 'Just now';
-  if (h < 24) return `${h}h ago`;
-
-  return `${Math.floor(h / 24)}d ago`;
-}
-
 export default function GuestLanding() {
   const router = useRouter();
 

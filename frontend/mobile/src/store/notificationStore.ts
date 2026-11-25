@@ -15,7 +15,8 @@ let Notifications: NotificationsModule | null = null;
 
 if (!(isExpoGo && Platform.OS === 'android') && Platform.OS !== 'web') {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    // Optional native module: loaded lazily so the app still runs where it is missing.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     Notifications = require('expo-notifications') as NotificationsModule;
   } catch (err) {
     console.log('expo-notifications unavailable, push disabled:', err);

@@ -8,7 +8,7 @@ const USERS_TABLE = process.env.USERS_TABLE!;
 const NOTIFICATIONS_TABLE = process.env.NOTIFICATIONS_TABLE!;
 const SES_FROM_EMAIL = process.env.SES_FROM_EMAIL!;
 
-export async function handler(event: ScheduledEvent): Promise<void> {
+export async function handler(_event: ScheduledEvent): Promise<void> {
   console.log('Email reminder job started:', new Date().toISOString());
 
   const now = new Date();

@@ -201,7 +201,7 @@ export const reportsApi = {
     return api.get<{ reports: Report[]; nextKey?: string | null }>(`${path}?${params}`);
   },
 
-  getMine: (page = 1, limit = 20) =>
+  getMine: (_page = 1, limit = 20) =>
     api.get<{ reports: Report[] }>(`/reports/mine?limit=${limit}`),
 
   getById: (id: string) =>
