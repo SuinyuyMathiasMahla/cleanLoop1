@@ -1,5 +1,10 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
-import { S3Client, DeleteObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
+import {
+  S3Client,
+  DeleteObjectCommand,
+  HeadObjectCommand,
+  PutObjectCommand,
+} from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
@@ -335,6 +340,10 @@ async function createReport(event: APIGatewayProxyEvent): Promise<APIGatewayProx
   if (!address && !lat) return badRequest('address or location coordinates are required');
 
   const caller = getCaller(event);
+  if (photoKey !== undefined && photoKey !== null) {
+    const photoProblem = await checkUploadedPhoto(photoKey, caller?.userId ?? null);
+    if (photoProblem) return badRequest(photoProblem);
+  }
   const submitter = caller
     ? await dbGet({ TableName: USERS_TABLE, Key: { userId: caller.userId } })
     : null;
@@ -699,10 +708,60 @@ async function updateReportStatus(event: APIGatewayProxyEvent): Promise<APIGatew
   return ok({ reportId, status });
 }
 
+// ── Report photo uploads ──────────────────────────────────────────────────────
+// Signed-in users upload under their own prefix; guests under a shared guest prefix
+// on a separately throttled route. The extension comes from the allowed content type,
+// never from the client's filename.
+const UPLOAD_EXTENSIONS: Record<string, string> = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+};
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+const GUEST_UPLOAD_PREFIX = 'guest-uploads/';
+const GUEST_UPLOAD_RESOURCE = '/reports/guest/presigned-upload';
+
+function uploadPrefixFor(userId: string | null): string {
+  return userId ? `reports/${userId}/` : GUEST_UPLOAD_PREFIX;
+}
+
+/** Returns a reason the photo cannot be attached, or null when it is acceptable. */
+async function checkUploadedPhoto(
+  photoKey: unknown,
+  userId: string | null,
+): Promise<string | null> {
+  if (typeof photoKey !== 'string') return 'photoKey must be a string';
+  if (!photoKey.startsWith(uploadPrefixFor(userId)) || photoKey.includes('..')) {
+    return 'photoKey was not issued to this uploader';
+  }
+
+  let head;
+  try {
+    head = await s3.send(new HeadObjectCommand({ Bucket: MEDIA_BUCKET, Key: photoKey }));
+  } catch {
+    return 'photo not found; upload it before submitting the report';
+  }
+
+  const tooLarge = (head.ContentLength ?? 0) > MAX_UPLOAD_BYTES;
+  const wrongType = !head.ContentType || !UPLOAD_EXTENSIONS[head.ContentType];
+  if (tooLarge || wrongType) {
+    await s3
+      .send(new DeleteObjectCommand({ Bucket: MEDIA_BUCKET, Key: photoKey }))
+      .catch((error) => console.warn('Could not delete rejected upload:', error));
+    return tooLarge ? 'photo is larger than 10 MB' : 'photo must be JPEG, PNG or WebP';
+  }
+  return null;
+}
+
 async function getPresignedUpload(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
-  const { contentType = 'image/jpeg', filename } = event.queryStringParameters ?? {};
-  const ext = filename?.split('.').pop() ?? 'jpg';
-  const key = `reports/${crypto.randomUUID()}.${ext}`;
+  const caller = getCaller(event);
+  if (!caller && event.resource !== GUEST_UPLOAD_RESOURCE) return forbidden();
+
+  const contentType = event.queryStringParameters?.contentType ?? 'image/jpeg';
+  const ext = UPLOAD_EXTENSIONS[contentType];
+  if (!ext) return badRequest('contentType must be image/jpeg, image/png or image/webp');
+
+  const key = `${uploadPrefixFor(caller?.userId ?? null)}${crypto.randomUUID()}.${ext}`;
 
   const url = await getSignedUrl(
     s3,
@@ -776,7 +835,10 @@ export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayPr
     if (httpMethod === 'GET' && resource === '/reports/public/authenticated')
       return listPublicReports(event);
     if (httpMethod === 'GET' && resource === '/reports/mine') return listMyReports(event);
-    if (httpMethod === 'GET' && resource === '/reports/presigned-upload')
+    if (
+      httpMethod === 'GET' &&
+      (resource === '/reports/presigned-upload' || resource === GUEST_UPLOAD_RESOURCE)
+    )
       return getPresignedUpload(event);
     if (httpMethod === 'GET' && resource === '/reports/{reportId}') return getReport(event);
     if (httpMethod === 'DELETE' && resource === '/reports/{reportId}') return deleteReport(event);

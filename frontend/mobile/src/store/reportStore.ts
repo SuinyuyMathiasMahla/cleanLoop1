@@ -104,7 +104,7 @@ export const useReportStore = create<ReportStore>((set, get) => ({
       if (data.photo) {
         const filename = data.photo.split('/').pop() || 'report.jpg';
         const contentType = filename.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg';
-        const { data: upload } = await reportsApi.getPresignedUpload(contentType, filename);
+        const { data: upload } = await reportsApi.getPresignedUpload(contentType);
         await uploadToS3(upload.url, data.photo, contentType);
         photoKey = upload.key;
       }
@@ -132,7 +132,7 @@ export const useReportStore = create<ReportStore>((set, get) => ({
       if (data.photo) {
         const filename = data.photo.split('/').pop() || 'report.jpg';
         const contentType = filename.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg';
-        const { data: upload } = await reportsApi.getPresignedUpload(contentType, filename);
+        const { data: upload } = await reportsApi.getGuestPresignedUpload(contentType);
         await uploadToS3(upload.url, data.photo, contentType);
         photoKey = upload.key;
       }

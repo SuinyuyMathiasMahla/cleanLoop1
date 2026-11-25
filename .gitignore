@@ -10,3 +10,10 @@ dist/
 
 # CDK deploy outputs (contain the AWS account ID and resource names)
 cdk-outputs.json
+
+# Private documents: kept outside this public repository (see CONTRIBUTING.md)
+docs/srs/
+docs/presentations/
+docs/**/*.docx
+docs/**/*.pptx
+docs/**/*.pdf
