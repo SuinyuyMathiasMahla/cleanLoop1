@@ -5,6 +5,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useAuthStore } from '@/store/authStore';
 import { useNotificationStore } from '@/store/notificationStore';
 import { useReportStore } from '@/store/reportStore';
+import { PreviewBanner } from '@/components/common/PreviewBanner';
 
 function AuthGate() {
   const { user, isLoading, loadStoredAuth } = useAuthStore();
@@ -68,6 +69,7 @@ export default function RootLayout() {
         <Stack.Screen name="(crew)" />
         <Stack.Screen name="auth" />
       </Stack>
+      <PreviewBanner />
     </SafeAreaProvider>
   );
 }

@@ -11,6 +11,7 @@ import { CrewPage } from './pages/CrewPage';
 import { CrewStatisticsPage } from './pages/CrewStatisticsPage';
 import { NotificationsPage } from './pages/NotificationsPage';
 import { LoadingSpinner } from './components/common/LoadingSpinner';
+import { PreviewBanner } from './components/common/PreviewBanner';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuthStore();
@@ -39,6 +40,7 @@ export default function App() {
 
   return (
     <BrowserRouter>
+      <PreviewBanner />
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route

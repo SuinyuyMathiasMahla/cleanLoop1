@@ -6,7 +6,10 @@
   "scripts": {
     "lint": "eslint .",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "preview": "node frontend/preview-server/start.mjs",
+    "preview:web": "node frontend/preview-server/start.mjs web",
+    "preview:mobile": "node frontend/preview-server/start.mjs mobile"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
