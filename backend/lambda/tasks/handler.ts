@@ -532,8 +532,8 @@ async function updateTaskStatus(event: APIGatewayProxyEvent): Promise<APIGateway
         ConditionExpression: 'attribute_exists(reportId)',
       }))
     );
-    const reportsResolvedNow = reportsBeforeCompletion.filter((report, index) =>
-      report &&
+    const reportsResolvedNow = reportsBeforeCompletion.filter((report, index): report is Record<string, any> =>
+      !!report &&
       report.status !== 'resolved' &&
       reportResults[index]?.status === 'fulfilled',
     );
