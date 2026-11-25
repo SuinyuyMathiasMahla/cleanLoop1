@@ -1,15 +1,62 @@
-
+# Dependencies
 node_modules/
-cdk.out/
-.env
-*.log
-.expo/
+.pnpm-store/
 
 # Build output
 dist/
+build/
+web-build/
+coverage/
+*.tsbuildinfo
 
-# CDK deploy outputs (contain the AWS account ID and resource names)
+# Expo and React Native
+.expo/
+.expo-shared/
+android/
+ios/
+expo-env.d.ts
+
+# AWS CDK: synth output, deploy outputs and cached lookups all hold the AWS account ID,
+# resource names or endpoint URLs
+cdk.out/
 cdk-outputs.json
+cdk.context.json
+.cdk.staging/
+
+# Environment files and secrets. Commit only *.example files with placeholder values.
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key
+*.p8
+*.p12
+*.jks
+*.keystore
+*.mobileprovision
+google-services.json
+GoogleService-Info.plist
+credentials.json
+*-credentials.json
+service-account*.json
+.aws/
+
+# Logs and editor or OS files
+*.log
+npm-debug.log*
+pnpm-debug.log*
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+
+# Personal AI-assistant settings
+.claude/settings.local.json
+CLAUDE.local.md
 
 # Private documents: kept outside this public repository (see CONTRIBUTING.md)
 docs/srs/
@@ -17,3 +64,7 @@ docs/presentations/
 docs/**/*.docx
 docs/**/*.pptx
 docs/**/*.pdf
+docs/**/*.xlsx
+docs/**/*.jpeg
+docs/**/*.jpg
+docs/diagrams/legacy/
