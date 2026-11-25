@@ -22,8 +22,9 @@ holds the shared lint and format tooling.
 ## Status
 
 Release 1 (the core reporting loop) is being built in two-week Scrum sprints and
-tracked in Jira (project key `CL`). The requirements live in the Agile SRS, with the
-older detailed SRS in [docs/srs](docs/srs). Release 2 adds the AI Intelligence Module
+tracked in Jira (project key `CL`). The requirements live in the Agile SRS. Requirement
+documents and slide decks are kept in the team's private document space, not in this
+public repository. Release 2 adds the AI Intelligence Module
 for image analysis; later releases add insight dashboards and an assistant.
 
 Known gaps in the current code, scheduled as Sprint 0 and Sprint 1 work:

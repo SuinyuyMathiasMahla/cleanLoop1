@@ -17,12 +17,14 @@ frontend/
   web/          Vite admin portal
 ai/             AI Intelligence Module (Python, from Release 2)
 docs/
-  srs/          requirement specifications, newest version wins
   diagrams/     exported diagrams (PNG) and their sources
   adr/          architecture decision records
-  presentations/
   meetings/     sprint reviews and retrospectives
 ```
+
+This repository is public. Requirement specifications, slide decks, contracts and anything
+with personal details stay in the team's private document space; only material a developer
+needs to build the system (decision records, diagrams, the API contract) belongs in `docs/`.
 
 Each of `backend/`, `frontend/mobile/` and `frontend/web/` is its own pnpm project with
 its own `pnpm-lock.yaml`. The root `package.json` holds only the shared tooling
@@ -46,7 +48,7 @@ close it and reopen the folder; Windows keeps the old case in open handles.
 | CDK stacks               | kebab-case file ending in `-stack.ts`          | `api-stack.ts`                        |
 | Tests                    | same name as the file under test, plus `.test` | `duplicates.test.ts`                  |
 | Python modules           | snake_case                                     | `vision_worker.py`                    |
-| Documents                | lowercase kebab-case, version suffix `-vN`     | `cleanloop-srs-v2-final.pdf`          |
+| Documents                | lowercase kebab-case, version suffix `-vN`     | `cleanloop-srs-v3-agile.docx`         |
 | Diagrams                 | `<subject>-<diagram-type>-vN.png`              | `report-submission-activity-v3.png`   |
 | Decision records         | `NNNN-short-title.md`, numbered in order       | `0003-region-us-east-1.md`            |
 | Meeting notes            | `YYYY-MM-DD-<event>.md`                        | `2026-12-05-sprint-1-review.md`       |
