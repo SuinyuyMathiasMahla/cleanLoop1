@@ -118,9 +118,9 @@ const edges = [
   E([[255, 126], [150, 126]], { dash: true, label: 'hosts', lp: [190, 112] }),   // Amplify hosts portal
   E([[275, 322], [275, 298]], { dash: true, label: 'JWT check', lp: [280, 302] }),
   E([[275, 434], [275, 402]], { dash: true, faded: true }),                      // WAF attaches
-  E([[295, 236], [432, 208]]),                                                   // Cognito -> auth trigger
+  E([[295, 236], [330, 236], [330, 206], [432, 206]]),                                                   // Cognito -> auth trigger
   E([[295, 346], [362, 346]]),                                                   // API GW -> API functions group
-  E([[542, 300], [619, 292]]),                                                   // API functions -> DynamoDB
+  E([[542, 290], [619, 290]]),                                                   // API functions -> DynamoDB
   E([[472, 122], [548, 122], [548, 190], [748, 190], [748, 126], [770, 126]]),   // 4 Reports -> SQS
   E([[810, 126], [910, 126]]),                                                   // 5 SQS -> worker
   E([[790, 180], [790, 222]], { label: 'after retries', lp: [796, 190] }),       // SQS -> DLQ
@@ -135,7 +135,7 @@ const edges = [
   E([[810, 422], [885, 422]]),                                                   // 7 scheduler -> SLA watchdog
   E([[905, 400], [905, 372], [868, 372], [868, 296], [908, 296]]),                           // SLA -> event bus
   E([[905, 482], [905, 520], [639, 520], [639, 354]]),                           // SLA -> DynamoDB
-  E([[950, 112], [1132, 112], [1132, 248], [1209, 270]], { dash: true, faded: true }), // worker -> AIM (R2)
+  E([[950, 112], [1120, 112], [1120, 268], [1209, 268]], { dash: true, faded: true }), // worker -> AIM (R2)
 ];
 const badges = [badge(1, 205, 236), badge(2, 205, 346), badge(3, 400, 76), badge(4, 650, 190), badge(5, 860, 126 - 0) , badge(6, 930, 236), badge(7, 848, 422)];
 const router = `
