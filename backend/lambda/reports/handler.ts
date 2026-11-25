@@ -1,10 +1,5 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
-import {
-  S3Client,
-  DeleteObjectCommand,
-  HeadObjectCommand,
-  PutObjectCommand,
-} from '@aws-sdk/client-s3';
+import { S3Client, DeleteObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
@@ -12,7 +7,7 @@ import { DynamoDBDocumentClient, ScanCommand } from '@aws-sdk/lib-dynamodb';
 import { dbDelete, dbGet, dbPut, dbUpdate, dbQuery, dbScan } from '../shared/dynamo';
 import { ok, created, badRequest, forbidden, notFound, serverError } from '../shared/response';
 import { getCaller, isAdmin, isCrew } from '../shared/auth';
-import { getPresignedGetUrl } from '../shared/s3';
+import { checkUploadedImage, getPresignedGetUrl, IMAGE_EXTENSIONS } from '../shared/s3';
 import { notifyCitizenCommunity } from '../shared/notifications';
 
 const s3 = new S3Client({});
@@ -621,6 +616,21 @@ async function getReport(event: APIGatewayProxyEvent): Promise<APIGatewayProxyRe
   return ok({ report: enriched });
 }
 
+// Public, so guests can track a report by its ID. Returns no personal details.
+async function getReportStatus(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
+  const { reportId } = event.pathParameters ?? {};
+  if (!reportId) return badRequest('reportId required');
+
+  const report = await dbGet({ TableName: REPORTS_TABLE, Key: { reportId } });
+  if (!report) return notFound('Report not found');
+
+  return ok({
+    reportId,
+    status: report.status,
+    updatedAt: report.updatedAt ?? report.createdAt,
+  });
+}
+
 async function deleteReport(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
   const caller = getCaller(event);
   if (!isAdmin(caller)) return forbidden('Admin only');
@@ -729,12 +739,6 @@ async function updateReportStatus(event: APIGatewayProxyEvent): Promise<APIGatew
 // Signed-in users upload under their own prefix; guests under a shared guest prefix
 // on a separately throttled route. The extension comes from the allowed content type,
 // never from the client's filename.
-const UPLOAD_EXTENSIONS: Record<string, string> = {
-  'image/jpeg': 'jpg',
-  'image/png': 'png',
-  'image/webp': 'webp',
-};
-const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 const GUEST_UPLOAD_PREFIX = 'guest-uploads/';
 const GUEST_UPLOAD_RESOURCE = '/reports/guest/presigned-upload';
 
@@ -752,22 +756,7 @@ async function checkUploadedPhoto(
     return 'photoKey was not issued to this uploader';
   }
 
-  let head;
-  try {
-    head = await s3.send(new HeadObjectCommand({ Bucket: MEDIA_BUCKET, Key: photoKey }));
-  } catch {
-    return 'photo not found; upload it before submitting the report';
-  }
-
-  const tooLarge = (head.ContentLength ?? 0) > MAX_UPLOAD_BYTES;
-  const wrongType = !head.ContentType || !UPLOAD_EXTENSIONS[head.ContentType];
-  if (tooLarge || wrongType) {
-    await s3
-      .send(new DeleteObjectCommand({ Bucket: MEDIA_BUCKET, Key: photoKey }))
-      .catch((error) => console.warn('Could not delete rejected upload:', error));
-    return tooLarge ? 'photo is larger than 10 MB' : 'photo must be JPEG, PNG or WebP';
-  }
-  return null;
+  return checkUploadedImage(MEDIA_BUCKET, photoKey);
 }
 
 async function getPresignedUpload(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
@@ -775,7 +764,7 @@ async function getPresignedUpload(event: APIGatewayProxyEvent): Promise<APIGatew
   if (!caller && event.resource !== GUEST_UPLOAD_RESOURCE) return forbidden();
 
   const contentType = event.queryStringParameters?.contentType ?? 'image/jpeg';
-  const ext = UPLOAD_EXTENSIONS[contentType];
+  const ext = IMAGE_EXTENSIONS[contentType];
   if (!ext) return badRequest('contentType must be image/jpeg, image/png or image/webp');
 
   const key = `${uploadPrefixFor(caller?.userId ?? null)}${crypto.randomUUID()}.${ext}`;
@@ -863,6 +852,8 @@ export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayPr
       return toggleReportLike(event);
     if (httpMethod === 'POST' && resource === '/reports/{reportId}/comments')
       return addReportComment(event);
+    if (httpMethod === 'GET' && resource === '/reports/{reportId}/status')
+      return getReportStatus(event);
     if (httpMethod === 'PATCH' && resource === '/reports/{reportId}/status')
       return updateReportStatus(event);
 
