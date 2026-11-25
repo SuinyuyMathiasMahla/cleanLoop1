@@ -104,13 +104,51 @@ phone number for WhatsApp).
 
 ### 7. Removed or replaced to save money
 
-| Instead of                         | Use                                   | Why                                  |
-| ---------------------------------- | ------------------------------------- | ------------------------------------ |
-| Amazon SNS mobile push             | Expo push service                     | Free; the apps already use Expo      |
-| Secrets Manager ($0.40 per secret) | SSM Parameter Store, standard tier    | Free for this use                    |
-| Customer-managed KMS keys ($1/key) | AWS-owned keys                        | Free; same encryption at rest        |
-| OpenStreetMap's own tile servers   | OpenFreeMap tiles                     | Free, no limits, commercial use OK   |
-| Logs kept forever                  | 14 days in dev, 30 days in production | Log storage grows with every request |
+| Instead of                       | Use                                   | Why                                  |
+| -------------------------------- | ------------------------------------- | ------------------------------------ |
+| Amazon SNS mobile push           | Expo push service                     | Free; the apps already use Expo      |
+| OpenStreetMap's own tile servers | OpenFreeMap tiles                     | Free, no limits, commercial use OK   |
+| Logs kept forever                | 14 days in dev, 30 days in production | Log storage grows with every request |
+
+Most of these swaps give up features, not capacity. Each one sits behind a single module
+or a CDK setting, so switching back is a contained change. We switch when a trigger below
+is met, not by habit:
+
+| Replacement      | Limit that matters                                            | Switch back or move on when                                                                                               |
+| ---------------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Expo push        | About 600 notifications a second per project; no delivery SLA | Sustained sends near that rate, or a contract needing an SLA: send to FCM and APNs directly (SNS adds cost, not capacity) |
+| OpenFreeMap      | Donation-funded, no SLA                                       | Outages or slow tiles: host a Cameroon-only tile file on S3 and CloudFront (a few dollars a month)                        |
+| Short log expiry | None; older logs are gone                                     | An incident or audit needs longer history: export to S3 Glacier instead of keeping them in CloudWatch                     |
+
+To see a trigger before users do, add a CloudWatch alarm on push send errors, and have
+the apps report map tile failures with their error logs.
+
+### 7a. Secrets, settings and encryption keys
+
+The MVP is built so that each service can be swapped or upgraded when the time comes,
+not sized for scale it does not have yet. Here the cheapest option is not the most
+swappable one, and the difference is a few dollars a month, so we pay it.
+
+- **Secrets in Secrets Manager** ($0.40 per secret a month; about $1 to $2 for the
+  Google OAuth client secret, the WhatsApp token and the Geocoding key). It is the only
+  store that rotates secrets automatically, which a future database, payment provider
+  or messaging token will need. It also keeps secrets out of the deploy template:
+  `SecretValue.secretsManager()` makes CloudFormation fetch the value at deploy time,
+  while today `GOOGLE_OAUTH_CLIENT_SECRET` is read from the environment and written into
+  the template in plain text. That fix comes first.
+- **Plain settings in Parameter Store**, standard tier and free: table names, feature
+  flags, timeouts and other values that are not secret.
+- **One `getSecret(name)` helper** in the Lambda code reads and caches secrets at cold
+  start. No handler calls a secret store directly, so changing stores touches one file.
+- **AWS-managed encryption keys** for DynamoDB and S3 for now. OAuth does not need our
+  own keys: Google issues the client secret, which goes in Secrets Manager, and Cognito
+  signs tokens with keys it manages. We would need a KMS signing key only if we ran our
+  own token server.
+- **Customer-managed keys are a ready switch.** We turn them on when a client, auditor
+  or data-protection rule asks for our own keys, an audit trail per key, or the ability
+  to make data unreadable by deleting a key. A DynamoDB table changes key with a setting
+  and no downtime. In S3 a new key covers new uploads only, so older photos are copied
+  over once.
 
 ### 8. Kept as they are
 
@@ -136,7 +174,7 @@ Assumptions: 2,000 active citizens, 50 crew, 3,000 reports a month, 3 photos a r
 | Crew assignment messages  | ~$860 (SMS)        | ~$50 (SMS only when offline) |
 | Image analysis            | ~$18 (Rekognition) | ~$2 (Nova Lite)              |
 | API, Lambda, DynamoDB, S3 | ~$5                | ~$3                          |
-| Secrets, keys, logs       | ~$3                | under $1                     |
+| Secrets, keys, logs       | ~$3                | ~$2                          |
 | **Total**                 | **about $2,600**   | **about $70**                |
 
 These are estimates. Set an AWS Budgets alarm at $25 a month and an SMS spending limit
@@ -146,8 +184,9 @@ before the pilot.
 
 1. **Contracts first (Sprint 1):** `docs/api/openapi.yaml` from the existing routes,
    the access-pattern table, and the report and task state machines.
-2. **Infrastructure swaps with no code change:** arm64, log retention, Parameter Store,
-   AWS-owned keys, remove SNS.
+2. **Infrastructure swaps with little or no code change:** arm64, log retention, the
+   Google OAuth secret moved into Secrets Manager behind `getSecret`, plain settings in
+   Parameter Store, remove SNS.
 3. **Restructure one domain per story:** move code into handler, service, rules and
    repository, add unit tests for the rules, replace that domain's scans with queries.
 4. **New flows:** report create, upload, submit and queue; the per-minute SLA
@@ -164,8 +203,10 @@ with the new keys instead of migrated. To confirm before step 3.
 - WhatsApp sign-in depends on Meta Business verification; until it is approved, SMS is
   the only code channel, so development uses email and password.
 - WAF is not available on the HTTP API without adding CloudFront.
-- OpenFreeMap has no service guarantee; a paid tile provider is the fallback if it
-  becomes unreliable.
+- OpenFreeMap has no service guarantee; if it becomes unreliable we host a Cameroon-only
+  tile file on S3 and CloudFront.
+- Secrets Manager costs about $1 to $2 a month more than Parameter Store would, in
+  exchange for rotation and secrets kept out of the deploy template.
 
 ## Sources
 
