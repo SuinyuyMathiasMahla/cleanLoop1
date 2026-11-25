@@ -219,9 +219,14 @@ export const reportsApi = {
   checkStatus: (id: string) =>
     api.get<{ status: string; updatedAt: string }>(`/reports/${id}/status`),
 
-  getPresignedUpload: (contentType = 'image/jpeg', filename = 'photo.jpg') =>
+  getPresignedUpload: (contentType = 'image/jpeg') =>
     api.get<{ url: string; key: string }>(
-      `/reports/presigned-upload?contentType=${encodeURIComponent(contentType)}&filename=${encodeURIComponent(filename)}`,
+      `/reports/presigned-upload?contentType=${encodeURIComponent(contentType)}`,
+    ),
+
+  getGuestPresignedUpload: (contentType = 'image/jpeg') =>
+    api.get<{ url: string; key: string }>(
+      `/reports/guest/presigned-upload?contentType=${encodeURIComponent(contentType)}`,
     ),
 
   toggleLike: (id: string) =>
