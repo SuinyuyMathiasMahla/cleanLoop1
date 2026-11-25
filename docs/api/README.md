@@ -32,14 +32,14 @@ The old `POST /reports` and `/reports/guest` stay until both apps use the new fl
 
 ## Problems found while writing the contract
 
-| #   | Problem                                                                                                                                  | Effect                                                                 |
-| --- | ---------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| 1   | `GET /reports/{id}/status` has a route but no handler.                                                                                   | The guest "check status" screen always gets 404.                       |
-| 2   | `PATCH /reports/{id}` and `GET /tasks/mine` have routes but no handler, and no app calls them.                                           | Dead routes; remove them or build them.                                |
-| 3   | The daily reminder looks only for `scheduled` and `in_progress` tasks, but every task starts `assigned` and nothing creates `scheduled`. | Crews never get the 24-hour reminder for a task they have not started. |
-| 4   | Starting a task does not move its reports to `in_progress`.                                                                              | Citizens see `assigned` until the report is resolved.                  |
-| 5   | Cancelling a task leaves its reports `assigned`.                                                                                         | Those reports are never picked up again.                               |
-| 6   | Admin status changes accept any status, and an admin can complete a task with no evidence.                                               | Reports can be resolved with no proof of work.                         |
-| 7   | User roles are stored as both `crew` and `CREW` (and `CITIZEN`).                                                                         | Every role lookup checks both spellings; blocks a role index.          |
-| 8   | The evidence upload link takes its file extension from the client's `filename` and accepts any content type.                             | A crew lead's upload is not limited to images, unlike report photos.   |
-| 9   | Home and Profile count only the reports loaded so far.                                                                                   | Totals stop at the first page (20).                                    |
+| #   | Ticket   | Problem                                                                                                                                  | Effect                                                                 |
+| --- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| 1   | SCRUM-42 | `GET /reports/{id}/status` has a route but no handler.                                                                                   | The guest "check status" screen always gets 404.                       |
+| 2   | SCRUM-43 | `PATCH /reports/{id}` and `GET /tasks/mine` have routes but no handler, and no app calls them.                                           | Dead routes; remove them or build them.                                |
+| 3   | SCRUM-44 | The daily reminder looks only for `scheduled` and `in_progress` tasks, but every task starts `assigned` and nothing creates `scheduled`. | Crews never get the 24-hour reminder for a task they have not started. |
+| 4   | SCRUM-45 | Starting a task does not move its reports to `in_progress`.                                                                              | Citizens see `assigned` until the report is resolved.                  |
+| 5   | SCRUM-46 | Cancelling a task leaves its reports `assigned`.                                                                                         | Those reports are never picked up again.                               |
+| 6   | SCRUM-47 | Admin status changes accept any status, and an admin can complete a task with no evidence.                                               | Reports can be resolved with no proof of work.                         |
+| 7   | SCRUM-48 | User roles are stored as both `crew` and `CREW` (and `CITIZEN`).                                                                         | Every role lookup checks both spellings; blocks a role index.          |
+| 8   | SCRUM-49 | The evidence upload link takes its file extension from the client's `filename` and accepts any content type.                             | A crew lead's upload is not limited to images, unlike report photos.   |
+| 9   | SCRUM-50 | Home and Profile count only the reports loaded so far.                                                                                   | Totals stop at the first page (20).                                    |
