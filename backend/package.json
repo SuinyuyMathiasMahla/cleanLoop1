@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "scripts": {
     "build": "tsc",
-    "cdk": "cdk"
+    "cdk": "cdk",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.lambda.json",
+    "synth": "cdk synth --quiet"
   },
   "dependencies": {
     "aws-cdk-lib": "^2.130.0",
@@ -11,9 +13,21 @@
     "dotenv": "^18.0.5"
   },
   "devDependencies": {
+    "@aws-sdk/client-cognito-identity-provider": "^3.1177.0",
+    "@aws-sdk/client-dynamodb": "^3.1177.0",
+    "@aws-sdk/client-eventbridge": "^3.1177.0",
+    "@aws-sdk/client-s3": "^3.1177.0",
+    "@aws-sdk/client-ses": "^3.1177.0",
+    "@aws-sdk/lib-dynamodb": "^3.1177.0",
+    "@aws-sdk/s3-request-presigner": "^3.1177.0",
+    "@types/aws-lambda": "^8.10.164",
     "@types/node": "^20.11.0",
+    "@types/source-map-support": "^0.5.10",
     "aws-cdk": "^2.130.0",
     "esbuild": "^0.20.0",
+    "source-map-support": "^0.5.21",
+    "ts-node": "^10.9.2",
     "typescript": "^5.3.0"
-  }
+  },
+  "packageManager": "pnpm@10.20.0"
 }
