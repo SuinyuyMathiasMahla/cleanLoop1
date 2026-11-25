@@ -35,6 +35,14 @@ export class StorageStack extends cdk.Stack {
       projectionType: dynamodb.ProjectionType.ALL,
     });
 
+    // Guest reports have no submittedBy, so they stay out of this index
+    this.reportsTable.addGlobalSecondaryIndex({
+      indexName: 'SubmitterIndex',
+      partitionKey: { name: 'submittedBy', type: dynamodb.AttributeType.STRING },
+      sortKey: { name: 'createdAt', type: dynamodb.AttributeType.STRING },
+      projectionType: dynamodb.ProjectionType.ALL,
+    });
+
     this.reportsTable.addGlobalSecondaryIndex({
       indexName: 'LocationIndex',
       partitionKey: { name: 'ward', type: dynamodb.AttributeType.STRING },

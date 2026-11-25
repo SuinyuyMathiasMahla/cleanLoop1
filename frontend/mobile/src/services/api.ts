@@ -205,8 +205,11 @@ export const reportsApi = {
     return api.get<{ reports: Report[]; nextKey?: string | null }>(`${path}?${params}`);
   },
 
-  getMine: (_page = 1, limit = 20) =>
-    api.get<{ reports: Report[] }>(`/reports/mine?limit=${limit}`),
+  getMine: (lastKey?: string, limit = 20) => {
+    const params = new URLSearchParams({ limit: String(limit) });
+    if (lastKey) params.set('lastKey', lastKey);
+    return api.get<{ reports: Report[]; nextKey?: string | null }>(`/reports/mine?${params}`);
+  },
 
   getById: (id: string) => api.get<{ report: Report }>(`/reports/${id}`),
 

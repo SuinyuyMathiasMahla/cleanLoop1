@@ -25,6 +25,7 @@ type ReportType = 'overflow_bin' | 'illegal_dumping';
 const DARK_BG = '#0d1f1a';
 const GREEN = '#1a7a5e';
 const GREEN2 = '#00e5a0';
+const LOCATION_ERROR = '#fca5a5'; // light red, readable on the dark camera overlay
 const CARD_BG = '#111f1a';
 
 export default function GuestReportScreen() {
@@ -47,7 +48,7 @@ export default function GuestReportScreen() {
     address: string;
   } | null>(null);
   const [locationLoading, setLocationLoading] = useState(false);
-  const [_locationError, setLocationError] = useState('');
+  const [locationError, setLocationError] = useState('');
   const [submittedId, setSubmittedId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -83,7 +84,10 @@ export default function GuestReportScreen() {
       return;
     }
     if (!location) {
-      Alert.alert('Location Required', 'We need your location to file this report.');
+      Alert.alert(
+        'Location Required',
+        locationError || 'We need your location to file this report.',
+      );
       return;
     }
     try {
@@ -253,6 +257,21 @@ export default function GuestReportScreen() {
                     <Ionicons name="location-outline" size={11} color="#888" />
                     <Text style={[styles.gpsText, { color: '#888' }]}>Acquiring GPS lock...</Text>
                   </View>
+                )}
+                {!location && !locationLoading && !!locationError && (
+                  <TouchableOpacity
+                    style={styles.gpsRow}
+                    onPress={fetchLocation}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Location unavailable: ${locationError}. Tap to try again.`}
+                    hitSlop={10}
+                  >
+                    <Ionicons name="alert-circle-outline" size={11} color={LOCATION_ERROR} />
+                    <Text style={[styles.gpsText, { color: LOCATION_ERROR, flexShrink: 1 }]}>
+                      {locationError} Tap to try again.
+                    </Text>
+                    <Ionicons name="refresh" size={11} color={LOCATION_ERROR} />
+                  </TouchableOpacity>
                 )}
               </View>
 

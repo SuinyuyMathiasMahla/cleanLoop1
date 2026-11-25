@@ -332,7 +332,7 @@ async function createReport(event: APIGatewayProxyEvent): Promise<APIGatewayProx
   const lat = latField ?? latitude ?? null;
   const lng = lngField ?? longitude ?? null;
   const ward =
-    body.ward ?? (lat && lng ? `${Number(lat).toFixed(4)},${Number(lng).toFixed(4)}` : null);
+    body.ward ?? (lat && lng ? `${Number(lat).toFixed(4)},${Number(lng).toFixed(4)}` : undefined);
 
   if (!type) return badRequest('type is required');
   if (!['overflow', 'dumping'].includes(type))
@@ -354,13 +354,15 @@ async function createReport(event: APIGatewayProxyEvent): Promise<APIGatewayProx
     reportId,
     type,
     status: 'pending',
+    // Left out when unknown: LocationIndex keys on ward, and a null would break the write
     ward,
     address: address ?? `${lat},${lng}`,
     lat,
     lng,
     photoKey: photoKey ?? null,
     description: description ?? '',
-    submittedBy: caller?.userId ?? null,
+    // Left out for guests: a null here would break the write, since SubmitterIndex keys on it
+    submittedBy: caller?.userId,
     submittedByName: caller ? (submitter?.name ?? caller.email.split('@')[0]) : null,
     guestName: caller ? null : (guestName ?? null),
     guestPhone: caller ? null : (guestPhone ?? null),
@@ -468,16 +470,7 @@ async function listReports(event: APIGatewayProxyEvent): Promise<APIGatewayProxy
     });
   }
 
-  if (caller) {
-    const { dbScan } = await import('../shared/dynamo');
-    const result = await dbScan({
-      TableName: REPORTS_TABLE,
-      FilterExpression: 'submittedBy = :uid',
-      ExpressionAttributeValues: { ':uid': caller.userId },
-      Limit: parseInt(limit),
-    });
-    return ok({ reports: await enrichReports(result.items) });
-  }
+  if (caller) return listReportsBySubmitter(caller.userId, limit, lastKey);
 
   const allowedStatuses = ['pending', 'assigned', 'in_progress', 'resolved'];
   const filterStatus = status && allowedStatuses.includes(status) ? status : null;
@@ -504,15 +497,39 @@ async function listMyReports(event: APIGatewayProxyEvent): Promise<APIGatewayPro
   const caller = getCaller(event);
   if (!caller) return forbidden('Authentication required');
 
-  const { limit = '50' } = event.queryStringParameters ?? {};
-  const { dbScan } = await import('../shared/dynamo');
-  const result = await dbScan({
+  const { limit = '20', lastKey } = event.queryStringParameters ?? {};
+  return listReportsBySubmitter(caller.userId, limit, lastKey);
+}
+
+// One page of a user's reports, newest first. A scan with a filter applied Limit before
+// filtering, so a page could come back empty while the user still had reports.
+async function listReportsBySubmitter(
+  userId: string,
+  limit: string,
+  lastKey?: string,
+): Promise<APIGatewayProxyResult> {
+  let startKey: Record<string, unknown> | undefined;
+  if (lastKey) {
+    try {
+      startKey = JSON.parse(Buffer.from(lastKey, 'base64').toString());
+    } catch {
+      return badRequest('Invalid page token');
+    }
+  }
+
+  const result = await dbQuery({
     TableName: REPORTS_TABLE,
-    FilterExpression: 'submittedBy = :uid',
-    ExpressionAttributeValues: { ':uid': caller.userId },
-    Limit: parseInt(limit),
+    IndexName: 'SubmitterIndex',
+    KeyConditionExpression: 'submittedBy = :uid',
+    ExpressionAttributeValues: { ':uid': userId },
+    Limit: Math.min(Math.max(parseInt(limit) || 20, 1), 100),
+    ScanIndexForward: false,
+    ...(startKey ? { ExclusiveStartKey: startKey } : {}),
   });
-  return ok({ reports: await enrichReports(result.items, caller.userId) });
+  return ok({
+    reports: await enrichReports(result.items, userId),
+    nextKey: result.lastKey ? Buffer.from(JSON.stringify(result.lastKey)).toString('base64') : null,
+  });
 }
 
 async function listPublicReports(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
