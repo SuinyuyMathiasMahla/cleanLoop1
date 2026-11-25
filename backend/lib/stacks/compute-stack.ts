@@ -91,9 +91,12 @@ export class ComputeStack extends cdk.Stack {
       }),
     );
 
+    // Every minute, so a report missed by the immediate assignment on creation still meets
+    // the 60-second upload-to-assignment target (NFR-003). Scheduled rules cost nothing;
+    // the 43,200 Lambda runs a month sit inside the free tier.
     new events.Rule(this, 'PendingReportAutoAssignmentRule', {
       ruleName: `cleanloop-pending-report-assignment-${stage}`,
-      schedule: events.Schedule.rate(cdk.Duration.minutes(5)),
+      schedule: events.Schedule.rate(cdk.Duration.minutes(1)),
       targets: [new targets.LambdaFunction(this.reportsHandler)],
     });
 

@@ -286,13 +286,16 @@ async function notifyCommunityOfReport(report: Record<string, any>, submitterId?
 }
 
 // ── createReport ─────────────────────────────────────────────────────────────
+// Runs every minute, so it reads only pending reports (oldest first) from StatusIndex
+// instead of scanning the whole table.
 export async function processPendingReports(): Promise<number> {
   let lastKey: Record<string, unknown> | undefined;
   let processed = 0;
   do {
-    const result = await dbScan({
+    const result = await dbQuery({
       TableName: REPORTS_TABLE,
-      FilterExpression: '#s = :pending',
+      IndexName: 'StatusIndex',
+      KeyConditionExpression: '#s = :pending',
       ExpressionAttributeNames: { '#s': 'status' },
       ExpressionAttributeValues: { ':pending': 'pending' },
       Limit: 100,
