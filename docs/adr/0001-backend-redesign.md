@@ -134,8 +134,8 @@ swappable one, and the difference is a few dollars a month, so we pay it.
   store that rotates secrets automatically, which a future database, payment provider
   or messaging token will need. It also keeps secrets out of the deploy template:
   `SecretValue.secretsManager()` makes CloudFormation fetch the value at deploy time,
-  while today `GOOGLE_OAUTH_CLIENT_SECRET` is read from the environment and written into
-  the template in plain text. That fix comes first.
+  so the value never appears in the synthesized template. The Google OAuth client secret
+  already works this way.
 - **Plain settings in Parameter Store**, standard tier and free: table names, feature
   flags, timeouts and other values that are not secret.
 - **One `getSecret(name)` helper** in the Lambda code reads and caches secrets at cold
@@ -177,8 +177,8 @@ Assumptions: 2,000 active citizens, 50 crew, 3,000 reports a month, 3 photos a r
 | Secrets, keys, logs       | ~$3                | ~$2                          |
 | **Total**                 | **about $2,600**   | **about $70**                |
 
-These are estimates. Set an AWS Budgets alarm at $25 a month and an SMS spending limit
-before the pilot.
+These are estimates. Set an AWS Budgets alarm at $7 a month while we are in development,
+with an SMS spending limit, and raise the alarm to the pilot estimate before launch.
 
 ## How we get there without a rewrite
 
