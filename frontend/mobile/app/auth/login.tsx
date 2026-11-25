@@ -36,8 +36,18 @@ interface FieldProps {
 }
 
 function Field({
-  label, icon, value, onChangeText, error, placeholder, secure,
-  keyboardType = 'default', autoComplete, returnKeyType, onSubmitEditing, inputRef,
+  label,
+  icon,
+  value,
+  onChangeText,
+  error,
+  placeholder,
+  secure,
+  keyboardType = 'default',
+  autoComplete,
+  returnKeyType,
+  onSubmitEditing,
+  inputRef,
 }: FieldProps) {
   const [focused, setFocused] = useState(false);
   const [hidden, setHidden] = useState(!!secure);
@@ -80,7 +90,11 @@ function Field({
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             accessibilityLabel={hidden ? 'Show password' : 'Hide password'}
           >
-            <Ionicons name={hidden ? 'eye-outline' : 'eye-off-outline'} size={20} color={colors.gray[500]} />
+            <Ionicons
+              name={hidden ? 'eye-outline' : 'eye-off-outline'}
+              size={20}
+              color={colors.gray[500]}
+            />
           </TouchableOpacity>
         )}
       </View>
@@ -272,7 +286,14 @@ const styles = StyleSheet.create({
   },
   ringLarge: { width: 300, height: 300, borderWidth: 1.5, top: -90, right: -110 },
   ringMedium: { width: 200, height: 200, borderWidth: 1.5, top: -40, right: -60 },
-  ringSmall: { width: 100, height: 100, borderWidth: 12, top: 10, right: -10, borderColor: 'rgba(34, 197, 94, 0.28)' },
+  ringSmall: {
+    width: 100,
+    height: 100,
+    borderWidth: 12,
+    top: 10,
+    right: -10,
+    borderColor: 'rgba(34, 197, 94, 0.28)',
+  },
   brandRow: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -23,7 +23,9 @@ function normalizeTaskDueAt(scheduledAt: string, requestedDueAt?: string | null)
   const requestedDueTime = requestedDueAt ? new Date(requestedDueAt).getTime() : Number.NaN;
   if (requestedDueAt && !Number.isFinite(requestedDueTime)) return null;
   const earliestDueTime = scheduledTime + MINIMUM_TASK_DURATION_MS;
-  return new Date(requestedDueAt ? Math.max(requestedDueTime, earliestDueTime) : earliestDueTime).toISOString();
+  return new Date(
+    requestedDueAt ? Math.max(requestedDueTime, earliestDueTime) : earliestDueTime,
+  ).toISOString();
 }
 
 async function validateCrewAssignment(
@@ -49,14 +51,16 @@ async function validateCrewAssignment(
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 async function sendCrewEmail(to: string, name: string, task: Record<string, unknown>) {
-  await ses.send(new SendEmailCommand({
-    Source: SES_FROM_EMAIL,
-    Destination: { ToAddresses: [to] },
-    Message: {
-      Subject: { Data: `CleanLoop Task Assignment: ${task.title}` },
-      Body: {
-        Html: {
-          Data: `
+  await ses
+    .send(
+      new SendEmailCommand({
+        Source: SES_FROM_EMAIL,
+        Destination: { ToAddresses: [to] },
+        Message: {
+          Subject: { Data: `CleanLoop Task Assignment: ${task.title}` },
+          Body: {
+            Html: {
+              Data: `
             <h2>You've been assigned a task</h2>
             <p>Hi ${name},</p>
             <p>You have been assigned to the following CleanLoop task:</p>
@@ -70,10 +74,12 @@ async function sendCrewEmail(to: string, name: string, task: Record<string, unkn
             <p>Please log in to the CleanLoop app to view full details.</p>
             <p>The CleanLoop Team</p>
           `,
+            },
+          },
         },
-      },
-    },
-  })).catch(e => console.error('SES send error:', e));
+      }),
+    )
+    .catch((e) => console.error('SES send error:', e));
 }
 
 async function createNotification(
@@ -99,7 +105,7 @@ async function createNotification(
       reportId: reportId ?? null,
       createdAt: new Date().toISOString(),
     },
-  }).catch(e => console.error('Failed to create notification:', e));
+  }).catch((e) => console.error('Failed to create notification:', e));
 }
 
 async function notifyCrewAssignment(userId: string, task: Record<string, any>) {
@@ -114,17 +120,23 @@ async function notifyCrewAssignment(userId: string, task: Record<string, any>) {
   if (user.email) await sendCrewEmail(user.email as string, user.name as string, task);
 
   const isCompanion = !!task.crewLeadId && userId !== task.crewLeadId;
-  await notifyUsers(NOTIFICATIONS_TABLE, [{
-    userId,
-    expoPushToken: user.expoPushToken as string | undefined,
-  }], {
-    type: 'task_assigned',
-    title: isCompanion ? 'Assigned as a task companion' : 'New task assigned',
-    body: isCompanion
-      ? `You have been assigned to accompany ${lead?.name ?? 'the crew head'} on "${task.title}" scheduled for ${new Date(task.scheduledAt).toLocaleDateString()}.`
-      : `You are the crew head for "${task.title}" scheduled for ${new Date(task.scheduledAt).toLocaleDateString()}.`,
-    taskId: task.taskId as string,
-  });
+  await notifyUsers(
+    NOTIFICATIONS_TABLE,
+    [
+      {
+        userId,
+        expoPushToken: user.expoPushToken as string | undefined,
+      },
+    ],
+    {
+      type: 'task_assigned',
+      title: isCompanion ? 'Assigned as a task companion' : 'New task assigned',
+      body: isCompanion
+        ? `You have been assigned to accompany ${lead?.name ?? 'the crew head'} on "${task.title}" scheduled for ${new Date(task.scheduledAt).toLocaleDateString()}.`
+        : `You are the crew head for "${task.title}" scheduled for ${new Date(task.scheduledAt).toLocaleDateString()}.`,
+      taskId: task.taskId as string,
+    },
+  );
 }
 
 async function notifyCommunityTaskCompleted(
@@ -133,15 +145,17 @@ async function notifyCommunityTaskCompleted(
 ) {
   const reportIds = (task.reportIds as string[] | undefined) ?? [];
   if (reportIds.length > 0) {
-    await Promise.all(resolvedReports.map(async (report) => {
-      await notifyCitizenCommunity(USERS_TABLE, NOTIFICATIONS_TABLE, {
-        type: 'report_resolved',
-        title: 'Report resolved',
-        body: `The waste issue reported at ${report.address ?? 'the reported location'} has been resolved.`,
-        reportId: report.reportId as string,
-        taskId: task.taskId as string,
-      });
-    }));
+    await Promise.all(
+      resolvedReports.map(async (report) => {
+        await notifyCitizenCommunity(USERS_TABLE, NOTIFICATIONS_TABLE, {
+          type: 'report_resolved',
+          title: 'Report resolved',
+          body: `The waste issue reported at ${report.address ?? 'the reported location'} has been resolved.`,
+          reportId: report.reportId as string,
+          taskId: task.taskId as string,
+        });
+      }),
+    );
     return;
   }
 
@@ -161,16 +175,20 @@ async function notifyCommunityTaskCompleted(
       ...(lastKey ? { ExclusiveStartKey: lastKey } : {}),
     });
 
-    await Promise.allSettled((result.items ?? [])
-      .filter(user => !!user.userId)
-      .map(user => createNotification(
-        user.userId as string,
-        'task_updated',
-        'Community cleanup completed',
-        `The crew completed "${task.title}".`,
-        task.taskId as string,
-        ((task.reportIds as string[] | undefined) ?? [])[0],
-      )));
+    await Promise.allSettled(
+      (result.items ?? [])
+        .filter((user) => !!user.userId)
+        .map((user) =>
+          createNotification(
+            user.userId as string,
+            'task_updated',
+            'Community cleanup completed',
+            `The crew completed "${task.title}".`,
+            task.taskId as string,
+            ((task.reportIds as string[] | undefined) ?? [])[0],
+          ),
+        ),
+    );
     lastKey = result.lastKey as Record<string, unknown> | undefined;
   } while (lastKey);
 }
@@ -223,14 +241,14 @@ async function createTask(event: APIGatewayProxyEvent): Promise<APIGatewayProxyR
       UpdateExpression: 'SET #s = :s, assignedTaskId = :tid, updatedAt = :now',
       ExpressionAttributeNames: { '#s': 'status' },
       ExpressionAttributeValues: { ':s': 'assigned', ':tid': taskId, ':now': now },
-    }).catch(e => console.error(`Failed to update report ${reportId}:`, e));
+    }).catch((e) => console.error(`Failed to update report ${reportId}:`, e));
   }
 
   const allCrewIds = [...new Set([...(crewLeadId ? [crewLeadId] : []), ...crewIds])];
 
   if (allCrewIds.length > 0) {
     await Promise.allSettled(
-      allCrewIds.map((userId: string) => notifyCrewAssignment(userId, task))
+      allCrewIds.map((userId: string) => notifyCrewAssignment(userId, task)),
     );
   }
 
@@ -262,7 +280,9 @@ async function listTasks(event: APIGatewayProxyEvent): Promise<APIGatewayProxyRe
       return ok({
         tasks: result.items,
         total: result.items.length,
-        nextKey: result.lastKey ? Buffer.from(JSON.stringify(result.lastKey)).toString('base64') : null,
+        nextKey: result.lastKey
+          ? Buffer.from(JSON.stringify(result.lastKey)).toString('base64')
+          : null,
       });
     }
     const result = await dbScan({
@@ -273,7 +293,9 @@ async function listTasks(event: APIGatewayProxyEvent): Promise<APIGatewayProxyRe
     return ok({
       tasks: result.items,
       total: result.items.length,
-      nextKey: result.lastKey ? Buffer.from(JSON.stringify(result.lastKey)).toString('base64') : null,
+      nextKey: result.lastKey
+        ? Buffer.from(JSON.stringify(result.lastKey)).toString('base64')
+        : null,
     });
   }
 
@@ -296,7 +318,10 @@ async function listTasks(event: APIGatewayProxyEvent): Promise<APIGatewayProxyRe
     const combined: Record<string, unknown>[] = [];
     for (const t of [...leadResult.items, ...memberResult.items]) {
       const id = t.taskId as string;
-      if (!seen.has(id)) { seen.add(id); combined.push(t); }
+      if (!seen.has(id)) {
+        seen.add(id);
+        combined.push(t);
+      }
     }
 
     return ok({ tasks: combined, total: combined.length });
@@ -323,18 +348,22 @@ async function getTask(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResu
     }
   }
 
-  const crewIds = [...new Set([
-    ...((task.crewIds as string[]) ?? []),
-    ...(task.crewLeadId ? [task.crewLeadId as string] : []),
-  ])];
-  const crewRoster = await Promise.all(crewIds.map(async userId => {
-    const member = await dbGet({ TableName: USERS_TABLE, Key: { userId } });
-    return {
-      userId,
-      name: (member?.name as string | undefined) ?? 'Crew member',
-      isLead: userId === task.crewLeadId,
-    };
-  }));
+  const crewIds = [
+    ...new Set([
+      ...((task.crewIds as string[]) ?? []),
+      ...(task.crewLeadId ? [task.crewLeadId as string] : []),
+    ]),
+  ];
+  const crewRoster = await Promise.all(
+    crewIds.map(async (userId) => {
+      const member = await dbGet({ TableName: USERS_TABLE, Key: { userId } });
+      return {
+        userId,
+        name: (member?.name as string | undefined) ?? 'Crew member',
+        isLead: userId === task.crewLeadId,
+      };
+    }),
+  );
   return ok({ task: { ...task, crewRoster } });
 }
 
@@ -349,21 +378,34 @@ async function updateTask(event: APIGatewayProxyEvent): Promise<APIGatewayProxyR
   const body = JSON.parse(event.body ?? '{}');
   const existingTask = await dbGet({ TableName: TASKS_TABLE, Key: { taskId } });
   if (!existingTask) return notFound('Task not found');
-  if (body.crewMemberIds !== undefined && body.crewIds === undefined) body.crewIds = body.crewMemberIds;
+  if (body.crewMemberIds !== undefined && body.crewIds === undefined)
+    body.crewIds = body.crewMemberIds;
 
   if (body.crewIds !== undefined || body.crewLeadId !== undefined) {
-    if (body.crewIds !== undefined &&
-        (!Array.isArray(body.crewIds) || body.crewIds.some((id: unknown) => typeof id !== 'string'))) {
+    if (
+      body.crewIds !== undefined &&
+      (!Array.isArray(body.crewIds) || body.crewIds.some((id: unknown) => typeof id !== 'string'))
+    ) {
       return badRequest('crewIds must be an array of crew member IDs');
     }
     const nextCrewLeadId = body.crewLeadId ?? existingTask.crewLeadId;
     const nextCrewIds = body.crewIds ?? existingTask.crewIds ?? [];
-    if (!Array.isArray(nextCrewIds)) return badRequest('crewIds must be an array of crew member IDs');
+    if (!Array.isArray(nextCrewIds))
+      return badRequest('crewIds must be an array of crew member IDs');
     const assignmentError = await validateCrewAssignment(nextCrewLeadId, nextCrewIds, 1);
     if (assignmentError) return badRequest(assignmentError);
   }
 
-  const allowed = ['title', 'description', 'reportIds', 'crewIds', 'crewLeadId', 'scheduledAt', 'dueAt', 'notes'];
+  const allowed = [
+    'title',
+    'description',
+    'reportIds',
+    'crewIds',
+    'crewLeadId',
+    'scheduledAt',
+    'dueAt',
+    'notes',
+  ];
   const updates: string[] = [];
   const names: Record<string, string> = {};
   const values: Record<string, unknown> = { ':now': new Date().toISOString() };
@@ -395,10 +437,12 @@ async function updateTask(event: APIGatewayProxyEvent): Promise<APIGatewayProxyR
       ...(existingTask.crewLeadId ? [existingTask.crewLeadId as string] : []),
     ]);
     const updatedTask = await dbGet({ TableName: TASKS_TABLE, Key: { taskId } });
-    const allCrewIds = [...new Set([
-      ...((updatedTask?.crewIds as string[]) ?? []),
-      ...(updatedTask?.crewLeadId ? [updatedTask.crewLeadId as string] : []),
-    ])];
+    const allCrewIds = [
+      ...new Set([
+        ...((updatedTask?.crewIds as string[]) ?? []),
+        ...(updatedTask?.crewLeadId ? [updatedTask.crewLeadId as string] : []),
+      ]),
+    ];
     await Promise.allSettled(
       allCrewIds.map(async (uid) => {
         if (previousAssignees.has(uid)) {
@@ -417,7 +461,7 @@ async function updateTask(event: APIGatewayProxyEvent): Promise<APIGatewayProxyR
     );
   }
 
-  return ok({ taskId, updated: Object.keys(body).filter(k => allowed.includes(k)) });
+  return ok({ taskId, updated: Object.keys(body).filter((k) => allowed.includes(k)) });
 }
 
 // ── PATCH /tasks/{taskId}/status ──────────────────────────────────────────────
@@ -437,9 +481,11 @@ async function updateTaskStatus(event: APIGatewayProxyEvent): Promise<APIGateway
   const notifyCommunity = status === 'completed' && task.status !== 'completed';
 
   if (isAdmin(caller)) {
-    if (!allowedAdmin.includes(status)) return badRequest(`status must be one of: ${allowedAdmin.join(', ')}`);
+    if (!allowedAdmin.includes(status))
+      return badRequest(`status must be one of: ${allowedAdmin.join(', ')}`);
   } else if (isCrew(caller)) {
-    if (!allowedCrew.includes(status)) return badRequest(`crew can only set: ${allowedCrew.join(', ')}`);
+    if (!allowedCrew.includes(status))
+      return badRequest(`crew can only set: ${allowedCrew.join(', ')}`);
     const crewIds = (task.crewIds as string[]) ?? [];
     if (!crewIds.includes(caller.userId) && task.crewLeadId !== caller.userId) {
       return forbidden('Not assigned to this task');
@@ -458,10 +504,13 @@ async function updateTaskStatus(event: APIGatewayProxyEvent): Promise<APIGateway
       return badRequest('At least one evidence photo is required to complete a task');
     }
 
-    const companionIds = [...new Set((task.crewIds as string[] | undefined) ?? [])]
-      .filter(userId => userId !== task.crewLeadId);
+    const companionIds = [...new Set((task.crewIds as string[] | undefined) ?? [])].filter(
+      (userId) => userId !== task.crewLeadId,
+    );
     if (!Array.isArray(companionAttendance)) {
-      return badRequest('Record whether each assigned companion was present before completing the task');
+      return badRequest(
+        'Record whether each assigned companion was present before completing the task',
+      );
     }
 
     const attendanceById = new Map<string, boolean>();
@@ -472,28 +521,36 @@ async function updateTaskStatus(event: APIGatewayProxyEvent): Promise<APIGateway
         typeof attendance.present !== 'boolean' ||
         attendanceById.has(attendance.userId)
       ) {
-        return badRequest('Companion attendance entries must contain unique userIds and present values');
+        return badRequest(
+          'Companion attendance entries must contain unique userIds and present values',
+        );
       }
       attendanceById.set(attendance.userId, attendance.present);
     }
-    if (attendanceById.size !== companionIds.length || companionIds.some(userId => !attendanceById.has(userId))) {
+    if (
+      attendanceById.size !== companionIds.length ||
+      companionIds.some((userId) => !attendanceById.has(userId))
+    ) {
       return badRequest('Record attendance for every assigned companion');
     }
     const markedAt = new Date().toISOString();
-    const attendanceRecords = await Promise.all(companionIds.map(async userId => {
-      const member = await dbGet({ TableName: USERS_TABLE, Key: { userId } });
-      return {
-        userId,
-        name: (member?.name as string | undefined) ?? 'Crew member',
-        present: attendanceById.get(userId)!,
-        markedAt,
-      };
-    }));
+    const attendanceRecords = await Promise.all(
+      companionIds.map(async (userId) => {
+        const member = await dbGet({ TableName: USERS_TABLE, Key: { userId } });
+        return {
+          userId,
+          name: (member?.name as string | undefined) ?? 'Crew member',
+          present: attendanceById.get(userId)!,
+          markedAt,
+        };
+      }),
+    );
 
     await dbUpdate({
       TableName: TASKS_TABLE,
       Key: { taskId },
-      UpdateExpression: 'SET #s = :s, updatedAt = :now, completedAt = :now, evidencePhotoKeys = :keys, companionAttendance = :attendance',
+      UpdateExpression:
+        'SET #s = :s, updatedAt = :now, completedAt = :now, evidencePhotoKeys = :keys, companionAttendance = :attendance',
       ExpressionAttributeNames: { '#s': 'status' },
       ExpressionAttributeValues: {
         ':s': status,
@@ -507,9 +564,10 @@ async function updateTaskStatus(event: APIGatewayProxyEvent): Promise<APIGateway
     await dbUpdate({
       TableName: TASKS_TABLE,
       Key: { taskId },
-      UpdateExpression: status === 'completed'
-        ? 'SET #s = :s, updatedAt = :now, completedAt = :now'
-        : 'SET #s = :s, updatedAt = :now',
+      UpdateExpression:
+        status === 'completed'
+          ? 'SET #s = :s, updatedAt = :now, completedAt = :now'
+          : 'SET #s = :s, updatedAt = :now',
       ExpressionAttributeNames: { '#s': 'status' },
       ExpressionAttributeValues: { ':s': status, ':now': new Date().toISOString() },
       ConditionExpression: 'attribute_exists(taskId)',
@@ -517,39 +575,49 @@ async function updateTaskStatus(event: APIGatewayProxyEvent): Promise<APIGateway
   }
 
   const reportIdsToComplete = (task.reportIds as string[] | undefined) ?? [];
-  const reportsBeforeCompletion = status === 'completed'
-    ? await Promise.all(reportIdsToComplete.map(reportId => dbGet({ TableName: REPORTS_TABLE, Key: { reportId } })))
-    : [];
+  const reportsBeforeCompletion =
+    status === 'completed'
+      ? await Promise.all(
+          reportIdsToComplete.map((reportId) =>
+            dbGet({ TableName: REPORTS_TABLE, Key: { reportId } }),
+          ),
+        )
+      : [];
 
   if (status === 'completed') {
     const reportResults = await Promise.allSettled(
-      reportIdsToComplete.map(reportId => dbUpdate({
-        TableName: REPORTS_TABLE,
-        Key: { reportId },
-        UpdateExpression: 'SET #s = :resolved, completedAt = :now, updatedAt = :now',
-        ExpressionAttributeNames: { '#s': 'status' },
-        ExpressionAttributeValues: { ':resolved': 'resolved', ':now': new Date().toISOString() },
-        ConditionExpression: 'attribute_exists(reportId)',
-      }))
+      reportIdsToComplete.map((reportId) =>
+        dbUpdate({
+          TableName: REPORTS_TABLE,
+          Key: { reportId },
+          UpdateExpression: 'SET #s = :resolved, completedAt = :now, updatedAt = :now',
+          ExpressionAttributeNames: { '#s': 'status' },
+          ExpressionAttributeValues: { ':resolved': 'resolved', ':now': new Date().toISOString() },
+          ConditionExpression: 'attribute_exists(reportId)',
+        }),
+      ),
     );
-    const reportsResolvedNow = reportsBeforeCompletion.filter((report, index): report is Record<string, any> =>
-      !!report &&
-      report.status !== 'resolved' &&
-      reportResults[index]?.status === 'fulfilled',
+    const reportsResolvedNow = reportsBeforeCompletion.filter(
+      (report, index): report is Record<string, any> =>
+        !!report && report.status !== 'resolved' && reportResults[index]?.status === 'fulfilled',
     );
     if (reportsResolvedNow.length > 0) {
-      await notifyCommunityTaskCompleted(task, reportsResolvedNow)
-        .catch(error => console.error('Community task-completion notification error:', error));
+      await notifyCommunityTaskCompleted(task, reportsResolvedNow).catch((error) =>
+        console.error('Community task-completion notification error:', error),
+      );
     } else if (notifyCommunity && reportIdsToComplete.length === 0) {
-      await notifyCommunityTaskCompleted(task)
-        .catch(error => console.error('Community task-completion notification error:', error));
+      await notifyCommunityTaskCompleted(task).catch((error) =>
+        console.error('Community task-completion notification error:', error),
+      );
     }
   }
 
-  const allCrewIds = [...new Set([
-    ...((task.crewIds as string[]) ?? []),
-    ...(task.crewLeadId ? [task.crewLeadId as string] : []),
-  ])];
+  const allCrewIds = [
+    ...new Set([
+      ...((task.crewIds as string[]) ?? []),
+      ...(task.crewLeadId ? [task.crewLeadId as string] : []),
+    ]),
+  ];
 
   const statusLabels: Record<string, string> = {
     in_progress: 'In Progress',
@@ -561,16 +629,16 @@ async function updateTaskStatus(event: APIGatewayProxyEvent): Promise<APIGateway
 
   await Promise.allSettled(
     allCrewIds
-      .filter(uid => uid !== caller!.userId)
-      .map(uid =>
+      .filter((uid) => uid !== caller!.userId)
+      .map((uid) =>
         createNotification(
           uid,
           'task_updated',
           `Task ${statusLabels[status] ?? status}`,
           `"${task.title}" has been marked as ${statusLabels[status] ?? status}.`,
           taskId,
-        )
-      )
+        ),
+      ),
   );
 
   return ok({ taskId, status });
@@ -594,7 +662,8 @@ async function getEvidenceUploadUrl(event: APIGatewayProxyEvent): Promise<APIGat
     return forbidden('Only the crew head can upload task evidence');
   }
 
-  const { contentType = 'image/jpeg', filename = 'evidence.jpg' } = event.queryStringParameters ?? {};
+  const { contentType = 'image/jpeg', filename = 'evidence.jpg' } =
+    event.queryStringParameters ?? {};
   const ext = filename.split('.').pop() ?? 'jpg';
   const key = `evidence/${taskId}/${crypto.randomUUID()}.${ext}`;
 
@@ -622,9 +691,7 @@ async function getEvidencePhotos(event: APIGatewayProxyEvent): Promise<APIGatewa
   }
 
   const keys: string[] = (task.evidencePhotoKeys as string[]) ?? [];
-  const urls = await Promise.all(
-    keys.map(key => getPresignedGetUrl(MEDIA_BUCKET, key))
-  );
+  const urls = await Promise.all(keys.map((key) => getPresignedGetUrl(MEDIA_BUCKET, key)));
 
   return ok({ photos: urls.map((url, i) => ({ url, key: keys[i] })) });
 }
@@ -678,23 +745,25 @@ async function deleteTask(event: APIGatewayProxyEvent): Promise<APIGatewayProxyR
       UpdateExpression: 'SET #s = :s, updatedAt = :now REMOVE assignedTaskId',
       ExpressionAttributeNames: { '#s': 'status' },
       ExpressionAttributeValues: { ':s': 'pending', ':now': now },
-    }).catch(e => console.error(`Failed to unlink report ${reportId}:`, e));
+    }).catch((e) => console.error(`Failed to unlink report ${reportId}:`, e));
   }
 
-  const allCrewIds = [...new Set([
-    ...((task.crewIds as string[]) ?? []),
-    ...(task.crewLeadId ? [task.crewLeadId as string] : []),
-  ])];
+  const allCrewIds = [
+    ...new Set([
+      ...((task.crewIds as string[]) ?? []),
+      ...(task.crewLeadId ? [task.crewLeadId as string] : []),
+    ]),
+  ];
   await Promise.allSettled(
-    allCrewIds.map(uid =>
+    allCrewIds.map((uid) =>
       createNotification(
         uid,
         'task_updated',
         'Task removed',
         `The task "${task.title}" has been removed by an administrator.`,
         taskId,
-      )
-    )
+      ),
+    ),
   );
 
   await dbDelete({ TableName: TASKS_TABLE, Key: { taskId } });
@@ -708,17 +777,25 @@ export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayPr
     const { httpMethod, resource } = event;
     console.log(`${httpMethod} ${resource}`);
 
-    if (httpMethod === 'POST'   && resource === '/tasks')                           return createTask(event);
-    if (httpMethod === 'GET'    && resource === '/tasks')                           return listTasks(event);
-    if (httpMethod === 'GET'    && resource === '/tasks/{taskId}')                  return getTask(event);
-    if (httpMethod === 'PATCH'  && resource === '/tasks/{taskId}')                  return updateTask(event);
-    if (httpMethod === 'PATCH'  && resource === '/tasks/{taskId}/status')           return updateTaskStatus(event);
-    if (httpMethod === 'GET'    && resource === '/tasks/{taskId}/evidence-upload')  return getEvidenceUploadUrl(event);
-    if (httpMethod === 'GET'    && resource === '/tasks/{taskId}/evidence-photos')  return getEvidencePhotos(event);
-    if (httpMethod === 'DELETE' && resource === '/tasks/{taskId}/evidence-photos')  return deleteEvidencePhoto(event);
-    if (httpMethod === 'DELETE' && resource === '/tasks/{taskId}')                  return deleteTask(event);
+    if (httpMethod === 'POST' && resource === '/tasks') return createTask(event);
+    if (httpMethod === 'GET' && resource === '/tasks') return listTasks(event);
+    if (httpMethod === 'GET' && resource === '/tasks/{taskId}') return getTask(event);
+    if (httpMethod === 'PATCH' && resource === '/tasks/{taskId}') return updateTask(event);
+    if (httpMethod === 'PATCH' && resource === '/tasks/{taskId}/status')
+      return updateTaskStatus(event);
+    if (httpMethod === 'GET' && resource === '/tasks/{taskId}/evidence-upload')
+      return getEvidenceUploadUrl(event);
+    if (httpMethod === 'GET' && resource === '/tasks/{taskId}/evidence-photos')
+      return getEvidencePhotos(event);
+    if (httpMethod === 'DELETE' && resource === '/tasks/{taskId}/evidence-photos')
+      return deleteEvidencePhoto(event);
+    if (httpMethod === 'DELETE' && resource === '/tasks/{taskId}') return deleteTask(event);
 
-    return { statusCode: 404, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Not found' }) };
+    return {
+      statusCode: 404,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ error: 'Not found' }),
+    };
   } catch (e) {
     console.error('Unhandled error:', e);
     return serverError();

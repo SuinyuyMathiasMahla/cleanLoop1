@@ -20,14 +20,8 @@ export class ApiStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: ApiStackProps) {
     super(scope, id, props);
 
-    const {
-      stage,
-      userPool,
-      reportsHandler,
-      tasksHandler,
-      crewHandler,
-      notificationsHandler,
-    } = props;
+    const { stage, userPool, reportsHandler, tasksHandler, crewHandler, notificationsHandler } =
+      props;
 
     // ── REST API ──────────────────────────────────────────────────────────────
     const api = new apigateway.RestApi(this, 'CleanLoopApi', {
@@ -51,14 +45,16 @@ export class ApiStack extends cdk.Stack {
       type: apigateway.ResponseType.DEFAULT_4XX,
       responseHeaders: {
         'Access-Control-Allow-Origin': "'*'",
-        'Access-Control-Allow-Headers': "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'",
+        'Access-Control-Allow-Headers':
+          "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'",
       },
     });
     api.addGatewayResponse('Default5xx', {
       type: apigateway.ResponseType.DEFAULT_5XX,
       responseHeaders: {
         'Access-Control-Allow-Origin': "'*'",
-        'Access-Control-Allow-Headers': "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'",
+        'Access-Control-Allow-Headers':
+          "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'",
       },
     });
 
@@ -80,9 +76,9 @@ export class ApiStack extends cdk.Stack {
 
     // ── Integration helpers ───────────────────────────────────────────────────
     const reportsInt = new apigateway.LambdaIntegration(reportsHandler);
-    const tasksInt   = new apigateway.LambdaIntegration(tasksHandler);
-    const crewInt    = new apigateway.LambdaIntegration(crewHandler);
-    const notifInt   = new apigateway.LambdaIntegration(notificationsHandler);
+    const tasksInt = new apigateway.LambdaIntegration(tasksHandler);
+    const crewInt = new apigateway.LambdaIntegration(crewHandler);
+    const notifInt = new apigateway.LambdaIntegration(notificationsHandler);
 
     // ── /reports ──────────────────────────────────────────────────────────────
     const reports = api.root.addResource('reports');

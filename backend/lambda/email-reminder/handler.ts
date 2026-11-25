@@ -50,14 +50,15 @@ export async function handler(_event: ScheduledEvent): Promise<void> {
           timeZone: 'UTC',
         });
 
-        await ses.send(new SendEmailCommand({
-          Source: SES_FROM_EMAIL,
-          Destination: { ToAddresses: [user.email as string] },
-          Message: {
-            Subject: { Data: `Reminder: Task "${task.title}" is due soon` },
-            Body: {
-              Html: {
-                Data: `
+        await ses.send(
+          new SendEmailCommand({
+            Source: SES_FROM_EMAIL,
+            Destination: { ToAddresses: [user.email as string] },
+            Message: {
+              Subject: { Data: `Reminder: Task "${task.title}" is due soon` },
+              Body: {
+                Html: {
+                  Data: `
                   <h2>Task Reminder</h2>
                   <p>Hi ${user.name ?? 'Crew Member'},</p>
                   <p>This is a reminder that the following CleanLoop task is due soon:</p>
@@ -83,13 +84,14 @@ export async function handler(_event: ScheduledEvent): Promise<void> {
                   <p style="color:#666;font-size:12px">This reminder was sent automatically by CleanLoop.</p>
                   <p>The CleanLoop Team</p>
                 `,
-              },
-              Text: {
-                Data: `Reminder: Task "${task.title}" is due ${dueDate} UTC.\n\nStatus: ${task.status}\n\nLog in to CleanLoop for details.`,
+                },
+                Text: {
+                  Data: `Reminder: Task "${task.title}" is due ${dueDate} UTC.\n\nStatus: ${task.status}\n\nLog in to CleanLoop for details.`,
+                },
               },
             },
-          },
-        }));
+          }),
+        );
 
         console.log(`Reminder sent to ${user.email} for task ${task.taskId}`);
       } catch (e) {
@@ -100,10 +102,14 @@ export async function handler(_event: ScheduledEvent): Promise<void> {
 
   const { items: overdueTasks } = await dbScan({
     TableName: TASKS_TABLE,
-    FilterExpression: '#s IN (:assigned, :scheduled, :inprog) AND dueAt <= :now AND attribute_not_exists(overdueAlertSentAt)',
+    FilterExpression:
+      '#s IN (:assigned, :scheduled, :inprog) AND dueAt <= :now AND attribute_not_exists(overdueAlertSentAt)',
     ExpressionAttributeNames: { '#s': 'status' },
     ExpressionAttributeValues: {
-      ':assigned': 'assigned', ':scheduled': 'scheduled', ':inprog': 'in_progress', ':now': now.toISOString(),
+      ':assigned': 'assigned',
+      ':scheduled': 'scheduled',
+      ':inprog': 'in_progress',
+      ':now': now.toISOString(),
     },
   });
   const { items: admins } = await dbScan({
@@ -117,22 +123,26 @@ export async function handler(_event: ScheduledEvent): Promise<void> {
     const recipients = new Set<string>([
       ...((task.crewIds as string[]) ?? []),
       ...(task.crewLeadId ? [task.crewLeadId as string] : []),
-      ...admins.map(admin => admin.userId as string),
+      ...admins.map((admin) => admin.userId as string),
     ]);
-    const notifications = await Promise.allSettled([...recipients].map(userId => dbPut({
-      TableName: NOTIFICATIONS_TABLE,
-      Item: {
-        notificationId: `overdue-${task.taskId}-${userId}`,
-        userId,
-        type: 'task_overdue',
-        title: 'Task overdue',
-        body: `Task "${task.title}" passed its due time without being completed.`,
-        taskId: task.taskId,
-        read: false,
-        createdAt: now.toISOString(),
-      },
-    })));
-    if (notifications.every(result => result.status === 'fulfilled')) {
+    const notifications = await Promise.allSettled(
+      [...recipients].map((userId) =>
+        dbPut({
+          TableName: NOTIFICATIONS_TABLE,
+          Item: {
+            notificationId: `overdue-${task.taskId}-${userId}`,
+            userId,
+            type: 'task_overdue',
+            title: 'Task overdue',
+            body: `Task "${task.title}" passed its due time without being completed.`,
+            taskId: task.taskId,
+            read: false,
+            createdAt: now.toISOString(),
+          },
+        }),
+      ),
+    );
+    if (notifications.every((result) => result.status === 'fulfilled')) {
       await dbUpdate({
         TableName: TASKS_TABLE,
         Key: { taskId: task.taskId },

@@ -42,11 +42,13 @@ async function postConfirmation(event: PostConfirmationTriggerEvent) {
 
   // Add user to CITIZEN group
   try {
-    await cognito.send(new AdminAddUserToGroupCommand({
-      UserPoolId: userPoolId,
-      Username: userName,
-      GroupName: 'CITIZEN',
-    }));
+    await cognito.send(
+      new AdminAddUserToGroupCommand({
+        UserPoolId: userPoolId,
+        Username: userName,
+        GroupName: 'CITIZEN',
+      }),
+    );
   } catch (err: unknown) {
     console.error('Failed to add user to CITIZEN group:', err);
   }
@@ -62,7 +64,8 @@ async function preTokenGeneration(event: PreTokenGenerationTriggerEvent) {
   let role = 'CITIZEN';
   let user: Record<string, unknown> | undefined;
   try {
-    user = await dbGet({ TableName: USERS_TABLE, Key: { userId } }) as Record<string, unknown> | undefined;
+    user = (await dbGet({ TableName: USERS_TABLE, Key: { userId } })) as
+      Record<string, unknown> | undefined;
     if (user?.role) role = user.role as string;
   } catch (err) {
     console.error('Failed to fetch user for token generation:', err);
@@ -76,19 +79,21 @@ async function preTokenGeneration(event: PreTokenGenerationTriggerEvent) {
         userId,
         cognitoSub: userId,
         email: event.request.userAttributes.email ?? '',
-        name: event.request.userAttributes.name ?? event.request.userAttributes.email?.split('@')[0] ?? '',
+        name:
+          event.request.userAttributes.name ??
+          event.request.userAttributes.email?.split('@')[0] ??
+          '',
         role: 'CITIZEN',
         status: 'active',
         createdAt: now,
         updatedAt: now,
       },
       ConditionExpression: 'attribute_not_exists(userId)',
-    }).catch(err => console.warn('Could not create federated user profile:', err));
+    }).catch((err) => console.warn('Could not create federated user profile:', err));
   }
 
   // Cognito group membership is the source of truth — override DynamoDB if needed
-  const groups: string[] =
-    (event.request as any).groupConfiguration?.groupsToOverride ?? [];
+  const groups: string[] = (event.request as any).groupConfiguration?.groupsToOverride ?? [];
 
   if (groups.includes('ADMIN')) {
     role = 'ADMIN';
@@ -150,10 +155,7 @@ async function customMessage(event: CustomMessageTriggerEvent) {
 
 // ── Dispatcher ────────────────────────────────────────────────────────────────
 export async function handler(
-  event:
-    | PostConfirmationTriggerEvent
-    | PreTokenGenerationTriggerEvent
-    | CustomMessageTriggerEvent
+  event: PostConfirmationTriggerEvent | PreTokenGenerationTriggerEvent | CustomMessageTriggerEvent,
 ) {
   console.log('Auth trigger:', event.triggerSource);
 

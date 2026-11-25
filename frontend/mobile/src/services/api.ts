@@ -19,12 +19,18 @@ async function storageGet(key: string): Promise<string | null> {
 }
 
 async function storageSet(key: string, value: string): Promise<void> {
-  if (isWeb) { localStorage.setItem(key, value); return; }
+  if (isWeb) {
+    localStorage.setItem(key, value);
+    return;
+  }
   await SecureStore.setItemAsync(key, value);
 }
 
 async function storageDelete(key: string): Promise<void> {
-  if (isWeb) { localStorage.removeItem(key); return; }
+  if (isWeb) {
+    localStorage.removeItem(key);
+    return;
+  }
   await SecureStore.deleteItemAsync(key);
 }
 
@@ -52,7 +58,7 @@ api.interceptors.request.use(
     }
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => Promise.reject(error),
 );
 
 api.interceptors.response.use(
@@ -98,7 +104,7 @@ api.interceptors.response.use(
     }
 
     return Promise.reject(error);
-  }
+  },
 );
 
 export class AuthExpiredError extends Error {
@@ -128,7 +134,7 @@ export function getApiErrorMessage(error: unknown): string {
 export async function uploadToS3(
   presignedUrl: string,
   localUri: string,
-  contentType: string
+  contentType: string,
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
@@ -187,11 +193,9 @@ export interface Report {
 }
 
 export const reportsApi = {
-  submitGuest: (payload: ReportPayload) =>
-    api.post<{ report: Report }>('/reports/guest', payload),
+  submitGuest: (payload: ReportPayload) => api.post<{ report: Report }>('/reports/guest', payload),
 
-  submit: (payload: ReportPayload) =>
-    api.post<{ report: Report }>('/reports', payload),
+  submit: (payload: ReportPayload) => api.post<{ report: Report }>('/reports', payload),
 
   getPublic: (limit = 50, lastKey?: string, status?: string, authenticated = false) => {
     const params = new URLSearchParams({ limit: String(limit) });
@@ -204,8 +208,7 @@ export const reportsApi = {
   getMine: (_page = 1, limit = 20) =>
     api.get<{ reports: Report[] }>(`/reports/mine?limit=${limit}`),
 
-  getById: (id: string) =>
-    api.get<{ report: Report }>(`/reports/${id}`),
+  getById: (id: string) => api.get<{ report: Report }>(`/reports/${id}`),
 
   getAll: (status?: string, limit = 500) => {
     const params = new URLSearchParams({ limit: String(limit) });
@@ -218,14 +221,13 @@ export const reportsApi = {
 
   getPresignedUpload: (contentType = 'image/jpeg', filename = 'photo.jpg') =>
     api.get<{ url: string; key: string }>(
-      `/reports/presigned-upload?contentType=${encodeURIComponent(contentType)}&filename=${encodeURIComponent(filename)}`
+      `/reports/presigned-upload?contentType=${encodeURIComponent(contentType)}&filename=${encodeURIComponent(filename)}`,
     ),
 
   toggleLike: (id: string) =>
     api.post<{ reportId: string; liked: boolean; likeCount: number }>(`/reports/${id}/like`),
 
-  addComment: (id: string, text: string) =>
-    api.post(`/reports/${id}/comments`, { text }),
+  addComment: (id: string, text: string) => api.post(`/reports/${id}/comments`, { text }),
 };
 
 // ---------- Tasks ----------
@@ -272,7 +274,7 @@ export const tasksApi = {
 
   getEvidenceUploadUrl: (id: string, contentType = 'image/jpeg', filename = 'evidence.jpg') =>
     api.get<{ url: string; key: string }>(
-      `/tasks/${id}/evidence-upload?contentType=${encodeURIComponent(contentType)}&filename=${encodeURIComponent(filename)}`
+      `/tasks/${id}/evidence-upload?contentType=${encodeURIComponent(contentType)}&filename=${encodeURIComponent(filename)}`,
     ),
 
   getEvidencePhotos: (id: string) =>
@@ -287,7 +289,13 @@ export const tasksApi = {
 export interface Notification {
   notificationId?: string;
   id: string;
-  type: 'task_assigned' | 'task_updated' | 'report_new' | 'report_resolved' | 'task_overdue' | 'general';
+  type:
+    | 'task_assigned'
+    | 'task_updated'
+    | 'report_new'
+    | 'report_resolved'
+    | 'task_overdue'
+    | 'general';
   title: string;
   body: string;
   read: boolean;
@@ -298,7 +306,9 @@ export interface Notification {
 
 export const notificationsApi = {
   getAll: () =>
-    api.get<{ data?: Notification[]; notifications?: Notification[]; items?: Notification[] }>('/notifications'),
+    api.get<{ data?: Notification[]; notifications?: Notification[]; items?: Notification[] }>(
+      '/notifications',
+    ),
   markRead: (id: string) => api.patch(`/notifications/${id}/read`),
   markAllRead: () => api.post('/notifications/read-all'),
   delete: (id: string) => api.delete(`/notifications/${id}`),
@@ -315,6 +325,8 @@ export interface ProfileUpdatePayload {
 
 export const profileApi = {
   get: () =>
-    api.get<{ userId: string; email: string; name: string; phone: string; role: string }>('/profile'),
+    api.get<{ userId: string; email: string; name: string; phone: string; role: string }>(
+      '/profile',
+    ),
   update: (payload: ProfileUpdatePayload) => api.patch('/profile', payload),
 };

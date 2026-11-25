@@ -44,15 +44,15 @@ export class ComputeStack extends cdk.Stack {
     } = props;
 
     const commonEnv = {
-      REPORTS_TABLE:       reportsTable.tableName,
-      USERS_TABLE:         usersTable.tableName,
-      CREW_TABLE:          usersTable.tableName,
-      TASKS_TABLE:         tasksTable.tableName,
+      REPORTS_TABLE: reportsTable.tableName,
+      USERS_TABLE: usersTable.tableName,
+      CREW_TABLE: usersTable.tableName,
+      TASKS_TABLE: tasksTable.tableName,
       NOTIFICATIONS_TABLE: notificationsTable.tableName,
-      MEDIA_BUCKET:        mediaBucket.bucketName,
-      USER_POOL_ID:        userPool.userPoolId,
-      SES_FROM_EMAIL:      sesFromEmail,
-      STAGE:               stage,
+      MEDIA_BUCKET: mediaBucket.bucketName,
+      USER_POOL_ID: userPool.userPoolId,
+      SES_FROM_EMAIL: sesFromEmail,
+      STAGE: stage,
       GOOGLE_MAPS_API_KEY: googleMapsApiKey,
       MAX_AUTO_ASSIGN_DISTANCE_KM: process.env.MAX_AUTO_ASSIGN_DISTANCE_KM ?? '25',
     };
@@ -84,10 +84,12 @@ export class ComputeStack extends cdk.Stack {
     mediaBucket.grantPut(this.reportsHandler);
     mediaBucket.grantRead(this.reportsHandler);
     mediaBucket.grantDelete(this.reportsHandler);
-    this.reportsHandler.addToRolePolicy(new iam.PolicyStatement({
-      actions: ['events:PutEvents'],
-      resources: ['*'],
-    }));
+    this.reportsHandler.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ['events:PutEvents'],
+        resources: ['*'],
+      }),
+    );
 
     new events.Rule(this, 'PendingReportAutoAssignmentRule', {
       ruleName: `cleanloop-pending-report-assignment-${stage}`,
@@ -114,10 +116,12 @@ export class ComputeStack extends cdk.Stack {
     mediaBucket.grantPut(this.tasksHandler);
     mediaBucket.grantRead(this.tasksHandler);
     mediaBucket.grantDelete(this.tasksHandler);
-    this.tasksHandler.addToRolePolicy(new iam.PolicyStatement({
-      actions: ['ses:SendEmail', 'ses:SendRawEmail'],
-      resources: ['*'],
-    }));
+    this.tasksHandler.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ['ses:SendEmail', 'ses:SendRawEmail'],
+        resources: ['*'],
+      }),
+    );
 
     // -- Crew Handler ----------------------------------------------------------
     this.crewHandler = new lambdaNodejs.NodejsFunction(this, 'CrewHandler', {
@@ -132,21 +136,23 @@ export class ComputeStack extends cdk.Stack {
     });
 
     usersTable.grantReadWriteData(this.crewHandler);
-    this.crewHandler.addToRolePolicy(new iam.PolicyStatement({
-      actions: [
-        'cognito-idp:AdminCreateUser',
-        'cognito-idp:AdminAddUserToGroup',
-        'cognito-idp:AdminRemoveUserFromGroup',
-        'cognito-idp:AdminDeleteUser',
-        'cognito-idp:AdminGetUser',
-        'cognito-idp:AdminSetUserPassword',
-        'cognito-idp:ListUsers',
-        'cognito-idp:ListUsersInGroup',
-        'cognito-idp:GetGroup',
-        'cognito-idp:CreateGroup',
-      ],
-      resources: [userPool.userPoolArn],
-    }));
+    this.crewHandler.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: [
+          'cognito-idp:AdminCreateUser',
+          'cognito-idp:AdminAddUserToGroup',
+          'cognito-idp:AdminRemoveUserFromGroup',
+          'cognito-idp:AdminDeleteUser',
+          'cognito-idp:AdminGetUser',
+          'cognito-idp:AdminSetUserPassword',
+          'cognito-idp:ListUsers',
+          'cognito-idp:ListUsersInGroup',
+          'cognito-idp:GetGroup',
+          'cognito-idp:CreateGroup',
+        ],
+        resources: [userPool.userPoolArn],
+      }),
+    );
 
     // -- Notifications Handler -------------------------------------------------
     this.notificationsHandler = new lambdaNodejs.NodejsFunction(this, 'NotificationsHandler', {
@@ -178,10 +184,12 @@ export class ComputeStack extends cdk.Stack {
     tasksTable.grantReadWriteData(emailReminderHandler);
     usersTable.grantReadData(emailReminderHandler);
     notificationsTable.grantWriteData(emailReminderHandler);
-    emailReminderHandler.addToRolePolicy(new iam.PolicyStatement({
-      actions: ['ses:SendEmail', 'ses:SendRawEmail'],
-      resources: ['*'],
-    }));
+    emailReminderHandler.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ['ses:SendEmail', 'ses:SendRawEmail'],
+        resources: ['*'],
+      }),
+    );
 
     new events.Rule(this, 'EmailReminderRule', {
       ruleName: `cleanloop-email-reminder-${stage}`,

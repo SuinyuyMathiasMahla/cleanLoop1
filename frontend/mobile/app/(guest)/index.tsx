@@ -21,11 +21,7 @@ const LIGHT_GREEN = '#e8f5f0';
 export default function GuestLanding() {
   const router = useRouter();
 
-  const {
-    publicReports,
-    fetchPublicReports,
-    isLoading,
-  } = useReportStore();
+  const { publicReports, fetchPublicReports, isLoading } = useReportStore();
 
   useEffect(() => {
     fetchPublicReports();
@@ -35,24 +31,15 @@ export default function GuestLanding() {
     fetchPublicReports();
   }, []);
 
-  const completedReports = publicReports.filter(
-    (report) => report.status === 'resolved'
-  );
+  const completedReports = publicReports.filter((report) => report.status === 'resolved');
 
   return (
-    <SafeAreaView
-      style={styles.safe}
-      edges={['top']}
-    >
+    <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl
-            refreshing={isLoading}
-            onRefresh={onRefresh}
-            tintColor={FOREST}
-          />
+          <RefreshControl refreshing={isLoading} onRefresh={onRefresh} tintColor={FOREST} />
         }
       >
         {/* =========================================
@@ -61,46 +48,30 @@ export default function GuestLanding() {
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <View style={styles.logoCircle}>
-              <Ionicons
-                name="leaf"
-                size={18}
-                color={FOREST}
-              />
+              <Ionicons name="leaf" size={18} color={FOREST} />
             </View>
 
             <View>
-              <Text style={styles.brandName}>
-                CleanLoop
-              </Text>
-              <Text style={styles.brandSub}>
-                Cleaner communities
-              </Text>
+              <Text style={styles.brandName}>CleanLoop</Text>
+              <Text style={styles.brandSub}>Cleaner communities</Text>
             </View>
           </View>
 
           <View style={styles.headerRight}>
             <TouchableOpacity
               style={styles.loginButton}
-              onPress={() =>
-                router.navigate('/auth/login')
-              }
+              onPress={() => router.navigate('/auth/login')}
               activeOpacity={0.8}
             >
-              <Text style={styles.loginButtonText}>
-                Login
-              </Text>
+              <Text style={styles.loginButtonText}>Login</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.signupButton}
-              onPress={() =>
-                router.navigate('/auth/register')
-              }
+              onPress={() => router.navigate('/auth/register')}
               activeOpacity={0.8}
             >
-              <Text style={styles.signupButtonText}>
-                Sign Up
-              </Text>
+              <Text style={styles.signupButtonText}>Sign Up</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -110,26 +81,11 @@ export default function GuestLanding() {
         ========================================= */}
         <View style={styles.hero}>
           {/* Decorative rings */}
-          <View
-            style={[
-              styles.ring,
-              styles.ringLarge,
-            ]}
-          />
+          <View style={[styles.ring, styles.ringLarge]} />
 
-          <View
-            style={[
-              styles.ring,
-              styles.ringMedium,
-            ]}
-          />
+          <View style={[styles.ring, styles.ringMedium]} />
 
-          <View
-            style={[
-              styles.ring,
-              styles.ringSmall,
-            ]}
-          />
+          <View style={[styles.ring, styles.ringSmall]} />
 
           <View style={styles.heroContent}>
             <Text style={styles.heroTitle}>
@@ -139,9 +95,8 @@ export default function GuestLanding() {
             </Text>
 
             <Text style={styles.heroSub}>
-              Help make your neighbourhood cleaner
-              by reporting overflowing bins and
-              illegal dumping.
+              Help make your neighbourhood cleaner by reporting overflowing bins and illegal
+              dumping.
             </Text>
           </View>
         </View>
@@ -159,56 +114,33 @@ export default function GuestLanding() {
                 <View style={styles.liveRow}>
                   <View style={styles.liveDot} />
 
-                  <Text style={styles.liveText}>
-                    QUICK REPORT
-                  </Text>
+                  <Text style={styles.liveText}>QUICK REPORT</Text>
                 </View>
 
-                <Text style={styles.actionTitle}>
-                  Report Waste Now
-                </Text>
+                <Text style={styles.actionTitle}>Report Waste Now</Text>
               </View>
 
               <View style={styles.cameraChip}>
-                <Ionicons
-                  name="camera-outline"
-                  size={16}
-                  color={FOREST}
-                />
+                <Ionicons name="camera-outline" size={16} color={FOREST} />
 
-                <Text style={styles.cameraChipText}>
-                  Camera
-                </Text>
+                <Text style={styles.cameraChipText}>Camera</Text>
               </View>
             </View>
 
             <Text style={styles.actionDescription}>
-              Snap a photo, tag your location, and
-              our cleanup crews will handle the rest.
+              Snap a photo, tag your location, and our cleanup crews will handle the rest.
             </Text>
 
             <TouchableOpacity
               style={styles.reportButton}
-              onPress={() =>
-                router.push('/(guest)/report')
-              }
+              onPress={() => router.push('/(guest)/report')}
               activeOpacity={0.85}
             >
-              <Ionicons
-                name="camera"
-                size={18}
-                color="#fff"
-              />
+              <Ionicons name="camera" size={18} color="#fff" />
 
-              <Text style={styles.reportButtonText}>
-                Report Waste Now
-              </Text>
+              <Text style={styles.reportButtonText}>Report Waste Now</Text>
 
-              <Ionicons
-                name="arrow-forward"
-                size={18}
-                color="#fff"
-              />
+              <Ionicons name="arrow-forward" size={18} color="#fff" />
             </TouchableOpacity>
           </View>
 
@@ -217,26 +149,17 @@ export default function GuestLanding() {
           ===================================== */}
           <View style={styles.sectionHeader}>
             <View>
-              <Text style={styles.sectionTitle}>
-                Community Feed
-              </Text>
+              <Text style={styles.sectionTitle}>Community Feed</Text>
 
-              <Text style={styles.sectionSub}>
-                Completed cleanups from your area
-              </Text>
+              <Text style={styles.sectionSub}>Completed cleanups from your area</Text>
             </View>
 
             <View style={styles.sectionIcon}>
-              <Ionicons
-                name="people-outline"
-                size={19}
-                color={FOREST}
-              />
+              <Ionicons name="people-outline" size={19} color={FOREST} />
             </View>
           </View>
 
-          {isLoading &&
-          completedReports.length === 0 ? (
+          {isLoading && completedReports.length === 0 ? (
             <ActivityIndicator
               color={FOREST}
               style={{
@@ -246,33 +169,22 @@ export default function GuestLanding() {
           ) : completedReports.length === 0 ? (
             <View style={styles.emptyFeed}>
               <View style={styles.emptyIcon}>
-                <Ionicons
-                  name="leaf-outline"
-                  size={28}
-                  color={FOREST}
-                />
+                <Ionicons name="leaf-outline" size={28} color={FOREST} />
               </View>
 
-              <Text style={styles.emptyFeedTitle}>
-                No completed cleanups yet
-              </Text>
+              <Text style={styles.emptyFeedTitle}>No completed cleanups yet</Text>
 
-              <Text style={styles.emptyFeedText}>
-                Community cleanup activity will
-                appear here.
-              </Text>
+              <Text style={styles.emptyFeedText}>Community cleanup activity will appear here.</Text>
             </View>
           ) : (
             <View style={styles.communityCards}>
-              {completedReports
-                .slice(0, 3)
-                .map((report) => (
-                  <ReportCard
-                    key={report.reportId}
-                    report={report}
-                    style={styles.communityReportCard}
-                  />
-                ))}
+              {completedReports.slice(0, 3).map((report) => (
+                <ReportCard
+                  key={report.reportId}
+                  report={report}
+                  style={styles.communityReportCard}
+                />
+              ))}
             </View>
           )}
         </View>

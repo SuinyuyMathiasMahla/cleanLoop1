@@ -69,13 +69,7 @@ function Field({
         <Ionicons
           name={icon}
           size={20}
-          color={
-            error
-              ? colors.danger
-              : focused
-              ? colors.primary
-              : colors.gray[500]
-          }
+          color={error ? colors.danger : focused ? colors.primary : colors.gray[500]}
         />
 
         <TextInput
@@ -120,13 +114,7 @@ export default function RegisterScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
-  const {
-    register,
-    loginWithGoogle,
-    isLoading,
-    error,
-    clearError,
-  } = useAuthStore();
+  const { register, loginWithGoogle, isLoading, error, clearError } = useAuthStore();
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -141,8 +129,7 @@ export default function RegisterScreen() {
   const confirmRef = useRef<TextInput>(null);
 
   const longEnough = password.length >= 8;
-  const matches =
-    confirmPassword.length > 0 && password === confirmPassword;
+  const matches = confirmPassword.length > 0 && password === confirmPassword;
 
   function validate(): boolean {
     const newErrors: Record<string, string> = {};
@@ -160,8 +147,7 @@ export default function RegisterScreen() {
     if (!phone.trim()) {
       newErrors.phone = 'Enter your phone number';
     } else if (!/^\+?[\d\s\-()]{8,}$/.test(phone)) {
-      newErrors.phone =
-        'Include your country code, for example +237 6XX XXX XXX';
+      newErrors.phone = 'Include your country code, for example +237 6XX XXX XXX';
     }
 
     if (!password) {
@@ -184,12 +170,7 @@ export default function RegisterScreen() {
     clearError();
 
     try {
-      await register(
-        email.trim().toLowerCase(),
-        password,
-        name.trim(),
-        phone.trim()
-      );
+      await register(email.trim().toLowerCase(), password, name.trim(), phone.trim());
 
       router.push('/auth/verify');
     } catch {
@@ -211,10 +192,7 @@ export default function RegisterScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.root}
       >
-        <StatusBar
-          barStyle="light-content"
-          backgroundColor={FOREST}
-        />
+        <StatusBar barStyle="light-content" backgroundColor={FOREST} />
 
         <ScrollView
           contentContainerStyle={styles.scroll}
@@ -222,12 +200,7 @@ export default function RegisterScreen() {
           showsVerticalScrollIndicator={false}
         >
           {/* Compact hero */}
-          <View
-            style={[
-              styles.hero,
-              { paddingTop: insets.top + 12 },
-            ]}
-          >
+          <View style={[styles.hero, { paddingTop: insets.top + 12 }]}>
             <View style={[styles.ring, styles.ringLarge]} />
             <View style={[styles.ring, styles.ringMedium]} />
             <View style={[styles.ring, styles.ringSmall]} />
@@ -238,20 +211,13 @@ export default function RegisterScreen() {
               accessibilityLabel="Go back"
               activeOpacity={0.8}
             >
-              <Ionicons
-                name="arrow-back"
-                size={22}
-                color={colors.white}
-              />
+              <Ionicons name="arrow-back" size={22} color={colors.white} />
             </TouchableOpacity>
 
-            <Text style={styles.heroTitle}>
-              Create your account
-            </Text>
+            <Text style={styles.heroTitle}>Create your account</Text>
 
             <Text style={styles.heroSub}>
-              Report overflowing bins and illegal dumping in your
-              neighbourhood.
+              Report overflowing bins and illegal dumping in your neighbourhood.
             </Text>
           </View>
 
@@ -259,15 +225,9 @@ export default function RegisterScreen() {
           <View style={styles.sheet}>
             {!!error && (
               <View style={styles.errorBanner}>
-                <Ionicons
-                  name="alert-circle"
-                  size={18}
-                  color={colors.danger}
-                />
+                <Ionicons name="alert-circle" size={18} color={colors.danger} />
 
-                <Text style={styles.errorBannerText}>
-                  {error}
-                </Text>
+                <Text style={styles.errorBannerText}>{error}</Text>
               </View>
             )}
 
@@ -281,9 +241,7 @@ export default function RegisterScreen() {
               autoComplete="name"
               error={errors.name}
               returnKeyType="next"
-              onSubmitEditing={() =>
-                emailRef.current?.focus()
-              }
+              onSubmitEditing={() => emailRef.current?.focus()}
             />
 
             <Field
@@ -296,9 +254,7 @@ export default function RegisterScreen() {
               autoComplete="email"
               error={errors.email}
               returnKeyType="next"
-              onSubmitEditing={() =>
-                phoneRef.current?.focus()
-              }
+              onSubmitEditing={() => phoneRef.current?.focus()}
               inputRef={emailRef}
             />
 
@@ -312,9 +268,7 @@ export default function RegisterScreen() {
               autoComplete="tel"
               error={errors.phone}
               returnKeyType="next"
-              onSubmitEditing={() =>
-                passwordRef.current?.focus()
-              }
+              onSubmitEditing={() => passwordRef.current?.focus()}
               inputRef={phoneRef}
             />
 
@@ -328,34 +282,19 @@ export default function RegisterScreen() {
               autoComplete="password-new"
               error={errors.password}
               returnKeyType="next"
-              onSubmitEditing={() =>
-                confirmRef.current?.focus()
-              }
+              onSubmitEditing={() => confirmRef.current?.focus()}
               inputRef={passwordRef}
             />
 
             {/* Live password rule */}
             <View style={styles.ruleRow}>
               <Ionicons
-                name={
-                  longEnough
-                    ? 'checkmark-circle'
-                    : 'ellipse-outline'
-                }
+                name={longEnough ? 'checkmark-circle' : 'ellipse-outline'}
                 size={16}
-                color={
-                  longEnough
-                    ? colors.primary
-                    : colors.gray[500]
-                }
+                color={longEnough ? colors.primary : colors.gray[500]}
               />
 
-              <Text
-                style={[
-                  styles.ruleText,
-                  longEnough && styles.ruleTextMet,
-                ]}
-              >
+              <Text style={[styles.ruleText, longEnough && styles.ruleTextMet]}>
                 At least 8 characters
               </Text>
             </View>
@@ -375,35 +314,15 @@ export default function RegisterScreen() {
             />
 
             {matches && (
-              <View
-                style={[
-                  styles.ruleRow,
-                  styles.ruleRowAfterField,
-                ]}
-              >
-                <Ionicons
-                  name="checkmark-circle"
-                  size={16}
-                  color={colors.primary}
-                />
+              <View style={[styles.ruleRow, styles.ruleRowAfterField]}>
+                <Ionicons name="checkmark-circle" size={16} color={colors.primary} />
 
-                <Text
-                  style={[
-                    styles.ruleText,
-                    styles.ruleTextMet,
-                  ]}
-                >
-                  Passwords match
-                </Text>
+                <Text style={[styles.ruleText, styles.ruleTextMet]}>Passwords match</Text>
               </View>
             )}
 
             <TouchableOpacity
-              style={[
-                styles.primaryButton,
-                isLoading &&
-                  styles.primaryButtonDisabled,
-              ]}
+              style={[styles.primaryButton, isLoading && styles.primaryButtonDisabled]}
               onPress={handleRegister}
               disabled={isLoading}
               activeOpacity={0.85}
@@ -411,9 +330,7 @@ export default function RegisterScreen() {
               {isLoading ? (
                 <ActivityIndicator color={colors.white} />
               ) : (
-                <Text style={styles.primaryButtonText}>
-                  Create account
-                </Text>
+                <Text style={styles.primaryButtonText}>Create account</Text>
               )}
             </TouchableOpacity>
 
@@ -431,27 +348,17 @@ export default function RegisterScreen() {
               activeOpacity={0.85}
             >
               <View style={styles.googleBadge}>
-                <Text style={styles.googleBadgeText}>
-                  G
-                </Text>
+                <Text style={styles.googleBadgeText}>G</Text>
               </View>
 
-              <Text style={styles.googleText}>
-                Sign up with Google
-              </Text>
+              <Text style={styles.googleText}>Sign up with Google</Text>
             </TouchableOpacity>
 
             <View style={styles.footer}>
-              <Text style={styles.footerText}>
-                Already have an account?{' '}
-              </Text>
+              <Text style={styles.footerText}>Already have an account? </Text>
 
-              <TouchableOpacity
-                onPress={() => router.back()}
-              >
-                <Text style={styles.footerLink}>
-                  Sign in
-                </Text>
+              <TouchableOpacity onPress={() => router.back()}>
+                <Text style={styles.footerLink}>Sign in</Text>
               </TouchableOpacity>
             </View>
           </View>

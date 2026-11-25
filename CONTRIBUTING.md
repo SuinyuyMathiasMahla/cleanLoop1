@@ -35,47 +35,47 @@ close it and reopen the folder; Windows keeps the old case in open handles.
 
 ### Files and folders
 
-| What | Convention | Example |
-| --- | --- | --- |
-| Folders | kebab-case | `email-reminder/`, `evidence-photos/` |
-| React components | PascalCase `.tsx`, one component per file | `ReportCard.tsx` |
-| React hooks | camelCase starting with `use` | `useNotificationSync.ts` |
-| Other TypeScript modules | camelCase | `authStore.ts`, `format.ts` |
-| Expo Router screens | kebab-case (the router turns them into URLs) | `my-reports.tsx`, `[id].tsx` |
-| Lambda functions | kebab-case folder, entry file `handler.ts` | `lambda/reports/handler.ts` |
-| CDK stacks | kebab-case file ending in `-stack.ts` | `api-stack.ts` |
-| Tests | same name as the file under test, plus `.test` | `duplicates.test.ts` |
-| Python modules | snake_case | `vision_worker.py` |
-| Documents | lowercase kebab-case, version suffix `-vN` | `cleanloop-srs-v2-final.pdf` |
-| Diagrams | `<subject>-<diagram-type>-vN.png` | `report-submission-activity-v3.png` |
-| Decision records | `NNNN-short-title.md`, numbered in order | `0003-region-us-east-1.md` |
-| Meeting notes | `YYYY-MM-DD-<event>.md` | `2026-12-05-sprint-1-review.md` |
+| What                     | Convention                                     | Example                               |
+| ------------------------ | ---------------------------------------------- | ------------------------------------- |
+| Folders                  | kebab-case                                     | `email-reminder/`, `evidence-photos/` |
+| React components         | PascalCase `.tsx`, one component per file      | `ReportCard.tsx`                      |
+| React hooks              | camelCase starting with `use`                  | `useNotificationSync.ts`              |
+| Other TypeScript modules | camelCase                                      | `authStore.ts`, `format.ts`           |
+| Expo Router screens      | kebab-case (the router turns them into URLs)   | `my-reports.tsx`, `[id].tsx`          |
+| Lambda functions         | kebab-case folder, entry file `handler.ts`     | `lambda/reports/handler.ts`           |
+| CDK stacks               | kebab-case file ending in `-stack.ts`          | `api-stack.ts`                        |
+| Tests                    | same name as the file under test, plus `.test` | `duplicates.test.ts`                  |
+| Python modules           | snake_case                                     | `vision_worker.py`                    |
+| Documents                | lowercase kebab-case, version suffix `-vN`     | `cleanloop-srs-v2-final.pdf`          |
+| Diagrams                 | `<subject>-<diagram-type>-vN.png`              | `report-submission-activity-v3.png`   |
+| Decision records         | `NNNN-short-title.md`, numbered in order       | `0003-region-us-east-1.md`            |
+| Meeting notes            | `YYYY-MM-DD-<event>.md`                        | `2026-12-05-sprint-1-review.md`       |
 
 No spaces, capitals or underscores in file names except where a tool requires them
 (React components, Python modules, `README.md`, `CONTRIBUTING.md`).
 
 ### In code
 
-| What | Convention | Example |
-| --- | --- | --- |
-| Variables, functions | camelCase | `findDuplicateReports()` |
-| Booleans | camelCase with `is`, `has`, `can` or `should` | `isOffline`, `hasEvidence` |
-| Types, interfaces, classes, components, CDK constructs | PascalCase, no `I` prefix | `Report`, `ApiStack` |
-| Constants that never change, environment variables | UPPER_SNAKE_CASE | `DUPLICATE_RADIUS_M`, `REPORTS_TABLE` |
-| Enum members and status values | UPPER_SNAKE_CASE strings | `'AWAITING_MEDIA'`, `'ASSIGNED'` |
-| Units | in the name | `radiusM`, `timeoutMs`, `slaHours` |
-| Python functions and variables | snake_case | `assess_quality()` |
+| What                                                   | Convention                                    | Example                               |
+| ------------------------------------------------------ | --------------------------------------------- | ------------------------------------- |
+| Variables, functions                                   | camelCase                                     | `findDuplicateReports()`              |
+| Booleans                                               | camelCase with `is`, `has`, `can` or `should` | `isOffline`, `hasEvidence`            |
+| Types, interfaces, classes, components, CDK constructs | PascalCase, no `I` prefix                     | `Report`, `ApiStack`                  |
+| Constants that never change, environment variables     | UPPER_SNAKE_CASE                              | `DUPLICATE_RADIUS_M`, `REPORTS_TABLE` |
+| Enum members and status values                         | UPPER_SNAKE_CASE strings                      | `'AWAITING_MEDIA'`, `'ASSIGNED'`      |
+| Units                                                  | in the name                                   | `radiusM`, `timeoutMs`, `slaHours`    |
+| Python functions and variables                         | snake_case                                    | `assess_quality()`                    |
 
 ### Cloud resources and data
 
-| What | Convention | Example |
-| --- | --- | --- |
-| AWS resource names | `cleanloop-<component>-<stage>` | `cleanloop-reports-dev` |
-| CDK construct IDs | PascalCase | `ReportsTable` |
-| DynamoDB attributes | camelCase | `createdAt`, `crewGroupId` |
-| DynamoDB indexes | `by<Key>` | `byGeohash`, `byCrewGroupStatus` |
-| Events on the bus | PascalCase past tense | `ReportSubmitted`, `TaskAssigned` |
-| Stages | `dev`, `staging`, `prod` | |
+| What                | Convention                      | Example                           |
+| ------------------- | ------------------------------- | --------------------------------- |
+| AWS resource names  | `cleanloop-<component>-<stage>` | `cleanloop-reports-dev`           |
+| CDK construct IDs   | PascalCase                      | `ReportsTable`                    |
+| DynamoDB attributes | camelCase                       | `createdAt`, `crewGroupId`        |
+| DynamoDB indexes    | `by<Key>`                       | `byGeohash`, `byCrewGroupStatus`  |
+| Events on the bus   | PascalCase past tense           | `ReportSubmitted`, `TaskAssigned` |
+| Stages              | `dev`, `staging`, `prod`        |                                   |
 
 ### API
 
@@ -133,15 +133,15 @@ No spaces, capitals or underscores in file names except where a tool requires th
 
 ## 5. Diagram standards
 
-| Diagram | Standard |
-| --- | --- |
-| Use case | UML 2.5: actors outside the system boundary, «include» and «extend» as dashed arrows, generalisation with a hollow triangle |
-| Activity | UML 2.5: initial and final nodes, hollow decision and merge diamonds with [guards], fork and join bars, partitions per actor, send and accept signals for asynchronous messages |
-| Sequence | UML 2.5: lifelines, solid arrows for calls, dashed for returns, `alt` and `loop` fragments |
-| State | UML 2.5 state machine for report and task lifecycles |
-| System context and containers | C4 model, levels 1 and 2 |
-| Cloud architecture | AWS Architecture Icons and their group conventions (AWS Cloud, Region), numbered flow steps |
-| Data | Access-pattern table plus key design for DynamoDB |
+| Diagram                       | Standard                                                                                                                                                                        |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Use case                      | UML 2.5: actors outside the system boundary, «include» and «extend» as dashed arrows, generalisation with a hollow triangle                                                     |
+| Activity                      | UML 2.5: initial and final nodes, hollow decision and merge diamonds with [guards], fork and join bars, partitions per actor, send and accept signals for asynchronous messages |
+| Sequence                      | UML 2.5: lifelines, solid arrows for calls, dashed for returns, `alt` and `loop` fragments                                                                                      |
+| State                         | UML 2.5 state machine for report and task lifecycles                                                                                                                            |
+| System context and containers | C4 model, levels 1 and 2                                                                                                                                                        |
+| Cloud architecture            | AWS Architecture Icons and their group conventions (AWS Cloud, Region), numbered flow steps                                                                                     |
+| Data                          | Access-pattern table plus key design for DynamoDB                                                                                                                               |
 
 Export each diagram as PNG to `docs/diagrams/` with its source file beside it, and bump `-vN` when
 the logic changes.

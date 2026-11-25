@@ -17,7 +17,11 @@ export function getCaller(event: APIGatewayProxyEvent): CallerIdentity | null {
     if (!g) return [];
     if (Array.isArray(g)) return g;
     if (typeof g === 'string') {
-      try { return JSON.parse(g); } catch { return [g]; }
+      try {
+        return JSON.parse(g);
+      } catch {
+        return [g];
+      }
     }
     return [];
   })();

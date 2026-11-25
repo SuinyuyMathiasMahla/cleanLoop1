@@ -42,10 +42,13 @@ export function TaskCard({
 
   const scheduledDate = new Date(task.scheduledAt);
   const dateStr = scheduledDate.toLocaleDateString(undefined, {
-    weekday: 'short', month: 'short', day: 'numeric',
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
   });
   const timeStr = scheduledDate.toLocaleTimeString(undefined, {
-    hour: '2-digit', minute: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
   });
   const crewCount = new Set([
     ...(task.crewIds ?? []),
@@ -83,10 +86,7 @@ export function TaskCard({
           <MetaChip icon="calendar-outline" text={dateStr} />
           <MetaChip icon="time-outline" text={timeStr} />
           <MetaChip icon="document-text-outline" text={`${task.reportIds.length} rep.`} />
-          <MetaChip
-            icon="people-outline"
-            text={`${crewCount} crew`}
-          />
+          <MetaChip icon="people-outline" text={`${crewCount} crew`} />
         </View>
 
         <StatusBadge status={task.status} />

@@ -70,8 +70,10 @@ export function getCognitoErrorMessage(error: unknown): string {
     }
   }
   if (error instanceof Error) {
-    if (error.message.toLowerCase().includes('network') ||
-        error.message.toLowerCase().includes('fetch')) {
+    if (
+      error.message.toLowerCase().includes('network') ||
+      error.message.toLowerCase().includes('fetch')
+    ) {
       return 'Unable to connect. Please check your internet connection and try again.';
     }
     return 'Something went wrong. Please try again.';
@@ -89,7 +91,7 @@ export async function signUp(
   email: string,
   password: string,
   name: string,
-  phone: string
+  phone: string,
 ): Promise<void> {
   await cognitoRequest('SignUp', {
     ClientId: CLIENT_ID,
@@ -131,7 +133,7 @@ export async function signIn(email: string, password: string): Promise<CognitoTo
   if (data.ChallengeName === 'NEW_PASSWORD_REQUIRED') {
     throw new CognitoError(
       'NewPasswordRequired',
-      'Your account requires a password reset. Please contact your administrator.'
+      'Your account requires a password reset. Please contact your administrator.',
     );
   }
 
@@ -184,7 +186,7 @@ export async function forgotPassword(email: string): Promise<void> {
 export async function confirmForgotPassword(
   email: string,
   code: string,
-  newPassword: string
+  newPassword: string,
 ): Promise<void> {
   await cognitoRequest('ConfirmForgotPassword', {
     ClientId: CLIENT_ID,
@@ -198,13 +200,16 @@ export async function confirmForgotPassword(
 // via the deep-link redirect handled in callback.tsx → handleOAuthCallback().
 export function googleSignIn(): void {
   if (!CLIENT_ID || !COGNITO_DOMAIN) {
-    throw new CognitoError('ConfigurationError', 'Google sign-in is not configured for this build.');
+    throw new CognitoError(
+      'ConfigurationError',
+      'Google sign-in is not configured for this build.',
+    );
   }
   const state = createOAuthState();
   _pendingOAuthState = state;
   const redirectUri = 'cleanloop://auth/callback';
   const authorizeUrl = new URL(
-    `https://${COGNITO_DOMAIN}.auth.${COGNITO_REGION}.amazoncognito.com/oauth2/authorize`
+    `https://${COGNITO_DOMAIN}.auth.${COGNITO_REGION}.amazoncognito.com/oauth2/authorize`,
   );
   authorizeUrl.search = new URLSearchParams({
     client_id: CLIENT_ID,
@@ -238,7 +243,7 @@ export async function handleOAuthCallback(url: string): Promise<CognitoTokens> {
   if (error || !code) {
     throw new CognitoError(
       error ?? 'OAuthError',
-      callbackUrl.searchParams.get('error_description') ?? 'Google sign-in was cancelled.'
+      callbackUrl.searchParams.get('error_description') ?? 'Google sign-in was cancelled.',
     );
   }
 
@@ -249,12 +254,15 @@ function createOAuthState(): string {
   const values = new Uint8Array(24);
   if (globalThis.crypto?.getRandomValues) {
     globalThis.crypto.getRandomValues(values);
-    return Array.from(values, value => value.toString(16).padStart(2, '0')).join('');
+    return Array.from(values, (value) => value.toString(16).padStart(2, '0')).join('');
   }
   return `${Date.now()}-${Math.random()}-${Math.random()}`;
 }
 
-async function exchangeAuthorizationCode(code: string, redirectUri: string): Promise<CognitoTokens> {
+async function exchangeAuthorizationCode(
+  code: string,
+  redirectUri: string,
+): Promise<CognitoTokens> {
   const response = await fetch(
     `https://${COGNITO_DOMAIN}.auth.${COGNITO_REGION}.amazoncognito.com/oauth2/token`,
     {
@@ -266,13 +274,17 @@ async function exchangeAuthorizationCode(code: string, redirectUri: string): Pro
         code,
         redirect_uri: redirectUri,
       }).toString(),
-    }
+    },
   );
   const data = await response.json();
-  if (!response.ok || !(data.id_token ?? data.IdToken) || !(data.access_token ?? data.AccessToken)) {
+  if (
+    !response.ok ||
+    !(data.id_token ?? data.IdToken) ||
+    !(data.access_token ?? data.AccessToken)
+  ) {
     throw new CognitoError(
       data.error ?? 'OAuthTokenExchangeFailed',
-      data.error_description ?? 'Could not complete Google sign-in.'
+      data.error_description ?? 'Could not complete Google sign-in.',
     );
   }
   return {
@@ -290,7 +302,7 @@ export function parseJwt(token: string): Record<string, unknown> {
       atob(base64)
         .split('')
         .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-        .join('')
+        .join(''),
     );
     return JSON.parse(jsonPayload);
   } catch {

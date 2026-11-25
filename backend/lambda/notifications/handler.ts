@@ -20,7 +20,9 @@ async function listNotifications(event: APIGatewayProxyEvent): Promise<APIGatewa
     ExpressionAttributeValues: { ':uid': caller.userId },
     ScanIndexForward: false,
     Limit: parseInt(limit),
-    ...(lastKey ? { ExclusiveStartKey: JSON.parse(Buffer.from(lastKey, 'base64').toString()) } : {}),
+    ...(lastKey
+      ? { ExclusiveStartKey: JSON.parse(Buffer.from(lastKey, 'base64').toString()) }
+      : {}),
   };
 
   if (unreadOnly === 'true') {
@@ -34,7 +36,7 @@ async function listNotifications(event: APIGatewayProxyEvent): Promise<APIGatewa
 
   const result = await dbQuery(queryParams);
 
-  const items = (result.items ?? []).map(n => ({
+  const items = (result.items ?? []).map((n) => ({
     ...n,
     id: n.notificationId as string,
     sentAt: (n.sentAt ?? n.createdAt) as string,
@@ -44,9 +46,7 @@ async function listNotifications(event: APIGatewayProxyEvent): Promise<APIGatewa
   return ok({
     data: items,
     notifications: items,
-    nextKey: result.lastKey
-      ? Buffer.from(JSON.stringify(result.lastKey)).toString('base64')
-      : null,
+    nextKey: result.lastKey ? Buffer.from(JSON.stringify(result.lastKey)).toString('base64') : null,
   });
 }
 
@@ -89,15 +89,15 @@ async function markAllRead(event: APIGatewayProxyEvent): Promise<APIGatewayProxy
 
   const items = result.items ?? [];
   await Promise.allSettled(
-    items.map(n =>
+    items.map((n) =>
       dbUpdate({
         TableName: NOTIFICATIONS_TABLE,
         Key: { notificationId: n.notificationId },
         UpdateExpression: 'SET #r = :true',
         ExpressionAttributeNames: { '#r': 'read' },
         ExpressionAttributeValues: { ':true': true },
-      })
-    )
+      }),
+    ),
   );
 
   return ok({ updated: items.length });
@@ -168,7 +168,7 @@ async function sendNotification(event: APIGatewayProxyEvent): Promise<APIGateway
         },
       });
       sent++;
-    })
+    }),
   );
 
   await dbPut({
@@ -249,13 +249,16 @@ export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayPr
     const { httpMethod, resource } = event;
     console.log(`[handler] ${httpMethod} ${resource}`);
 
-    if (httpMethod === 'GET'    && resource === '/notifications')                              return listNotifications(event);
-    if (httpMethod === 'POST'   && resource === '/notifications')                              return createNotification(event);
-    if (httpMethod === 'POST'   && resource === '/notifications/send')                         return sendNotification(event);
-    if (httpMethod === 'POST'   && resource === '/notifications/read-all')                     return markAllRead(event);
-    if (httpMethod === 'POST'   && resource === '/notifications/register-push-token')          return registerPushToken(event);
-    if (httpMethod === 'PATCH'  && resource === '/notifications/{notificationId}/read')        return markAsRead(event);
-    if (httpMethod === 'DELETE' && resource === '/notifications/{notificationId}')             return deleteNotification(event);
+    if (httpMethod === 'GET' && resource === '/notifications') return listNotifications(event);
+    if (httpMethod === 'POST' && resource === '/notifications') return createNotification(event);
+    if (httpMethod === 'POST' && resource === '/notifications/send') return sendNotification(event);
+    if (httpMethod === 'POST' && resource === '/notifications/read-all') return markAllRead(event);
+    if (httpMethod === 'POST' && resource === '/notifications/register-push-token')
+      return registerPushToken(event);
+    if (httpMethod === 'PATCH' && resource === '/notifications/{notificationId}/read')
+      return markAsRead(event);
+    if (httpMethod === 'DELETE' && resource === '/notifications/{notificationId}')
+      return deleteNotification(event);
 
     return {
       statusCode: 404,

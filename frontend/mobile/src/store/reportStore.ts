@@ -50,12 +50,14 @@ export const useReportStore = create<ReportStore>((set, get) => ({
       const selectedStatus = append ? get().publicStatus : status;
       const response = await reportsApi.getPublic(
         50,
-        append ? get().publicNextKey ?? undefined : undefined,
+        append ? (get().publicNextKey ?? undefined) : undefined,
         selectedStatus,
         !!useAuthStore.getState().user,
       );
       set((state) => ({
-        publicReports: append ? [...state.publicReports, ...(response.data.reports ?? [])] : response.data.reports ?? [],
+        publicReports: append
+          ? [...state.publicReports, ...(response.data.reports ?? [])]
+          : (response.data.reports ?? []),
         publicNextKey: response.data.nextKey ?? null,
         publicStatus: selectedStatus,
       }));
@@ -74,7 +76,7 @@ export const useReportStore = create<ReportStore>((set, get) => ({
   fetchMyReports: async () => {
     set({ isLoading: true, error: null });
     try {
-      const response = await reportsApi.getMine();         // ← was getMy()
+      const response = await reportsApi.getMine(); // ← was getMy()
       set({ myReports: response.data.reports ?? [] });
     } catch (err: any) {
       set({ error: err.message ?? 'Failed to fetch reports' });
@@ -106,9 +108,10 @@ export const useReportStore = create<ReportStore>((set, get) => ({
         await uploadToS3(upload.url, data.photo, contentType);
         photoKey = upload.key;
       }
-      await reportsApi.submit({                            // ← was create()
+      await reportsApi.submit({
+        // ← was create()
         type: data.type,
-        lat: data.latitude,                               // ← map field names
+        lat: data.latitude, // ← map field names
         lng: data.longitude,
         address: data.address,
         description: data.description,
@@ -133,7 +136,8 @@ export const useReportStore = create<ReportStore>((set, get) => ({
         await uploadToS3(upload.url, data.photo, contentType);
         photoKey = upload.key;
       }
-      const response = await reportsApi.submitGuest({     // ← was createGuest()
+      const response = await reportsApi.submitGuest({
+        // ← was createGuest()
         type: data.type,
         lat: data.latitude,
         lng: data.longitude,

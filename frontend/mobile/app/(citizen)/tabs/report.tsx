@@ -32,9 +32,19 @@ interface Place {
   address: string;
 }
 
-const TYPES: { key: ReportType; label: string; hint: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+const TYPES: {
+  key: ReportType;
+  label: string;
+  hint: string;
+  icon: keyof typeof Ionicons.glyphMap;
+}[] = [
   { key: 'overflow_bin', label: 'Overflowing bin', hint: 'Bin is full or spilling', icon: 'trash' },
-  { key: 'illegal_dumping', label: 'Illegal dumping', hint: 'Waste left in the open', icon: 'warning' },
+  {
+    key: 'illegal_dumping',
+    label: 'Illegal dumping',
+    hint: 'Waste left in the open',
+    icon: 'warning',
+  },
 ];
 
 export default function CitizenReportScreen() {
@@ -124,7 +134,10 @@ export default function CitizenReportScreen() {
       resetForm();
       fetchMyReports();
       Alert.alert('Report submitted', 'Thank you! Our crews have been notified.', [
-        { text: 'View my reports', onPress: () => router.navigate('/(citizen)/tabs/my-reports' as any) },
+        {
+          text: 'View my reports',
+          onPress: () => router.navigate('/(citizen)/tabs/my-reports' as any),
+        },
       ]);
     } catch (err) {
       Alert.alert('Submission failed', getApiErrorMessage(err));
@@ -150,7 +163,11 @@ export default function CitizenReportScreen() {
           <Text style={styles.permSub}>
             CleanLoop uses your live camera so every report is real and location-tagged.
           </Text>
-          <TouchableOpacity style={styles.primaryBtn} onPress={requestPermission} activeOpacity={0.85}>
+          <TouchableOpacity
+            style={styles.primaryBtn}
+            onPress={requestPermission}
+            activeOpacity={0.85}
+          >
             <Text style={styles.primaryBtnText}>Grant camera access</Text>
           </TouchableOpacity>
         </View>
@@ -223,7 +240,9 @@ export default function CitizenReportScreen() {
 
             {/* Location status */}
             <View style={[styles.locationCard, !!locationError && styles.locationCardError]}>
-              <View style={[styles.locationIcon, !!locationError && { backgroundColor: '#fee2e2' }]}>
+              <View
+                style={[styles.locationIcon, !!locationError && { backgroundColor: '#fee2e2' }]}
+              >
                 {locating ? (
                   <ActivityIndicator size="small" color={colors.primary} />
                 ) : (
@@ -236,14 +255,24 @@ export default function CitizenReportScreen() {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.locationTitle}>
-                  {locating ? 'Finding your location…' : locationError ? 'Location unavailable' : 'Location tagged'}
+                  {locating
+                    ? 'Finding your location…'
+                    : locationError
+                      ? 'Location unavailable'
+                      : 'Location tagged'}
                 </Text>
                 <Text style={styles.locationSub} numberOfLines={2}>
-                  {locationError || place?.address || (locating ? 'Acquiring GPS lock' : 'Tap refresh to retry')}
+                  {locationError ||
+                    place?.address ||
+                    (locating ? 'Acquiring GPS lock' : 'Tap refresh to retry')}
                 </Text>
               </View>
               {!locating && (
-                <TouchableOpacity onPress={fetchLocation} accessibilityLabel="Refresh location" hitSlop={10}>
+                <TouchableOpacity
+                  onPress={fetchLocation}
+                  accessibilityLabel="Refresh location"
+                  hitSlop={10}
+                >
                   <Ionicons name="refresh" size={19} color={colors.primary} />
                 </TouchableOpacity>
               )}
@@ -264,7 +293,9 @@ export default function CitizenReportScreen() {
                     <View style={[styles.typeIcon, active && styles.typeIconActive]}>
                       <Ionicons name={t.icon} size={18} color={active ? '#fff' : colors.primary} />
                     </View>
-                    <Text style={[styles.typeLabel, active && styles.typeLabelActive]}>{t.label}</Text>
+                    <Text style={[styles.typeLabel, active && styles.typeLabelActive]}>
+                      {t.label}
+                    </Text>
                     <Text style={styles.typeHint}>{t.hint}</Text>
                     {active && (
                       <View style={styles.typeCheck}>
@@ -328,8 +359,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 18,
   },
-  permTitle: { fontSize: 20, fontWeight: '800', color: colors.gray[900], marginBottom: 8, textAlign: 'center' },
-  permSub: { fontSize: 14, color: colors.gray[500], textAlign: 'center', lineHeight: 20, marginBottom: 24 },
+  permTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: colors.gray[900],
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  permSub: {
+    fontSize: 14,
+    color: colors.gray[500],
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 24,
+  },
 
   cameraCard: { height: 360, borderRadius: 1, overflow: 'hidden', backgroundColor: '#0b1f18' },
   camera: { width: '100%', height: '100%' },
@@ -351,7 +394,13 @@ const styles = StyleSheet.create({
   tl: { top: 0, left: 0, borderTopWidth: 3, borderLeftWidth: 3, borderTopLeftRadius: 10 },
   tr: { top: 0, right: 0, borderTopWidth: 3, borderRightWidth: 3, borderTopRightRadius: 10 },
   bl: { bottom: 0, left: 0, borderBottomWidth: 3, borderLeftWidth: 3, borderBottomLeftRadius: 10 },
-  br: { bottom: 0, right: 0, borderBottomWidth: 3, borderRightWidth: 3, borderBottomRightRadius: 10 },
+  br: {
+    bottom: 0,
+    right: 0,
+    borderBottomWidth: 3,
+    borderRightWidth: 3,
+    borderBottomRightRadius: 10,
+  },
   camBottom: { position: 'absolute', bottom: 18, left: 0, right: 0, alignItems: 'center' },
   shutter: {
     width: 70,
@@ -401,7 +450,13 @@ const styles = StyleSheet.create({
   locationTitle: { fontSize: 13.5, fontWeight: '800', color: colors.gray[900] },
   locationSub: { fontSize: 12, color: colors.gray[500], marginTop: 2 },
 
-  label: { fontSize: 14, fontWeight: '800', color: colors.gray[900], marginTop: 22, marginBottom: 10 },
+  label: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: colors.gray[900],
+    marginTop: 22,
+    marginBottom: 10,
+  },
   labelRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
   optional: { fontSize: 11.5, color: colors.gray[300], fontWeight: '600' },
 

@@ -53,12 +53,14 @@ function formatDate(value?: string) {
 }
 
 function initials(name: string) {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join('') || '?';
+  return (
+    name
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase())
+      .join('') || '?'
+  );
 }
 
 async function fetchAllTasks() {
@@ -70,7 +72,8 @@ async function fetchAllTasks() {
     const { data } = await tasksApi.list({ limit: 500, ...(lastKey ? { lastKey } : {}) });
     tasks.push(...(data.tasks ?? []));
     const nextKey = data.nextKey as string | null | undefined;
-    if (nextKey && seenCursors.has(nextKey)) throw new Error('Task pagination returned a repeated cursor.');
+    if (nextKey && seenCursors.has(nextKey))
+      throw new Error('Task pagination returned a repeated cursor.');
     if (nextKey) seenCursors.add(nextKey);
     lastKey = nextKey ?? undefined;
   } while (lastKey);
@@ -87,7 +90,8 @@ async function fetchAllReports() {
     const { data } = await reportsApi.list({ limit: 500, ...(lastKey ? { lastKey } : {}) });
     reports.push(...(data.reports ?? []));
     const nextKey = data.nextKey as string | null | undefined;
-    if (nextKey && seenCursors.has(nextKey)) throw new Error('Report pagination returned a repeated cursor.');
+    if (nextKey && seenCursors.has(nextKey))
+      throw new Error('Report pagination returned a repeated cursor.');
     if (nextKey) seenCursors.add(nextKey);
     lastKey = nextKey ?? undefined;
   } while (lastKey);
@@ -127,21 +131,32 @@ export function TaskRecordsPage() {
     void loadData();
   }, []);
 
-  const reportsById = useMemo(() => new Map(reports.map((report) => [report.reportId, report])), [reports]);
+  const reportsById = useMemo(
+    () => new Map(reports.map((report) => [report.reportId, report])),
+    [reports],
+  );
   const crewById = useMemo(() => new Map(crew.map((member) => [member.crewId, member])), [crew]);
 
   const rows = useMemo(() => {
     const query = search.trim().toLowerCase();
     return [...tasks]
-      .sort((a, b) => new Date(b.createdAt ?? b.scheduledAt ?? 0).getTime() - new Date(a.createdAt ?? a.scheduledAt ?? 0).getTime())
+      .sort(
+        (a, b) =>
+          new Date(b.createdAt ?? b.scheduledAt ?? 0).getTime() -
+          new Date(a.createdAt ?? a.scheduledAt ?? 0).getTime(),
+      )
       .filter((task) => statusFilter === 'all' || task.status === statusFilter)
       .filter((task) => {
         if (!query) return true;
-        const linkedReports = (task.reportIds ?? []).map((id) => reportsById.get(id)).filter(Boolean) as ReportRecord[];
+        const linkedReports = (task.reportIds ?? [])
+          .map((id) => reportsById.get(id))
+          .filter(Boolean) as ReportRecord[];
         const companionNames = [...(task.crewIds ?? task.crewMemberIds ?? [])]
           .map((id) => crewById.get(id)?.name ?? id)
           .join(' ');
-        const leadName = task.crewLeadId ? crewById.get(task.crewLeadId)?.name ?? task.crewLeadId : '';
+        const leadName = task.crewLeadId
+          ? (crewById.get(task.crewLeadId)?.name ?? task.crewLeadId)
+          : '';
         return [
           task.title,
           task.description,
@@ -184,21 +199,37 @@ export function TaskRecordsPage() {
       {error && (
         <div className="flex flex-wrap items-center justify-between gap-3 border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           <span>{error}</span>
-          <Button variant="secondary" size="sm" onClick={() => void loadData()}>Try again</Button>
+          <Button variant="secondary" size="sm" onClick={() => void loadData()}>
+            Try again
+          </Button>
         </div>
       )}
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <SummaryCard icon={<ClipboardList className="h-5 w-5" />} label="Tasks" value={tasks.length} />
-        <SummaryCard icon={<FileText className="h-5 w-5" />} label="Linked reports" value={linkedReportCount} />
-        <SummaryCard icon={<CheckCircle2 className="h-5 w-5" />} label="Completed tasks" value={completedCount} />
+        <SummaryCard
+          icon={<ClipboardList className="h-5 w-5" />}
+          label="Tasks"
+          value={tasks.length}
+        />
+        <SummaryCard
+          icon={<FileText className="h-5 w-5" />}
+          label="Linked reports"
+          value={linkedReportCount}
+        />
+        <SummaryCard
+          icon={<CheckCircle2 className="h-5 w-5" />}
+          label="Completed tasks"
+          value={completedCount}
+        />
       </div>
 
       <section className="overflow-hidden border border-gray-200 bg-white shadow-sm">
         <div className="flex flex-col gap-3 border-b border-gray-100 p-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="font-semibold text-gray-900">Cleanup activity</h2>
-            <p className="mt-0.5 text-xs text-gray-500">{rows.length} task{rows.length === 1 ? '' : 's'} shown</p>
+            <p className="mt-0.5 text-xs text-gray-500">
+              {rows.length} task{rows.length === 1 ? '' : 's'} shown
+            </p>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row">
             <label className="relative">
@@ -233,22 +264,38 @@ export function TaskRecordsPage() {
         ) : rows.length === 0 ? (
           <EmptyState
             icon={<ClipboardList className="h-8 w-8" />}
-            title={search || statusFilter !== 'all' ? 'No matching task records' : 'No task records yet'}
-            description={search || statusFilter !== 'all'
-              ? 'Try another search or status filter.'
-              : 'Created tasks and their linked report details will appear here.'}
+            title={
+              search || statusFilter !== 'all' ? 'No matching task records' : 'No task records yet'
+            }
+            description={
+              search || statusFilter !== 'all'
+                ? 'Try another search or status filter.'
+                : 'Created tasks and their linked report details will appear here.'
+            }
           />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[1050px] text-sm">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50/80">
-                  <th className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500">Task</th>
-                  <th className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500">Submitted report(s)</th>
-                  <th className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500">Crew head</th>
-                  <th className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500">Companions</th>
-                  <th className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500">Schedule</th>
-                  <th className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500">Status</th>
+                  <th className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500">
+                    Task
+                  </th>
+                  <th className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500">
+                    Submitted report(s)
+                  </th>
+                  <th className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500">
+                    Crew head
+                  </th>
+                  <th className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500">
+                    Companions
+                  </th>
+                  <th className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500">
+                    Schedule
+                  </th>
+                  <th className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500">
+                    Status
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -256,32 +303,51 @@ export function TaskRecordsPage() {
                   const linkedReports = (task.reportIds ?? [])
                     .map((reportId) => reportsById.get(reportId))
                     .filter(Boolean) as ReportRecord[];
-                  const companionIds = [...new Set(task.crewIds ?? task.crewMemberIds ?? [])]
-                    .filter((id) => id !== task.crewLeadId);
+                  const companionIds = [
+                    ...new Set(task.crewIds ?? task.crewMemberIds ?? []),
+                  ].filter((id) => id !== task.crewLeadId);
                   const lead = task.crewLeadId ? crewById.get(task.crewLeadId) : undefined;
-                  const attendanceById = new Map((task.companionAttendance ?? []).map((item) => [item.userId, item]));
+                  const attendanceById = new Map(
+                    (task.companionAttendance ?? []).map((item) => [item.userId, item]),
+                  );
 
                   return (
                     <tr key={task.taskId} className="align-top hover:bg-gray-50/60">
                       <td className="px-5 py-4">
-                        <p className="font-semibold text-gray-900">{task.title || 'Cleanup task'}</p>
+                        <p className="font-semibold text-gray-900">
+                          {task.title || 'Cleanup task'}
+                        </p>
                         {task.description && (
-                          <p className="mt-1 max-w-[220px] truncate text-xs text-gray-500">{task.description}</p>
+                          <p className="mt-1 max-w-[220px] truncate text-xs text-gray-500">
+                            {task.description}
+                          </p>
                         )}
-                        <p className="mt-1 font-mono text-[10px] text-gray-400">#{task.taskId.slice(-8).toUpperCase()}</p>
+                        <p className="mt-1 font-mono text-[10px] text-gray-400">
+                          #{task.taskId.slice(-8).toUpperCase()}
+                        </p>
                       </td>
                       <td className="max-w-[360px] px-5 py-4">
                         {linkedReports.length ? (
                           <div className="space-y-3">
                             {linkedReports.map((report) => (
-                              <div key={report.reportId} className="border-l-2 border-primary-200 pl-3">
+                              <div
+                                key={report.reportId}
+                                className="border-l-2 border-primary-200 pl-3"
+                              >
                                 <p className="truncate font-medium text-gray-800">
-                                  {report.address || report.type?.replace(/_/g, ' ') || `Report #${report.reportId.slice(-6)}`}
+                                  {report.address ||
+                                    report.type?.replace(/_/g, ' ') ||
+                                    `Report #${report.reportId.slice(-6)}`}
                                 </p>
                                 <p className="mt-0.5 text-xs text-gray-500">
-                                  Submitted by <span className="font-medium text-gray-700">{report.submitterName || 'Community member'}</span>
+                                  Submitted by{' '}
+                                  <span className="font-medium text-gray-700">
+                                    {report.submitterName || 'Community member'}
+                                  </span>
                                 </p>
-                                <p className="mt-0.5 text-[11px] text-gray-400">{formatDate(report.createdAt)}</p>
+                                <p className="mt-0.5 text-[11px] text-gray-400">
+                                  {formatDate(report.createdAt)}
+                                </p>
                               </div>
                             ))}
                           </div>
@@ -291,9 +357,15 @@ export function TaskRecordsPage() {
                       </td>
                       <td className="px-5 py-4">
                         {lead ? (
-                          <CrewPerson name={lead.name || lead.email || task.crewLeadId || 'Crew member'} email={lead.email} label="Lead" />
+                          <CrewPerson
+                            name={lead.name || lead.email || task.crewLeadId || 'Crew member'}
+                            email={lead.email}
+                            label="Lead"
+                          />
                         ) : (
-                          <span className="text-xs text-gray-400">{task.crewLeadId || 'Not assigned'}</span>
+                          <span className="text-xs text-gray-400">
+                            {task.crewLeadId || 'Not assigned'}
+                          </span>
                         )}
                       </td>
                       <td className="px-5 py-4">
@@ -304,9 +376,20 @@ export function TaskRecordsPage() {
                               const attendance = attendanceById.get(id);
                               return (
                                 <div key={id}>
-                                  <CrewPerson name={attendance?.name || member?.name || member?.email || id} email={member?.email} />
-                                  <span className={`ml-10 mt-0.5 inline-block text-[10px] font-semibold ${attendance ? attendance.present ? 'text-emerald-700' : 'text-red-600' : 'text-gray-400'}`}>
-                                    {attendance ? attendance.present ? 'Present' : 'Absent' : task.status === 'completed' ? 'Attendance not recorded' : 'Attendance pending'}
+                                  <CrewPerson
+                                    name={attendance?.name || member?.name || member?.email || id}
+                                    email={member?.email}
+                                  />
+                                  <span
+                                    className={`ml-10 mt-0.5 inline-block text-[10px] font-semibold ${attendance ? (attendance.present ? 'text-emerald-700' : 'text-red-600') : 'text-gray-400'}`}
+                                  >
+                                    {attendance
+                                      ? attendance.present
+                                        ? 'Present'
+                                        : 'Absent'
+                                      : task.status === 'completed'
+                                        ? 'Attendance not recorded'
+                                        : 'Attendance pending'}
                                   </span>
                                 </div>
                               );
@@ -326,7 +409,9 @@ export function TaskRecordsPage() {
                           Due {formatDate(task.dueAt)}
                         </p>
                       </td>
-                      <td className="px-5 py-4"><StatusBadge status={task.status} /></td>
+                      <td className="px-5 py-4">
+                        <StatusBadge status={task.status} />
+                      </td>
                     </tr>
                   );
                 })}
@@ -339,10 +424,20 @@ export function TaskRecordsPage() {
   );
 }
 
-function SummaryCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: number }) {
+function SummaryCard({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: number;
+}) {
   return (
     <div className="flex items-center gap-3 border border-gray-200 bg-white p-4 shadow-sm">
-      <div className="flex h-10 w-10 items-center justify-center bg-primary-50 text-primary-700">{icon}</div>
+      <div className="flex h-10 w-10 items-center justify-center bg-primary-50 text-primary-700">
+        {icon}
+      </div>
       <div>
         <p className="text-xs font-medium text-gray-500">{label}</p>
         <p className="mt-0.5 text-2xl font-bold tabular-nums text-gray-900">{value}</p>
@@ -359,8 +454,14 @@ function CrewPerson({ name, email, label }: { name: string; email?: string; labe
       </span>
       <span className="min-w-0">
         <span className="block truncate text-xs font-medium text-gray-800">{name}</span>
-        {label && <span className="block text-[10px] font-semibold uppercase tracking-wide text-gray-400">{label}</span>}
-        {email && <span className="block max-w-[180px] truncate text-[10px] text-gray-400">{email}</span>}
+        {label && (
+          <span className="block text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+            {label}
+          </span>
+        )}
+        {email && (
+          <span className="block max-w-[180px] truncate text-[10px] text-gray-400">{email}</span>
+        )}
       </span>
     </div>
   );

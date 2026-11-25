@@ -1,6 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  CheckCircle2, ChevronLeft, ChevronRight, Clock3, Download, Lock, RefreshCw, Users, ClipboardCheck,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  Clock3,
+  Download,
+  Lock,
+  RefreshCw,
+  Users,
+  ClipboardCheck,
 } from 'lucide-react';
 import { format, isValid } from 'date-fns';
 import { crewApi, tasksApi } from '../services/api';
@@ -48,7 +56,10 @@ function shiftMonth(month: string, delta: number) {
 }
 
 function dateForTask(task: TaskRecord, field: 'createdAt' | 'completedAt') {
-  const value = field === 'completedAt' ? task.completedAt ?? task.updatedAt : task.createdAt ?? task.scheduledAt;
+  const value =
+    field === 'completedAt'
+      ? (task.completedAt ?? task.updatedAt)
+      : (task.createdAt ?? task.scheduledAt);
   const date = value ? new Date(value) : null;
   return date && isValid(date) ? date : null;
 }
@@ -74,8 +85,10 @@ const initialsOf = (name?: string) =>
     .map((part) => part[0]?.toUpperCase())
     .join('') || '?';
 
-const rateOf = (row: CrewStats) => (row.completed ? Math.round((row.onTime / row.completed) * 100) : 0);
-const rateColor = (rate: number) => (rate >= 80 ? 'bg-emerald-500' : rate >= 50 ? 'bg-amber-400' : 'bg-red-400');
+const rateOf = (row: CrewStats) =>
+  row.completed ? Math.round((row.onTime / row.completed) * 100) : 0;
+const rateColor = (rate: number) =>
+  rate >= 80 ? 'bg-emerald-500' : rate >= 50 ? 'bg-amber-400' : 'bg-red-400';
 
 const RANK_STYLES = [
   'bg-amber-100 text-amber-700',
@@ -111,33 +124,59 @@ export function CrewStatisticsPage() {
     void loadData();
   }, []);
 
-  const rows = useMemo<CrewStats[]>(() => crew.map((member) => {
-    const assigned = tasks.filter((task) => {
-      const assignees = new Set([...(task.crewIds ?? []), ...(task.crewMemberIds ?? []), task.crewLeadId].filter(Boolean));
-      return assignees.has(member.crewId) && isInMonth(dateForTask(task, 'createdAt'), selectedMonth);
-    });
-    const completed = tasks.filter((task) => {
-      const assignees = new Set([...(task.crewIds ?? []), ...(task.crewMemberIds ?? []), task.crewLeadId].filter(Boolean));
-      return task.status === 'completed' && assignees.has(member.crewId) && isInMonth(dateForTask(task, 'completedAt'), selectedMonth);
-    });
-    const onTime = completed.filter((task) => {
-      const completedAt = dateForTask(task, 'completedAt');
-      const dueAt = task.dueAt ? new Date(task.dueAt) : null;
-      return !!completedAt && !!dueAt && isValid(dueAt) && completedAt.getTime() <= dueAt.getTime();
-    });
-    return {
-      member,
-      assigned: assigned.length,
-      completed: completed.length,
-      reportsResolved: completed.reduce((sum, task) => sum + (task.reportIds?.length ?? 0), 0),
-      onTime: onTime.length,
-    };
-  }).sort((a, b) => b.completed - a.completed || a.member.name.localeCompare(b.member.name)), [crew, tasks, selectedMonth]);
+  const rows = useMemo<CrewStats[]>(
+    () =>
+      crew
+        .map((member) => {
+          const assigned = tasks.filter((task) => {
+            const assignees = new Set(
+              [...(task.crewIds ?? []), ...(task.crewMemberIds ?? []), task.crewLeadId].filter(
+                Boolean,
+              ),
+            );
+            return (
+              assignees.has(member.crewId) &&
+              isInMonth(dateForTask(task, 'createdAt'), selectedMonth)
+            );
+          });
+          const completed = tasks.filter((task) => {
+            const assignees = new Set(
+              [...(task.crewIds ?? []), ...(task.crewMemberIds ?? []), task.crewLeadId].filter(
+                Boolean,
+              ),
+            );
+            return (
+              task.status === 'completed' &&
+              assignees.has(member.crewId) &&
+              isInMonth(dateForTask(task, 'completedAt'), selectedMonth)
+            );
+          });
+          const onTime = completed.filter((task) => {
+            const completedAt = dateForTask(task, 'completedAt');
+            const dueAt = task.dueAt ? new Date(task.dueAt) : null;
+            return (
+              !!completedAt && !!dueAt && isValid(dueAt) && completedAt.getTime() <= dueAt.getTime()
+            );
+          });
+          return {
+            member,
+            assigned: assigned.length,
+            completed: completed.length,
+            reportsResolved: completed.reduce(
+              (sum, task) => sum + (task.reportIds?.length ?? 0),
+              0,
+            ),
+            onTime: onTime.length,
+          };
+        })
+        .sort((a, b) => b.completed - a.completed || a.member.name.localeCompare(b.member.name)),
+    [crew, tasks, selectedMonth],
+  );
 
   const completedTotal = rows.reduce((sum, row) => sum + row.completed, 0);
   const reportTotal = rows.reduce((sum, row) => sum + row.reportsResolved, 0);
   const onTimeTotal = rows.reduce((sum, row) => sum + row.onTime, 0);
-  const onTimeRate = completedTotal ? Math.round(onTimeTotal / completedTotal * 100) : 0;
+  const onTimeRate = completedTotal ? Math.round((onTimeTotal / completedTotal) * 100) : 0;
   const maxCompleted = Math.max(1, ...rows.map((row) => row.completed));
   const releaseDate = releaseDateFor(selectedMonth);
   const isDownloadAvailable = new Date() >= releaseDate;
@@ -146,7 +185,16 @@ export function CrewStatisticsPage() {
 
   function downloadCsv() {
     if (!isDownloadAvailable) return;
-    const headings = ['Crew Member', 'Email', 'Month', 'Tasks Assigned', 'Tasks Completed', 'Reports Resolved', 'Completed On Time', 'On-Time Rate'];
+    const headings = [
+      'Crew Member',
+      'Email',
+      'Month',
+      'Tasks Assigned',
+      'Tasks Completed',
+      'Reports Resolved',
+      'Completed On Time',
+      'On-Time Rate',
+    ];
     const data = rows.map((row) => [
       row.member.name,
       row.member.email,
@@ -167,9 +215,24 @@ export function CrewStatisticsPage() {
   }
 
   const kpis = [
-    { label: 'Completed tasks', value: completedTotal, icon: ClipboardCheck, tint: 'bg-emerald-100 text-emerald-700' },
-    { label: 'Reports resolved', value: reportTotal, icon: CheckCircle2, tint: 'bg-blue-100 text-blue-700' },
-    { label: 'On-time completion', value: `${onTimeRate}%`, icon: Clock3, tint: 'bg-amber-100 text-amber-700' },
+    {
+      label: 'Completed tasks',
+      value: completedTotal,
+      icon: ClipboardCheck,
+      tint: 'bg-emerald-100 text-emerald-700',
+    },
+    {
+      label: 'Reports resolved',
+      value: reportTotal,
+      icon: CheckCircle2,
+      tint: 'bg-blue-100 text-blue-700',
+    },
+    {
+      label: 'On-time completion',
+      value: `${onTimeRate}%`,
+      icon: Clock3,
+      tint: 'bg-amber-100 text-amber-700',
+    },
   ];
 
   return (
@@ -207,10 +270,22 @@ export function CrewStatisticsPage() {
               <ChevronRight className="h-4 w-4" />
             </button>
           </div>
-          <Button variant="secondary" size="sm" onClick={() => void loadData()} isLoading={isLoading} leftIcon={<RefreshCw className="h-4 w-4" />}>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => void loadData()}
+            isLoading={isLoading}
+            leftIcon={<RefreshCw className="h-4 w-4" />}
+          >
             Refresh
           </Button>
-          <Button variant="primary" size="sm" onClick={downloadCsv} disabled={!isDownloadAvailable || rows.length === 0} leftIcon={<Download className="h-4 w-4" />}>
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={downloadCsv}
+            disabled={!isDownloadAvailable || rows.length === 0}
+            leftIcon={<Download className="h-4 w-4" />}
+          >
             Download CSV
           </Button>
         </div>
@@ -222,7 +297,11 @@ export function CrewStatisticsPage() {
           The {monthLabel} report can be downloaded from {format(releaseDate, 'MMMM d, yyyy')}.
         </div>
       )}
-      {error && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
+      {error && (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      )}
 
       {/* KPIs */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -265,59 +344,83 @@ export function CrewStatisticsPage() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {isLoading ? (
-                <tr><td colSpan={7}><TableSkeleton rows={5} cols={7} /></td></tr>
+                <tr>
+                  <td colSpan={7}>
+                    <TableSkeleton rows={5} cols={7} />
+                  </td>
+                </tr>
               ) : rows.length === 0 ? (
-                <tr><td colSpan={7}><EmptyState title="No crew work recorded" description="Completed tasks for this month will appear here." /></td></tr>
-              ) : rows.map((row, index) => {
-                const rate = rateOf(row);
-                const ranked = row.completed > 0 && index < 3;
-                return (
-                  <tr key={row.member.crewId} className="transition-colors hover:bg-gray-50/70">
-                    <td className="px-5 py-3.5">
-                      <span className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold tabular-nums ${ranked ? RANK_STYLES[index] : 'text-gray-400'}`}>
-                        {index + 1}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-50 text-xs font-bold text-primary-700 ring-1 ring-primary-100">
-                          {initialsOf(row.member.name)}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="truncate font-medium text-gray-900">{row.member.name}</p>
-                          <p className="truncate text-xs text-gray-500">{row.member.email}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-5 py-3.5 tabular-nums text-gray-700">{row.assigned}</td>
-                    <td className="px-5 py-3.5">
-                      <div className="flex items-center gap-3">
-                        <span className="w-6 font-semibold tabular-nums text-gray-900">{row.completed}</span>
-                        <div className="h-1.5 w-24 overflow-hidden rounded-full bg-gray-100">
-                          <div
-                            className="h-full rounded-full bg-primary-500"
-                            style={{ width: `${(row.completed / maxCompleted) * 100}%` }}
-                          />
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-5 py-3.5 tabular-nums text-gray-700">{row.reportsResolved}</td>
-                    <td className="px-5 py-3.5 tabular-nums text-gray-700">{row.onTime}</td>
-                    <td className="px-5 py-3.5">
-                      {row.completed > 0 ? (
+                <tr>
+                  <td colSpan={7}>
+                    <EmptyState
+                      title="No crew work recorded"
+                      description="Completed tasks for this month will appear here."
+                    />
+                  </td>
+                </tr>
+              ) : (
+                rows.map((row, index) => {
+                  const rate = rateOf(row);
+                  const ranked = row.completed > 0 && index < 3;
+                  return (
+                    <tr key={row.member.crewId} className="transition-colors hover:bg-gray-50/70">
+                      <td className="px-5 py-3.5">
+                        <span
+                          className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold tabular-nums ${ranked ? RANK_STYLES[index] : 'text-gray-400'}`}
+                        >
+                          {index + 1}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3.5">
                         <div className="flex items-center gap-3">
-                          <div className="h-1.5 w-20 overflow-hidden rounded-full bg-gray-100">
-                            <div className={`h-full rounded-full ${rateColor(rate)}`} style={{ width: `${rate}%` }} />
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-50 text-xs font-bold text-primary-700 ring-1 ring-primary-100">
+                            {initialsOf(row.member.name)}
                           </div>
-                          <span className="w-10 text-xs font-medium tabular-nums text-gray-700">{rate}%</span>
+                          <div className="min-w-0">
+                            <p className="truncate font-medium text-gray-900">{row.member.name}</p>
+                            <p className="truncate text-xs text-gray-500">{row.member.email}</p>
+                          </div>
                         </div>
-                      ) : (
-                        <span className="text-xs text-gray-400">No tasks yet</span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
+                      </td>
+                      <td className="px-5 py-3.5 tabular-nums text-gray-700">{row.assigned}</td>
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-3">
+                          <span className="w-6 font-semibold tabular-nums text-gray-900">
+                            {row.completed}
+                          </span>
+                          <div className="h-1.5 w-24 overflow-hidden rounded-full bg-gray-100">
+                            <div
+                              className="h-full rounded-full bg-primary-500"
+                              style={{ width: `${(row.completed / maxCompleted) * 100}%` }}
+                            />
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-5 py-3.5 tabular-nums text-gray-700">
+                        {row.reportsResolved}
+                      </td>
+                      <td className="px-5 py-3.5 tabular-nums text-gray-700">{row.onTime}</td>
+                      <td className="px-5 py-3.5">
+                        {row.completed > 0 ? (
+                          <div className="flex items-center gap-3">
+                            <div className="h-1.5 w-20 overflow-hidden rounded-full bg-gray-100">
+                              <div
+                                className={`h-full rounded-full ${rateColor(rate)}`}
+                                style={{ width: `${rate}%` }}
+                              />
+                            </div>
+                            <span className="w-10 text-xs font-medium tabular-nums text-gray-700">
+                              {rate}%
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-gray-400">No tasks yet</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>

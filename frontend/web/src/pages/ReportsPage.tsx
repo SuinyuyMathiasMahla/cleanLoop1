@@ -1,7 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Search, Download, ChevronLeft, ChevronRight,
-  Eye, AlertCircle, Image, MapPin, User, Calendar, Trash2
+  Search,
+  Download,
+  ChevronLeft,
+  ChevronRight,
+  Eye,
+  AlertCircle,
+  Image,
+  MapPin,
+  User,
+  Calendar,
+  Trash2,
 } from 'lucide-react';
 import { format, formatDistanceToNow, isValid } from 'date-fns';
 import { useReportStore, Report, ReportStatus } from '../store/reportStore';
@@ -73,8 +82,16 @@ const safeFormat = (value: string | number | Date | null | undefined, pattern: s
 
 export function ReportsPage() {
   const {
-    reports, total, isLoading, filters,
-    fetchReports, updateStatus, deleteReport, setFilters, setSelectedReport, selectedReport
+    reports,
+    total,
+    isLoading,
+    filters,
+    fetchReports,
+    updateStatus,
+    deleteReport,
+    setFilters,
+    setSelectedReport,
+    selectedReport,
   } = useReportStore();
 
   const [search, setSearch] = useState('');
@@ -117,7 +134,9 @@ export function ReportsPage() {
   };
 
   const handleDeleteReport = async (report: Report) => {
-    const confirmed = window.confirm('Delete this report and its uploaded image? This cannot be undone.');
+    const confirmed = window.confirm(
+      'Delete this report and its uploaded image? This cannot be undone.',
+    );
     if (!confirmed) return;
     setDeletingReportId(report.reportId);
     setStatusError(null);
@@ -135,7 +154,9 @@ export function ReportsPage() {
     const csv = [
       ['Type', 'Address', 'Status', 'Submitted', 'Assigned To'].join(','),
       ...reports.map((r) =>
-        [r.type, `"${r.address}"`, r.status, r.createdAt, `"${getAssigneeName(r) || ''}"`].join(',')
+        [r.type, `"${r.address}"`, r.status, r.createdAt, `"${getAssigneeName(r) || ''}"`].join(
+          ',',
+        ),
       ),
     ].join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
@@ -176,9 +197,7 @@ export function ReportsPage() {
                 type="button"
                 onClick={() => setFilters({ status: o.value || undefined, page: 1 })}
                 className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${
-                  active
-                    ? 'bg-gray-900 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  active ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
               >
                 {o.value ? o.label : 'All'}
@@ -224,7 +243,14 @@ export function ReportsPage() {
               size="sm"
               onClick={() => {
                 setSearch('');
-                setFilters({ status: undefined, type: undefined, search: undefined, dateFrom: undefined, dateTo: undefined, page: 1 });
+                setFilters({
+                  status: undefined,
+                  type: undefined,
+                  search: undefined,
+                  dateFrom: undefined,
+                  dateTo: undefined,
+                  page: 1,
+                });
               }}
             >
               Clear filters
@@ -246,11 +272,21 @@ export function ReportsPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50/80">
-                <th className="text-left px-5 py-3 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">Type</th>
-                <th className="text-left px-5 py-3 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">Address</th>
-                <th className="text-left px-5 py-3 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">Status</th>
-                <th className="text-left px-5 py-3 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">Submitted</th>
-                <th className="text-left px-5 py-3 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">Actions</th>
+                <th className="text-left px-5 py-3 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">
+                  Type
+                </th>
+                <th className="text-left px-5 py-3 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">
+                  Address
+                </th>
+                <th className="text-left px-5 py-3 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="text-left px-5 py-3 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">
+                  Submitted
+                </th>
+                <th className="text-left px-5 py-3 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -263,7 +299,10 @@ export function ReportsPage() {
               ) : reports.length === 0 ? (
                 <tr>
                   <td colSpan={COLUMN_COUNT}>
-                    <EmptyState title="No reports found" description="Try adjusting your filters." />
+                    <EmptyState
+                      title="No reports found"
+                      description="Try adjusting your filters."
+                    />
                   </td>
                 </tr>
               ) : (
@@ -271,12 +310,16 @@ export function ReportsPage() {
                   <tr key={report.reportId} className="table-row-hover hover:bg-gray-50/70">
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-3">
-                        <div className={`h-9 w-9 shrink-0 rounded-xl flex items-center justify-center text-base ${typeMeta(report.type).tint}`}>
+                        <div
+                          className={`h-9 w-9 shrink-0 rounded-xl flex items-center justify-center text-base ${typeMeta(report.type).tint}`}
+                        >
                           {typeMeta(report.type).icon}
                         </div>
                         <div className="min-w-0">
                           <p className="font-medium text-gray-900">{typeMeta(report.type).label}</p>
-                          <p className="text-xs text-gray-400 tabular-nums">#{(report.reportId || '').slice(-6).toUpperCase()}</p>
+                          <p className="text-xs text-gray-400 tabular-nums">
+                            #{(report.reportId || '').slice(-6).toUpperCase()}
+                          </p>
                         </div>
                       </div>
                     </td>
@@ -304,7 +347,9 @@ export function ReportsPage() {
                         <select
                           value={report.status}
                           disabled={statusUpdating === report.reportId}
-                          onChange={(e) => handleStatusChange(report.reportId, e.target.value as ReportStatus)}
+                          onChange={(e) =>
+                            handleStatusChange(report.reportId, e.target.value as ReportStatus)
+                          }
                           className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white disabled:opacity-60"
                         >
                           <option value="pending">Pending</option>
@@ -372,13 +417,23 @@ export function ReportsPage() {
             {/* Status + type row */}
             <div className="flex items-center gap-3">
               <StatusBadge status={viewReport.status} size="md" />
-              <span className="text-sm text-gray-600">{TYPE_LABELS[viewReport.type] || viewReport.type}</span>
+              <span className="text-sm text-gray-600">
+                {TYPE_LABELS[viewReport.type] || viewReport.type}
+              </span>
             </div>
 
             {/* Info grid */}
             <div className="grid grid-cols-2 gap-4">
-              <InfoItem icon={<MapPin className="w-4 h-4" />} label="Address" value={viewReport.address} />
-              <InfoItem icon={<User className="w-4 h-4" />} label="Submitted by" value={viewReport.submittedBy} />
+              <InfoItem
+                icon={<MapPin className="w-4 h-4" />}
+                label="Address"
+                value={viewReport.address}
+              />
+              <InfoItem
+                icon={<User className="w-4 h-4" />}
+                label="Submitted by"
+                value={viewReport.submittedBy}
+              />
               <InfoItem
                 icon={<Calendar className="w-4 h-4" />}
                 label="Submitted"
@@ -392,15 +447,23 @@ export function ReportsPage() {
                 />
               )}
               {viewReport.ward && (
-                <InfoItem icon={<MapPin className="w-4 h-4" />} label="Ward" value={viewReport.ward} />
+                <InfoItem
+                  icon={<MapPin className="w-4 h-4" />}
+                  label="Ward"
+                  value={viewReport.ward}
+                />
               )}
             </div>
 
             {/* Description */}
             {viewReport.description && (
               <div>
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Description</p>
-                <p className="text-sm text-gray-700 bg-gray-50 rounded-lg p-3">{viewReport.description}</p>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                  Description
+                </p>
+                <p className="text-sm text-gray-700 bg-gray-50 rounded-lg p-3">
+                  {viewReport.description}
+                </p>
               </div>
             )}
 
@@ -423,7 +486,9 @@ export function ReportsPage() {
 
             {/* Status update */}
             <div>
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Update Status</p>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                Update Status
+              </p>
               <div className="flex items-center gap-3">
                 <select
                   value={viewReport.status}

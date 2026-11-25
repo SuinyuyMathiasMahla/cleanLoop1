@@ -26,26 +26,26 @@ interface FormData {
 
 const RECIPIENT_OPTIONS = [
   { value: 'all_citizens', label: 'All Citizens' },
-  { value: 'all_crew',     label: 'All Crew' },
-  { value: 'all_users',    label: 'All Users (Citizens + Crew)' },
+  { value: 'all_crew', label: 'All Crew' },
+  { value: 'all_users', label: 'All Users (Citizens + Crew)' },
 ];
 
 const RECIPIENT_LABELS: Record<string, string> = {
   all_citizens: '👥 All Citizens',
-  all_crew:     '🦺 All Crew',
-  all_users:    '🌐 All Users',
+  all_crew: '🦺 All Crew',
+  all_users: '🌐 All Users',
 };
 
 const EMPTY_FORM: FormData = { title: '', message: '', recipients: 'all_citizens' };
 
 export function NotificationsPage() {
-  const [form, setForm]               = useState<FormData>(EMPTY_FORM);
-  const [formErrors, setFormErrors]   = useState<Partial<FormData>>({});
-  const [sending, setSending]         = useState(false);
-  const [sendError, setSendError]     = useState<string | null>(null);
+  const [form, setForm] = useState<FormData>(EMPTY_FORM);
+  const [formErrors, setFormErrors] = useState<Partial<FormData>>({});
+  const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
   const [sendSuccess, setSendSuccess] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [loading, setLoading]         = useState(true);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadNotifications();
@@ -58,13 +58,10 @@ export function NotificationsPage() {
       const res = await notificationsApi.list();
       // Lambda returns both data and notifications keys — check all shapes
       const items: Notification[] =
-        res.data?.data ??
-        res.data?.notifications ??
-        res.data?.items ??
-        [];
+        res.data?.data ?? res.data?.notifications ?? res.data?.items ?? [];
       // Only show sent_log records in the history table (filter out anything else)
       const sentLogs = items.filter(
-        (n) => !n.recipients || (n as any).type === 'sent_log' || n.recipients
+        (n) => !n.recipients || (n as any).type === 'sent_log' || n.recipients,
       );
       setNotifications(sentLogs);
     } catch {
@@ -76,9 +73,9 @@ export function NotificationsPage() {
 
   const validate = () => {
     const errs: Partial<FormData> = {};
-    if (!form.title.trim())   errs.title      = 'Title is required';
-    if (!form.message.trim()) errs.message    = 'Message is required';
-    if (!form.recipients)     errs.recipients = 'Select recipients';
+    if (!form.title.trim()) errs.title = 'Title is required';
+    if (!form.message.trim()) errs.message = 'Message is required';
+    if (!form.recipients) errs.recipients = 'Select recipients';
     setFormErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -93,7 +90,9 @@ export function NotificationsPage() {
       const sent = res.data?.sent ?? 0;
 
       if (sent === 0) {
-        setSendError('Notification sent but reached 0 users — check that users exist in the system');
+        setSendError(
+          'Notification sent but reached 0 users — check that users exist in the system',
+        );
         return;
       }
 
@@ -101,13 +100,13 @@ export function NotificationsPage() {
       const now = new Date().toISOString();
       const newNotif: Notification = {
         notificationId: Date.now().toString(),
-        title:      form.title,
-        message:    form.message,
+        title: form.title,
+        message: form.message,
         recipients: form.recipients,
-        sentAt:     now,
-        createdAt:  now,
+        sentAt: now,
+        createdAt: now,
         totalCount: sent,
-        readCount:  0,
+        readCount: 0,
       };
       setNotifications((prev) => [newNotif, ...prev]);
       setSendSuccess(true);
@@ -121,7 +120,7 @@ export function NotificationsPage() {
   };
 
   const charCount = form.message.length;
-  const maxChars  = 500;
+  const maxChars = 500;
 
   return (
     <div className="p-6 space-y-6 max-w-[1400px]">
@@ -140,7 +139,9 @@ export function NotificationsPage() {
               </span>
               Send notification
             </h2>
-            <p className="mb-5 text-xs text-gray-400">Delivered in the app to everyone in the selected group.</p>
+            <p className="mb-5 text-xs text-gray-400">
+              Delivered in the app to everyone in the selected group.
+            </p>
 
             {sendSuccess && (
               <div className="mb-4 flex items-center gap-2 bg-green-50 border border-green-200 rounded-lg px-3 py-2 text-sm text-green-700">
@@ -181,7 +182,9 @@ export function NotificationsPage() {
                   error={formErrors.message}
                   required
                 />
-                <div className={`text-xs text-right mt-1 ${charCount > maxChars * 0.9 ? 'text-amber-500' : 'text-gray-400'}`}>
+                <div
+                  className={`text-xs text-right mt-1 ${charCount > maxChars * 0.9 ? 'text-amber-500' : 'text-gray-400'}`}
+                >
                   {charCount}/{maxChars}
                 </div>
               </div>
@@ -210,7 +213,9 @@ export function NotificationsPage() {
           {/* Preview */}
           {(form.title || form.message) && (
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Preview</p>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+                Preview
+              </p>
               <div className="bg-gray-900 rounded-2xl p-4 text-white shadow-inner">
                 <div className="flex items-center gap-2 mb-3">
                   <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -249,33 +254,52 @@ export function NotificationsPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-100 bg-gray-50/80">
-                    <th className="text-left px-5 py-3 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">Title</th>
-                    <th className="text-left px-5 py-3 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">Recipients</th>
-                    <th className="text-left px-5 py-3 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">Sent</th>
-                    <th className="text-left px-5 py-3 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">Count</th>
+                    <th className="text-left px-5 py-3 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">
+                      Title
+                    </th>
+                    <th className="text-left px-5 py-3 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">
+                      Recipients
+                    </th>
+                    <th className="text-left px-5 py-3 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">
+                      Sent
+                    </th>
+                    <th className="text-left px-5 py-3 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">
+                      Count
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {loading ? (
-                    <tr><td colSpan={4}><TableSkeleton rows={5} cols={4} /></td></tr>
+                    <tr>
+                      <td colSpan={4}>
+                        <TableSkeleton rows={5} cols={4} />
+                      </td>
+                    </tr>
                   ) : notifications.length === 0 ? (
-                    <tr><td colSpan={4}>
-                      <EmptyState
-                        title="No notifications sent yet"
-                        description="Send your first notification using the form on the left."
-                        icon={<Bell className="w-8 h-8" />}
-                      />
-                    </td></tr>
+                    <tr>
+                      <td colSpan={4}>
+                        <EmptyState
+                          title="No notifications sent yet"
+                          description="Send your first notification using the form on the left."
+                          icon={<Bell className="w-8 h-8" />}
+                        />
+                      </td>
+                    </tr>
                   ) : (
                     notifications.map((n) => {
                       const dateStr = n.sentAt ?? n.createdAt;
                       const dateObj = dateStr ? new Date(dateStr) : null;
                       const validDate = dateObj && !isNaN(dateObj.getTime());
                       return (
-                        <tr key={n.notificationId} className="hover:bg-gray-50/70 transition-colors">
+                        <tr
+                          key={n.notificationId}
+                          className="hover:bg-gray-50/70 transition-colors"
+                        >
                           <td className="px-5 py-3.5">
                             <p className="font-medium text-gray-900">{n.title}</p>
-                            <p className="text-xs text-gray-400 truncate max-w-[200px] mt-0.5">{n.message}</p>
+                            <p className="text-xs text-gray-400 truncate max-w-[200px] mt-0.5">
+                              {n.message}
+                            </p>
                           </td>
                           <td className="px-5 py-3.5 text-sm">
                             <span className="inline-flex items-center rounded-full bg-primary-50 px-2.5 py-1 text-xs font-medium text-primary-700">
@@ -286,9 +310,13 @@ export function NotificationsPage() {
                             {validDate ? (
                               <>
                                 <div>{format(dateObj!, 'MMM d, yyyy')}</div>
-                                <div className="text-gray-400">{formatDistanceToNow(dateObj!, { addSuffix: true })}</div>
+                                <div className="text-gray-400">
+                                  {formatDistanceToNow(dateObj!, { addSuffix: true })}
+                                </div>
                               </>
-                            ) : '—'}
+                            ) : (
+                              '—'
+                            )}
                           </td>
                           <td className="px-5 py-3.5 text-sm">
                             <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold tabular-nums text-gray-700">

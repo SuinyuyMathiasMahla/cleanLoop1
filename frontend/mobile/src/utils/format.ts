@@ -14,7 +14,11 @@ export function timeAgo(dateString?: string): string {
 export function initialsOf(name?: string, fallback = '?'): string {
   const parts = (name ?? '').trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return fallback;
-  return parts.map((p) => p[0]).join('').slice(0, 2).toUpperCase();
+  return parts
+    .map((p) => p[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
 }
 
 export function firstName(name?: string, fallback = 'there'): string {

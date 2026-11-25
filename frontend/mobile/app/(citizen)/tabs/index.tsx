@@ -24,7 +24,8 @@ import { colors } from '@/theme/colors';
 export default function CitizenHome() {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
-  const { publicReports, myReports, isLoading, fetchPublicReports, fetchMyReports } = useReportStore();
+  const { publicReports, myReports, isLoading, fetchPublicReports, fetchMyReports } =
+    useReportStore();
 
   const load = useCallback(() => {
     fetchPublicReports();
@@ -76,7 +77,8 @@ export default function CitizenHome() {
               Report waste.{'\n'}Keep your city{'\n'}clean.
             </Text>
             <Text style={styles.heroSub}>
-              Help make your neighbourhood cleaner by reporting overflowing bins and illegal dumping.
+              Help make your neighbourhood cleaner by reporting overflowing bins and illegal
+              dumping.
             </Text>
           </View>
 
@@ -297,7 +299,13 @@ const styles = StyleSheet.create({
   statLabel: { fontSize: 11, fontWeight: '600', color: colors.gray[500], marginTop: 1 },
 
   sectionHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 14 },
-  sectionTitle: { fontSize: 20, fontWeight: '800', color: colors.gray[900], letterSpacing: -0.3, marginBottom: 3 },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: colors.gray[900],
+    letterSpacing: -0.3,
+    marginBottom: 3,
+  },
   sectionSub: { fontSize: 12.5, color: colors.gray[500] },
   sectionIcon: {
     width: 42,

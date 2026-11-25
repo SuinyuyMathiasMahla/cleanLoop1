@@ -24,27 +24,32 @@ export async function notifyUsers(
   const targets = recipients.filter(
     (recipient): recipient is NotificationRecipient & { userId: string } => !!recipient.userId,
   );
-  const writes = await Promise.allSettled(targets.map((recipient) =>
-    dbPut({
-      TableName: notificationsTable,
-      Item: {
-        notificationId: crypto.randomUUID(),
-        userId: recipient.userId,
-        ...details,
-        reportId: details.reportId ?? null,
-        taskId: details.taskId ?? null,
-        read: false,
-        createdAt: now,
-      },
-    }),
-  ));
+  const writes = await Promise.allSettled(
+    targets.map((recipient) =>
+      dbPut({
+        TableName: notificationsTable,
+        Item: {
+          notificationId: crypto.randomUUID(),
+          userId: recipient.userId,
+          ...details,
+          reportId: details.reportId ?? null,
+          taskId: details.taskId ?? null,
+          read: false,
+          createdAt: now,
+        },
+      }),
+    ),
+  );
 
   const pushTargets: NotificationRecipient[] = [];
   writes.forEach((result, index) => {
     if (result.status === 'fulfilled') {
       if (targets[index].expoPushToken) pushTargets.push(targets[index]);
     } else {
-      console.error(`Failed to store ${details.type} notification for ${targets[index].userId}:`, result.reason);
+      console.error(
+        `Failed to store ${details.type} notification for ${targets[index].userId}:`,
+        result.reason,
+      );
     }
   });
 
@@ -75,12 +80,15 @@ export async function notifyUsers(
         continue;
       }
 
-      const result = await response.json() as {
+      const result = (await response.json()) as {
         data?: Array<{ status?: string; message?: string; details?: { error?: string } }>;
       };
       result.data?.forEach((ticket, index) => {
         if (ticket.status === 'error') {
-          console.error('Expo push delivery failed:', ticket.message ?? ticket.details?.error ?? `ticket ${index}`);
+          console.error(
+            'Expo push delivery failed:',
+            ticket.message ?? ticket.details?.error ?? `ticket ${index}`,
+          );
         }
       });
     } catch (error) {

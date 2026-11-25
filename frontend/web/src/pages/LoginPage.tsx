@@ -1,14 +1,34 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Leaf, Eye, EyeOff, AlertCircle, ClipboardList, CalendarCheck, CheckCircle2 } from 'lucide-react';
+import {
+  Leaf,
+  Eye,
+  EyeOff,
+  AlertCircle,
+  ClipboardList,
+  CalendarCheck,
+  CheckCircle2,
+} from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { Button } from '../components/common/Button';
 import { Input } from '../components/common/Input';
 
 const STEPS = [
-  { icon: ClipboardList, title: 'Citizens report', text: 'Photos and locations arrive in real time.' },
-  { icon: CalendarCheck, title: 'You schedule', text: 'Assign crews to the reports that need action.' },
-  { icon: CheckCircle2, title: 'Crews resolve', text: 'Evidence comes back and citizens are notified.' },
+  {
+    icon: ClipboardList,
+    title: 'Citizens report',
+    text: 'Photos and locations arrive in real time.',
+  },
+  {
+    icon: CalendarCheck,
+    title: 'You schedule',
+    text: 'Assign crews to the reports that need action.',
+  },
+  {
+    icon: CheckCircle2,
+    title: 'Crews resolve',
+    text: 'Evidence comes back and citizens are notified.',
+  },
 ];
 
 export function LoginPage() {
@@ -106,7 +126,9 @@ export function LoginPage() {
           </div>
 
           <h1 className="text-3xl font-bold tracking-tight text-gray-900">Welcome back</h1>
-          <p className="mt-2 text-sm text-gray-500">Sign in to the admin portal to manage reports and crews.</p>
+          <p className="mt-2 text-sm text-gray-500">
+            Sign in to the admin portal to manage reports and crews.
+          </p>
 
           {error && (
             <div className="mt-6 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
@@ -154,7 +176,13 @@ export function LoginPage() {
               }
             />
 
-            <Button type="submit" variant="primary" size="lg" isLoading={isLoading} className="mt-2 w-full">
+            <Button
+              type="submit"
+              variant="primary"
+              size="lg"
+              isLoading={isLoading}
+              className="mt-2 w-full"
+            >
               {isLoading ? 'Signing in...' : 'Sign in'}
             </Button>
           </form>

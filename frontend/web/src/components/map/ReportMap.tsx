@@ -46,7 +46,7 @@ export function ReportMap({ reports, onViewReport }: Props) {
 
   return (
     <MapContainer
-      center={[4.1550, 9.2410]}
+      center={[4.155, 9.241]}
       zoom={12}
       style={{ height: '100%', width: '100%' }}
       scrollWheelZoom
@@ -63,9 +63,7 @@ export function ReportMap({ reports, onViewReport }: Props) {
         >
           <Popup>
             <div className="text-sm min-w-[180px]">
-              <p className="font-semibold mb-1">
-                {TYPE_LABELS[report.type] || report.type}
-              </p>
+              <p className="font-semibold mb-1">{TYPE_LABELS[report.type] || report.type}</p>
               <p className="text-gray-600 text-xs mb-1">{report.address}</p>
               <div className="mb-2">
                 <StatusBadge status={report.status} />

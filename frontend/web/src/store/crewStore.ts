@@ -32,7 +32,12 @@ interface CrewState {
   error: string | null;
   fetchCrew: () => Promise<void>;
   createCrew: (data: CreateCrewInput) => Promise<void>;
-  updateLocation: (id: string, location: string, locationLat?: number, locationLng?: number) => Promise<void>;
+  updateLocation: (
+    id: string,
+    location: string,
+    locationLat?: number,
+    locationLng?: number,
+  ) => Promise<void>;
   deactivateCrew: (id: string) => Promise<void>;
   clearError: () => void;
 }
@@ -70,24 +75,44 @@ export const useCrewStore = create<CrewState>((set) => ({
         total: state.total + 1,
       }));
     } catch (err) {
-      const responseData = (err as { response?: { data?: { error?: string; message?: string } } })?.response?.data;
-      const msg = responseData?.error ?? responseData?.message ?? (err instanceof Error ? err.message : 'Failed to create crew member');
+      const responseData = (err as { response?: { data?: { error?: string; message?: string } } })
+        ?.response?.data;
+      const msg =
+        responseData?.error ??
+        responseData?.message ??
+        (err instanceof Error ? err.message : 'Failed to create crew member');
       set({ error: msg });
       throw new Error(msg);
     }
   },
 
-  updateLocation: async (id: string, location: string, locationLat?: number, locationLng?: number) => {
+  updateLocation: async (
+    id: string,
+    location: string,
+    locationLat?: number,
+    locationLng?: number,
+  ) => {
     try {
       const res = await crewApi.updateLocation(id, location, locationLat, locationLng);
       set((state) => ({
-        crew: state.crew.map((member) => member.crewId === id
-          ? { ...member, location: res.data.location, locationLat: res.data.locationLat, locationLng: res.data.locationLng }
-          : member),
+        crew: state.crew.map((member) =>
+          member.crewId === id
+            ? {
+                ...member,
+                location: res.data.location,
+                locationLat: res.data.locationLat,
+                locationLng: res.data.locationLng,
+              }
+            : member,
+        ),
       }));
     } catch (err) {
-      const responseData = (err as { response?: { data?: { error?: string; message?: string } } })?.response?.data;
-      const msg = responseData?.error ?? responseData?.message ?? (err instanceof Error ? err.message : 'Failed to update crew location');
+      const responseData = (err as { response?: { data?: { error?: string; message?: string } } })
+        ?.response?.data;
+      const msg =
+        responseData?.error ??
+        responseData?.message ??
+        (err instanceof Error ? err.message : 'Failed to update crew location');
       set({ error: msg });
       throw new Error(msg);
     }
