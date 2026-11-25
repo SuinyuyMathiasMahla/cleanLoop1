@@ -1,0 +1,1352 @@
+openapi: 3.1.0
+info:
+  title: CleanLoop API
+  version: 0.1.0
+  summary: Waste reporting, crew tasks and notifications for CleanLoop.
+  description: |
+    Contract for the CleanLoop backend, written from the routes in
+    `backend/lib/stacks/api-stack.ts` and the Lambda handlers as they are on main.
+
+    Every operation carries `x-status`:
+
+    - `implemented`: the route exists and a handler serves it.
+    - `missing-handler`: API Gateway exposes the route, but the handler returns 404.
+      The apps may already call it. Each one is listed in `docs/api/README.md`.
+    - `planned`: the new report flow from ADR 0001 and the report submission activity
+      diagram. Not built yet.
+
+    Errors always use the `Error` schema. Paged lists return `nextKey`, an opaque token
+    to send back as `lastKey`; it is null on the last page.
+
+    Roles come from the Cognito `custom:role` claim or the ADMIN and CREW groups.
+    A signed-in user with neither is a citizen.
+servers:
+  - url: https://{apiId}.execute-api.us-east-1.amazonaws.com/{stage}
+    variables:
+      apiId:
+        default: example
+        description: Printed as ApiUrl in cdk-outputs.json after a deploy.
+      stage:
+        default: dev
+        enum: [dev, staging, prod]
+security:
+  - cognito: []
+tags:
+  - name: Profile
+  - name: Reports
+  - name: Report uploads
+  - name: Tasks
+  - name: Crew
+  - name: Notifications
+
+paths:
+  /profile:
+    get:
+      tags: [Profile]
+      operationId: getProfile
+      x-status: implemented
+      summary: The signed-in user's profile
+      responses:
+        '200':
+          description: Profile
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Profile' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    patch:
+      tags: [Profile]
+      operationId: updateProfile
+      x-status: implemented
+      summary: Change name or phone
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              minProperties: 1
+              properties:
+                name: { type: string, minLength: 1, maxLength: 80 }
+                phone: { type: string, pattern: '^\+?[\d\s\-()]{8,20}$' }
+      responses:
+        '200':
+          description: Updated profile
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Profile' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /reports:
+    post:
+      tags: [Reports]
+      operationId: createReport
+      x-status: implemented
+      summary: Submit a report as a signed-in citizen
+      description: |
+        Saves the report as `pending`, notifies the community, publishes `ReportCreated`
+        and starts automatic assignment to the nearest active crew within
+        MAX_AUTO_ASSIGN_DISTANCE_KM (default 25 km). Without coordinates, or with no
+        crew in range, admins are alerted for manual assignment (at most once a day per
+        report). The new flow replaces this with `createReportDraft` and `submitReport`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ReportInput' }
+      responses:
+        '201':
+          description: Report created
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [report]
+                properties:
+                  report: { $ref: '#/components/schemas/ReportRecord' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+    get:
+      tags: [Reports]
+      operationId: listReports
+      x-status: implemented
+      summary: List reports for the caller's role
+      description: |
+        Admin and crew: all reports, optionally by `status` or `ward`, paged.
+        Citizen: the caller's own reports, newest first (same as `/reports/mine`).
+      parameters:
+        - $ref: '#/components/parameters/ReportStatusFilter'
+        - name: ward
+          in: query
+          schema: { type: string }
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/LastKey'
+      responses:
+        '200':
+          description: One page of reports
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReportPage' }
+
+  /reports/guest:
+    post:
+      tags: [Reports]
+      operationId: createGuestReport
+      x-status: implemented
+      security: []
+      summary: Submit a report without an account
+      description: Throttled to 2 requests a second, burst 10, for the whole API stage.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/ReportInput'
+                - type: object
+                  properties:
+                    guestName: { type: string }
+                    guestPhone: { type: string }
+      responses:
+        '201':
+          description: Report created
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [report]
+                properties:
+                  report: { $ref: '#/components/schemas/ReportRecord' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+
+  /reports/public:
+    get:
+      tags: [Reports]
+      operationId: listPublicReports
+      x-status: implemented
+      security: []
+      summary: Community feed, newest first when filtered by status
+      parameters:
+        - $ref: '#/components/parameters/ReportStatusFilter'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/LastKey'
+      responses:
+        '200':
+          description: One page of reports
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReportPage' }
+
+  /reports/public/authenticated:
+    get:
+      tags: [Reports]
+      operationId: listPublicReportsSignedIn
+      x-status: implemented
+      summary: Community feed with `likedByMe` filled in for the caller
+      parameters:
+        - $ref: '#/components/parameters/ReportStatusFilter'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/LastKey'
+      responses:
+        '200':
+          description: One page of reports
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReportPage' }
+
+  /reports/mine:
+    get:
+      tags: [Reports]
+      operationId: listMyReports
+      x-status: implemented
+      summary: The caller's reports, newest first
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+        - $ref: '#/components/parameters/LastKey'
+      responses:
+        '200':
+          description: One page of reports
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReportPage' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /reports/presigned-upload:
+    get:
+      tags: [Report uploads]
+      operationId: getReportUploadUrl
+      x-status: implemented
+      summary: Upload link for one report photo (signed-in)
+      description: |
+        The key is `reports/<userId>/<uuid>.<ext>`. The link expires in 5 minutes.
+        `createReport` checks the key's owner, size (10 MB at most) and type before
+        attaching it.
+      parameters:
+        - $ref: '#/components/parameters/PhotoContentType'
+      responses:
+        '200':
+          description: Upload link
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UploadLink' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /reports/guest/presigned-upload:
+    get:
+      tags: [Report uploads]
+      operationId: getGuestReportUploadUrl
+      x-status: implemented
+      security: []
+      summary: Upload link for one report photo (guest)
+      description: Key prefix `guest-uploads/`. Throttled like `/reports/guest`.
+      parameters:
+        - $ref: '#/components/parameters/PhotoContentType'
+      responses:
+        '200':
+          description: Upload link
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UploadLink' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+
+  /reports/{reportId}:
+    parameters:
+      - $ref: '#/components/parameters/ReportId'
+    get:
+      tags: [Reports]
+      operationId: getReport
+      x-status: implemented
+      summary: One report
+      responses:
+        '200':
+          description: Report
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [report]
+                properties:
+                  report: { $ref: '#/components/schemas/Report' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      tags: [Reports]
+      operationId: updateReport
+      x-status: missing-handler
+      summary: Edit a report (route exists, no handler)
+      responses:
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [Reports]
+      operationId: deleteReport
+      x-status: implemented
+      summary: Delete a report and its photo (admin)
+      responses:
+        '200':
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  reportId: { type: string }
+                  deleted: { const: true }
+                  imageDeleted: { type: boolean }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /reports/{reportId}/like:
+    parameters:
+      - $ref: '#/components/parameters/ReportId'
+    post:
+      tags: [Reports]
+      operationId: toggleReportLike
+      x-status: implemented
+      summary: Like or unlike a report
+      responses:
+        '200':
+          description: New like state
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  reportId: { type: string }
+                  liked: { type: boolean }
+                  likeCount: { type: integer }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /reports/{reportId}/comments:
+    parameters:
+      - $ref: '#/components/parameters/ReportId'
+    post:
+      tags: [Reports]
+      operationId: addReportComment
+      x-status: implemented
+      summary: Comment on a report
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [text]
+              properties:
+                text: { type: string, minLength: 1, maxLength: 1000 }
+      responses:
+        '201':
+          description: Comment added
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  comment: { $ref: '#/components/schemas/Comment' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /reports/{reportId}/status:
+    parameters:
+      - $ref: '#/components/parameters/ReportId'
+    get:
+      tags: [Reports]
+      operationId: getReportStatus
+      x-status: missing-handler
+      security: []
+      summary: Track a report by ID (route exists, no handler)
+      description: |
+        The mobile guest status screen calls this, so guest tracking returns 404 today.
+        Intended response below.
+      responses:
+        '200':
+          description: Current status
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, updatedAt]
+                properties:
+                  status: { $ref: '#/components/schemas/ReportStatus' }
+                  updatedAt: { type: string, format: date-time }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      tags: [Reports]
+      operationId: setReportStatus
+      x-status: implemented
+      summary: Set a report's status (admin)
+      description: |
+        Accepts any status from any status today. Marking `resolved` notifies the
+        community. See `docs/api/state-machines.md` for the transitions it should allow.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { $ref: '#/components/schemas/ReportStatus' }
+      responses:
+        '200':
+          description: Status set
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  reportId: { type: string }
+                  status: { $ref: '#/components/schemas/ReportStatus' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /v2/reports:
+    post:
+      tags: [Reports]
+      operationId: createReportDraft
+      x-status: planned
+      security: [{ cognito: [] }, {}]
+      summary: Start a report and get upload links for its media
+      description: |
+        Creates the report in `awaiting_media` and returns one upload link per file.
+        Sending the same `Idempotency-Key` again returns the same draft, so the offline
+        queue can retry safely. Drafts not submitted within 24 hours expire.
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [category, location, media]
+              properties:
+                category: { $ref: '#/components/schemas/ReportType' }
+                description: { type: string, maxLength: 1000 }
+                location:
+                  type: object
+                  required: [lat, lng, source]
+                  properties:
+                    lat: { type: number, minimum: -90, maximum: 90 }
+                    lng: { type: number, minimum: -180, maximum: 180 }
+                    source: { enum: [gps, manual] }
+                    address: { type: string }
+                media:
+                  type: array
+                  minItems: 1
+                  maxItems: 5
+                  description: 1 to 5 photos, or one video
+                  items:
+                    type: object
+                    required: [contentType, sizeBytes]
+                    properties:
+                      contentType: { enum: [image/jpeg, image/png, image/webp, video/mp4] }
+                      sizeBytes: { type: integer, minimum: 1 }
+                guestName: { type: string }
+                guestPhone: { type: string }
+      responses:
+        '201':
+          description: Draft created
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [reportId, trackingCode, status, uploads, expiresAt]
+                properties:
+                  reportId: { type: string, format: uuid }
+                  trackingCode: { type: string, example: CL-7K4Q2M }
+                  status: { const: awaiting_media }
+                  uploads:
+                    type: array
+                    items: { $ref: '#/components/schemas/UploadLink' }
+                  expiresAt: { type: string, format: date-time }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /v2/reports/{reportId}/submit:
+    parameters:
+      - $ref: '#/components/parameters/ReportId'
+    post:
+      tags: [Reports]
+      operationId: submitReport
+      x-status: planned
+      security: [{ cognito: [] }, {}]
+      summary: Confirm the uploads and queue the report for processing
+      description: |
+        Checks every file is in S3 with the declared type and size, moves the report to
+        `submitted`, sends it to the processing queue and publishes `ReportSubmitted`.
+        Submitting an already submitted report returns 200 with its current status.
+      responses:
+        '200':
+          description: Queued
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [reportId, trackingCode, status]
+                properties:
+                  reportId: { type: string }
+                  trackingCode: { type: string }
+                  status: { $ref: '#/components/schemas/ReportStatus' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: Media missing or the draft expired
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /v2/reports/track/{trackingCode}:
+    get:
+      tags: [Reports]
+      operationId: trackReport
+      x-status: planned
+      security: []
+      summary: Public status by tracking code
+      parameters:
+        - name: trackingCode
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Status and its history, without personal details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  trackingCode: { type: string }
+                  status: { $ref: '#/components/schemas/ReportStatus' }
+                  history:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        status: { $ref: '#/components/schemas/ReportStatus' }
+                        at: { type: string, format: date-time }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /tasks:
+    post:
+      tags: [Tasks]
+      operationId: createTask
+      x-status: implemented
+      summary: Create a task and assign crew (admin)
+      description: |
+        Starts in `assigned`, links the reports (they become `assigned`) and notifies
+        every crew member. `dueAt` is at least 2 days after `scheduledAt`, and is set to that
+        when left out.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, scheduledAt]
+              properties:
+                title: { type: string }
+                description: { type: string }
+                reportIds: { type: array, items: { type: string } }
+                crewLeadId: { type: string }
+                crewIds:
+                  type: array
+                  items: { type: string }
+                  description: Also accepted as `crewMemberIds`
+                scheduledAt: { type: string, format: date-time }
+                dueAt: { type: string, format: date-time }
+                notes: { type: string }
+      responses:
+        '201':
+          description: Task created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  task: { $ref: '#/components/schemas/Task' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    get:
+      tags: [Tasks]
+      operationId: listTasks
+      x-status: implemented
+      summary: List tasks (admin all; crew their own)
+      description: |
+        Admin: all tasks, optionally by `status`, paged. Crew: tasks they lead or belong
+        to, not paged.
+      parameters:
+        - name: status
+          in: query
+          schema: { $ref: '#/components/schemas/TaskStatus' }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 500 }
+        - $ref: '#/components/parameters/LastKey'
+      responses:
+        '200':
+          description: Tasks
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tasks: { type: array, items: { $ref: '#/components/schemas/Task' } }
+                  nextKey: { type: [string, 'null'] }
+                  total: { type: integer }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /tasks/mine:
+    get:
+      tags: [Tasks]
+      operationId: listMyTasks
+      x-status: missing-handler
+      summary: The caller's tasks (route exists, no handler; crew use `GET /tasks`)
+      responses:
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /tasks/{taskId}:
+    parameters:
+      - $ref: '#/components/parameters/TaskId'
+    get:
+      tags: [Tasks]
+      operationId: getTask
+      x-status: implemented
+      summary: One task with its crew roster (admin, or crew on the task)
+      responses:
+        '200':
+          description: Task
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  task:
+                    allOf:
+                      - $ref: '#/components/schemas/Task'
+                      - type: object
+                        properties:
+                          crewRoster:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                userId: { type: string }
+                                name: { type: string }
+                                isLead: { type: boolean }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      tags: [Tasks]
+      operationId: updateTask
+      x-status: implemented
+      summary: Edit task details (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              minProperties: 1
+              properties:
+                title: { type: string }
+                description: { type: string }
+                reportIds: { type: array, items: { type: string } }
+                crewIds: { type: array, items: { type: string } }
+                crewLeadId: { type: string }
+                scheduledAt: { type: string, format: date-time }
+                dueAt: { type: string, format: date-time }
+                notes: { type: string }
+      responses:
+        '200':
+          description: Fields updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  taskId: { type: string }
+                  updated: { type: array, items: { type: string } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    delete:
+      tags: [Tasks]
+      operationId: deleteTask
+      x-status: implemented
+      summary: Delete a task (admin); its reports go back to pending
+      responses:
+        '200':
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  taskId: { type: string }
+                  deleted: { const: true }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /tasks/{taskId}/status:
+    parameters:
+      - $ref: '#/components/parameters/TaskId'
+    patch:
+      tags: [Tasks]
+      operationId: setTaskStatus
+      x-status: implemented
+      summary: Move a task through its lifecycle
+      description: |
+        Admin may set any task status. Crew on the task may set `in_progress` or
+        `completed`; only the crew lead may complete, and must send at least one
+        evidence photo and attendance for every companion. Completing resolves the
+        linked reports and notifies the community.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { $ref: '#/components/schemas/TaskStatus' }
+                evidencePhotoKeys: { type: array, items: { type: string } }
+                companionAttendance:
+                  type: array
+                  items:
+                    type: object
+                    required: [userId, present]
+                    properties:
+                      userId: { type: string }
+                      present: { type: boolean }
+      responses:
+        '200':
+          description: Status set
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  taskId: { type: string }
+                  status: { $ref: '#/components/schemas/TaskStatus' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /tasks/{taskId}/evidence-upload:
+    parameters:
+      - $ref: '#/components/parameters/TaskId'
+    get:
+      tags: [Tasks]
+      operationId: getEvidenceUploadUrl
+      x-status: implemented
+      summary: Upload link for an evidence photo (crew lead, active task only)
+      parameters:
+        - name: contentType
+          in: query
+          schema: { type: string, default: image/jpeg }
+        - name: filename
+          in: query
+          schema: { type: string, default: evidence.jpg }
+      responses:
+        '200':
+          description: Upload link; key is `evidence/<taskId>/<uuid>.<ext>`
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UploadLink' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /tasks/{taskId}/evidence-photos:
+    parameters:
+      - $ref: '#/components/parameters/TaskId'
+    get:
+      tags: [Tasks]
+      operationId: listEvidencePhotos
+      x-status: implemented
+      summary: Evidence photos with viewing links
+      responses:
+        '200':
+          description: Photos
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  photos:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        url: { type: string, format: uri }
+                        key: { type: string }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    delete:
+      tags: [Tasks]
+      operationId: deleteEvidencePhoto
+      x-status: implemented
+      summary: Remove an evidence photo before completion (crew lead) or any time (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [key]
+              properties:
+                key: { type: string }
+      responses:
+        '200':
+          description: Removed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  taskId: { type: string }
+                  key: { type: string }
+                  deleted: { const: true }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /crew:
+    post:
+      tags: [Crew]
+      operationId: createCrewMember
+      x-status: implemented
+      summary: Create a crew account (admin)
+      description: |
+        Creates the Cognito user in the CREW group with a temporary password and saves
+        the profile. A location is required; coordinates are geocoded from it when not
+        given.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, temporaryPassword, location]
+              properties:
+                name: { type: string }
+                email: { type: string, format: email }
+                phone: { type: string }
+                location: { type: string, description: Place name in the service area }
+                locationLat: { type: number }
+                locationLng: { type: number }
+                temporaryPassword: { type: string, writeOnly: true }
+      responses:
+        '201':
+          description: Crew member created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  crew: { $ref: '#/components/schemas/CrewMember' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    get:
+      tags: [Crew]
+      operationId: listCrew
+      x-status: implemented
+      summary: All crew members (admin)
+      responses:
+        '200':
+          description: Crew
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  crew: { type: array, items: { $ref: '#/components/schemas/CrewMember' } }
+                  total: { type: integer }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /crew/{userId}:
+    parameters:
+      - name: userId
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      tags: [Crew]
+      operationId: getCrewMember
+      x-status: implemented
+      summary: One crew member (admin)
+      responses:
+        '200':
+          description: Crew member
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  crew: { $ref: '#/components/schemas/CrewMember' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      tags: [Crew]
+      operationId: updateCrewLocation
+      x-status: implemented
+      summary: Change a crew member's base location (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [location]
+              properties:
+                location: { type: string }
+                locationLat: { type: number }
+                locationLng: { type: number }
+      responses:
+        '200':
+          description: Location saved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  crewId: { type: string }
+                  location: { type: string }
+                  locationLat: { type: number }
+                  locationLng: { type: number }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    delete:
+      tags: [Crew]
+      operationId: deleteCrewMember
+      x-status: implemented
+      summary: Delete a crew member's sign-in (admin)
+      description: Deletes the Cognito user. The profile row stays in UsersTable.
+      responses:
+        '200':
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  userId: { type: string }
+                  status: { const: deleted }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /notifications:
+    get:
+      tags: [Notifications]
+      operationId: listNotifications
+      x-status: implemented
+      summary: The caller's notifications, newest first
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/LastKey'
+        - name: unreadOnly
+          in: query
+          schema: { type: string, enum: ['true', 'false'] }
+      responses:
+        '200':
+          description: One page of notifications
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  notifications:
+                    type: array
+                    items: { $ref: '#/components/schemas/Notification' }
+                  data:
+                    type: array
+                    description: Same list as `notifications`, kept for the web portal
+                    items: { $ref: '#/components/schemas/Notification' }
+                  nextKey: { type: [string, 'null'] }
+    post:
+      tags: [Notifications]
+      operationId: createNotification
+      x-status: implemented
+      summary: Send one notification to one user (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [userId, title, message]
+              properties:
+                userId: { type: string }
+                title: { type: string }
+                message: { type: string }
+                type: { type: string, default: info }
+                referenceId: { type: string }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  notification: { $ref: '#/components/schemas/Notification' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /notifications/send:
+    post:
+      tags: [Notifications]
+      operationId: broadcastNotification
+      x-status: implemented
+      summary: Broadcast to a group of users (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, message]
+              properties:
+                title: { type: string }
+                message: { type: string }
+                type: { type: string, default: general }
+                referenceId: { type: string }
+                recipients:
+                  enum: [all, all_citizens, all_crew]
+                  default: all
+      responses:
+        '200':
+          description: Sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sent: { type: integer }
+                  message: { type: string }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /notifications/read-all:
+    post:
+      tags: [Notifications]
+      operationId: markAllNotificationsRead
+      x-status: implemented
+      summary: Mark all the caller's notifications read
+      responses:
+        '200':
+          description: Count updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  updated: { type: integer }
+
+  /notifications/register-push-token:
+    post:
+      tags: [Notifications]
+      operationId: registerPushToken
+      x-status: implemented
+      summary: Save the device's Expo push token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [expoPushToken]
+              properties:
+                expoPushToken: { type: string }
+      responses:
+        '200':
+          description: Saved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  registered: { const: true }
+        '400': { $ref: '#/components/responses/BadRequest' }
+
+  /notifications/{notificationId}:
+    parameters:
+      - $ref: '#/components/parameters/NotificationId'
+    delete:
+      tags: [Notifications]
+      operationId: deleteNotification
+      x-status: implemented
+      summary: Delete one of the caller's notifications
+      responses:
+        '200':
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  notificationId: { type: string }
+                  deleted: { const: true }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /notifications/{notificationId}/read:
+    parameters:
+      - $ref: '#/components/parameters/NotificationId'
+    patch:
+      tags: [Notifications]
+      operationId: markNotificationRead
+      x-status: implemented
+      summary: Mark one notification read
+      responses:
+        '200':
+          description: Marked
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  notificationId: { type: string }
+                  read: { const: true }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+components:
+  securitySchemes:
+    cognito:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Cognito ID token in the Authorization header.
+
+  parameters:
+    ReportId:
+      name: reportId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    TaskId:
+      name: taskId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    NotificationId:
+      name: notificationId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    Limit:
+      name: limit
+      in: query
+      schema: { type: integer, minimum: 1, default: 50 }
+    LastKey:
+      name: lastKey
+      in: query
+      description: The `nextKey` from the previous page
+      schema: { type: string }
+    ReportStatusFilter:
+      name: status
+      in: query
+      schema: { $ref: '#/components/schemas/ReportStatus' }
+    PhotoContentType:
+      name: contentType
+      in: query
+      schema:
+        enum: [image/jpeg, image/png, image/webp]
+        default: image/jpeg
+
+  responses:
+    BadRequest:
+      description: The request is invalid
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Forbidden:
+      description: Not signed in, or the role may not do this
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    NotFound:
+      description: No such resource or route
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    TooManyRequests:
+      description: Throttled
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error: { type: string }
+
+    ReportType:
+      enum: [overflow, dumping]
+      description: |
+        `overflow_bin` and `illegal_dumping` are accepted on input and stored as
+        `overflow` and `dumping`.
+
+    ReportStatus:
+      enum: [pending, assigned, in_progress, resolved]
+      description: |
+        Current statuses. The new flow adds `awaiting_media`, `submitted`, `rejected`,
+        `duplicate` and `expired` (see state-machines.md).
+
+    TaskStatus:
+      enum: [scheduled, assigned, in_progress, completed, cancelled]
+
+    ReportInput:
+      type: object
+      required: [type]
+      description: Needs `address` or coordinates. `lat`/`lng` and `latitude`/`longitude` are both accepted.
+      properties:
+        type:
+          enum: [overflow, dumping, overflow_bin, illegal_dumping]
+        address: { type: string }
+        lat: { type: number }
+        lng: { type: number }
+        latitude: { type: number }
+        longitude: { type: number }
+        ward: { type: string, description: Defaults to the coordinates rounded to 4 places }
+        description: { type: string }
+        photoKey: { type: string, description: Key from a presigned upload }
+
+    ReportRecord:
+      type: object
+      description: The stored report, as returned by create
+      properties:
+        reportId: { type: string, format: uuid }
+        type: { $ref: '#/components/schemas/ReportType' }
+        status: { $ref: '#/components/schemas/ReportStatus' }
+        ward: { type: string }
+        address: { type: string }
+        lat: { type: [number, 'null'] }
+        lng: { type: [number, 'null'] }
+        photoKey: { type: [string, 'null'] }
+        description: { type: string }
+        submittedBy: { type: string, description: Absent for guest reports }
+        submittedByName: { type: [string, 'null'] }
+        guestName: { type: [string, 'null'] }
+        guestPhone: { type: [string, 'null'] }
+        assignedTaskId: { type: [string, 'null'] }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    Report:
+      type: object
+      description: A report as lists and detail views return it, without contact details
+      properties:
+        reportId: { type: string, format: uuid }
+        type: { $ref: '#/components/schemas/ReportType' }
+        status: { $ref: '#/components/schemas/ReportStatus' }
+        ward: { type: string }
+        address: { type: string }
+        lat: { type: [number, 'null'] }
+        lng: { type: [number, 'null'] }
+        description: { type: string }
+        createdAt: { type: string, format: date-time }
+        submitterName: { type: string }
+        photoUrl: { type: [string, 'null'], format: uri }
+        evidencePhotoUrls: { type: array, items: { type: string, format: uri } }
+        completedAt: { type: [string, 'null'], format: date-time }
+        likeCount: { type: integer }
+        likedByMe: { type: boolean }
+        comments: { type: array, items: { $ref: '#/components/schemas/Comment' } }
+
+    ReportPage:
+      type: object
+      required: [reports]
+      properties:
+        reports: { type: array, items: { $ref: '#/components/schemas/Report' } }
+        nextKey: { type: [string, 'null'] }
+
+    Comment:
+      type: object
+      properties:
+        commentId: { type: string, format: uuid }
+        userId: { type: string }
+        name: { type: string }
+        text: { type: string }
+        createdAt: { type: string, format: date-time }
+
+    UploadLink:
+      type: object
+      required: [url, key]
+      properties:
+        url:
+          { type: string, format: uri, description: PUT the file here with the same Content-Type }
+        key: { type: string }
+
+    Task:
+      type: object
+      properties:
+        taskId: { type: string, format: uuid }
+        title: { type: string }
+        description: { type: string }
+        reportIds: { type: array, items: { type: string } }
+        crewLeadId: { type: [string, 'null'] }
+        crewIds: { type: array, items: { type: string } }
+        scheduledAt: { type: string, format: date-time }
+        dueAt: { type: string, format: date-time }
+        status: { $ref: '#/components/schemas/TaskStatus' }
+        notes: { type: string }
+        evidencePhotoKeys: { type: array, items: { type: string } }
+        companionAttendance:
+          type: array
+          items:
+            type: object
+            properties:
+              userId: { type: string }
+              name: { type: string }
+              present: { type: boolean }
+              markedAt: { type: string, format: date-time }
+        createdBy: { type: string, description: A user ID, or automatic-assignment }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        completedAt: { type: string, format: date-time }
+
+    CrewMember:
+      type: object
+      properties:
+        crewId: { type: string }
+        cognitoUsername: { type: string }
+        name: { type: string }
+        email: { type: string, format: email }
+        phone: { type: [string, 'null'] }
+        location: { type: [string, 'null'] }
+        locationLat: { type: [number, 'null'] }
+        locationLng: { type: [number, 'null'] }
+        status: { enum: [active, inactive] }
+        activeTasks: { type: integer, description: Always 0 today }
+        lastLogin: { type: [string, 'null'], format: date-time }
+
+    Notification:
+      type: object
+      properties:
+        notificationId: { type: string, format: uuid }
+        id: { type: string, description: Same as notificationId }
+        userId: { type: string }
+        type:
+          {
+            type: string,
+            examples: [task_assigned, task_updated, report_new, report_resolved, general],
+          }
+        title: { type: string }
+        body: { type: string }
+        taskId: { type: [string, 'null'] }
+        reportId: { type: [string, 'null'] }
+        read: { type: boolean }
+        createdAt: { type: string, format: date-time }
+        sentAt: { type: string, format: date-time }
+
+    Profile:
+      type: object
+      properties:
+        userId: { type: string }
+        email: { type: string }
+        name: { type: string }
+        phone: { type: string }
+        role: { enum: [ADMIN, CREW, CITIZEN] }
