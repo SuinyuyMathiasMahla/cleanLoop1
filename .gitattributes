@@ -1,0 +1,8 @@
+# Store text files with LF line endings, matching .editorconfig and Prettier.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.pdf binary
+*.docx binary
+*.pptx binary

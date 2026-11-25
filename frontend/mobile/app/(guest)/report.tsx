@@ -19,7 +19,6 @@ import { Button } from '@/components/common/Button';
 import { Input } from '@/components/common/Input';
 import { useReportStore } from '@/store/reportStore';
 import { getCurrentLocation } from '@/services/location';
-import { colors } from '@/theme/colors';
 
 type ReportType = 'overflow_bin' | 'illegal_dumping';
 
@@ -44,7 +43,7 @@ export default function GuestReportScreen() {
   const [postPublic, setPostPublic] = useState(true);
   const [location, setLocation] = useState<{ latitude: number; longitude: number; address: string } | null>(null);
   const [locationLoading, setLocationLoading] = useState(false);
-  const [locationError, setLocationError] = useState('');
+  const [_locationError, setLocationError] = useState('');
   const [submittedId, setSubmittedId] = useState<string | null>(null);
 
   useEffect(() => { fetchLocation(); }, []);

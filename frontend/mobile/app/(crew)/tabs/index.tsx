@@ -36,6 +36,8 @@ let MapView: any = null;
 let Marker: any = null;
 let UrlTile: any = null;
 if (Platform.OS !== 'web') {
+  // react-native-maps has no web build, so it is only loaded on native platforms.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const maps = require('react-native-maps');
   MapView = maps.default;
   Marker = maps.Marker;

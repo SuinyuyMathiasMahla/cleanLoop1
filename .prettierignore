@@ -1,0 +1,11 @@
+node_modules
+dist
+cdk.out
+.expo
+pnpm-lock.yaml
+docs/diagrams/legacy
+docs/srs
+docs/presentations
+*.png
+*.jpg
+*.jpeg
