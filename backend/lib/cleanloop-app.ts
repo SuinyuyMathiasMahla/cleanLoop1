@@ -63,7 +63,6 @@ export class CleanLoopApp extends Construct {
     const budgetAlertEmail = process.env.BUDGET_ALERT_EMAIL;
     if (budgetAlertEmail) {
       new BudgetStack(scope, `CleanLoop-Budget-${stage}`, {
-        stage,
         monthlyLimitUsd: Number(process.env.MONTHLY_BUDGET_USD ?? 7),
         alertEmail: budgetAlertEmail,
         ...props,
