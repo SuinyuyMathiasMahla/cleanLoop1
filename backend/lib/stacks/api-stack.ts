@@ -26,7 +26,18 @@ export class ApiStack extends cdk.Stack {
     // ── REST API ──────────────────────────────────────────────────────────────
     const api = new apigateway.RestApi(this, 'CleanLoopApi', {
       restApiName: `cleanloop-api-${stage}`,
-      deployOptions: { stageName: stage },
+      deployOptions: {
+        stageName: stage,
+        // Public guest routes share a small budget so one caller cannot flood uploads.
+        // Per-caller limits need WAF, which is deferred until abuse appears.
+        methodOptions: {
+          '/reports/guest/presigned-upload/GET': {
+            throttlingRateLimit: 2,
+            throttlingBurstLimit: 10,
+          },
+          '/reports/guest/POST': { throttlingRateLimit: 2, throttlingBurstLimit: 10 },
+        },
+      },
       defaultCorsPreflightOptions: {
         allowOrigins: apigateway.Cors.ALL_ORIGINS,
         allowMethods: apigateway.Cors.ALL_METHODS,
@@ -96,8 +107,12 @@ export class ApiStack extends cdk.Stack {
     const reportsMine = reports.addResource('mine');
     reportsMine.addMethod('GET', reportsInt, authOptions);
 
+    // Signed-in uploads need a Cognito token. Guests get their own route, limited by the
+    // stage throttling set on it in deployOptions and validated again when the report is created.
     const presignedUpload = reports.addResource('presigned-upload');
-    presignedUpload.addMethod('GET', reportsInt, publicOptions);
+    presignedUpload.addMethod('GET', reportsInt, authOptions);
+    const guestPresignedUpload = reportsGuest.addResource('presigned-upload');
+    guestPresignedUpload.addMethod('GET', reportsInt, publicOptions);
 
     const reportById = reports.addResource('{reportId}');
     reportById.addMethod('GET', reportsInt, authOptions);
