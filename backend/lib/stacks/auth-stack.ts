@@ -95,19 +95,22 @@ export class AuthStack extends cdk.Stack {
       cognitoDomain: { domainPrefix: `cleanloop-${stage}` },
     });
 
+    // The client ID is public. The client secret lives in Secrets Manager under
+    // cleanloop/<stage>/google-oauth-client-secret, and CloudFormation reads it at deploy
+    // time, so it never appears in the synthesized template.
     const googleClientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
-    const googleClientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
+    const googleClientSecretName = `cleanloop/${stage}/google-oauth-client-secret`;
     const supportedIdentityProviders: cognito.UserPoolClientIdentityProvider[] = [
       cognito.UserPoolClientIdentityProvider.COGNITO,
     ];
 
     let googleProvider: cognito.UserPoolIdentityProviderGoogle | undefined;
 
-    if (googleClientId && googleClientSecret) {
+    if (googleClientId) {
       googleProvider = new cognito.UserPoolIdentityProviderGoogle(this, 'GoogleIdentityProvider', {
         userPool: this.userPool,
         clientId: googleClientId,
-        clientSecret: googleClientSecret,
+        clientSecretValue: cdk.SecretValue.secretsManager(googleClientSecretName),
         attributeMapping: {
           email: cognito.ProviderAttribute.GOOGLE_EMAIL,
           fullname: cognito.ProviderAttribute.GOOGLE_NAME,
@@ -116,7 +119,7 @@ export class AuthStack extends cdk.Stack {
       supportedIdentityProviders.push(cognito.UserPoolClientIdentityProvider.GOOGLE);
     } else {
       console.warn(
-        'Google sign-in is disabled: set GOOGLE_OAUTH_CLIENT_ID and GOOGLE_OAUTH_CLIENT_SECRET before deployment.',
+        `Google sign-in is disabled: set GOOGLE_OAUTH_CLIENT_ID and store the client secret in Secrets Manager as ${googleClientSecretName} before deployment.`,
       );
     }
 
