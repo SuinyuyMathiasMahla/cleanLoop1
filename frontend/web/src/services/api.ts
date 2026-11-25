@@ -94,6 +94,8 @@ export const tasksApi = {
   list: (params?: Record<string, unknown>) => api.get('/tasks', { params }),
   create: (data: object) => api.post('/tasks', data),
   update: (id: string, data: object) => api.patch(`/tasks/${id}`, data),
+  // PATCH /tasks/{id} ignores status: status changes have their own endpoint
+  updateStatus: (id: string, status: string) => api.patch(`/tasks/${id}/status`, { status }),
   delete: (id: string) => api.delete(`/tasks/${id}`),
 };
 
