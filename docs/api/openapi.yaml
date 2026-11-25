@@ -354,12 +354,9 @@ paths:
     get:
       tags: [Reports]
       operationId: getReportStatus
-      x-status: missing-handler
+      x-status: implemented
       security: []
-      summary: Track a report by ID (route exists, no handler)
-      description: |
-        The mobile guest status screen calls this, so guest tracking returns 404 today.
-        Intended response below.
+      summary: Track a report by ID (guest status screen)
       responses:
         '200':
           description: Current status
@@ -369,6 +366,7 @@ paths:
                 type: object
                 required: [status, updatedAt]
                 properties:
+                  reportId: { type: string }
                   status: { $ref: '#/components/schemas/ReportStatus' }
                   updatedAt: { type: string, format: date-time }
         '404': { $ref: '#/components/responses/NotFound' }
@@ -701,9 +699,10 @@ paths:
       summary: Move a task through its lifecycle
       description: |
         Admin may set any task status. Crew on the task may set `in_progress` or
-        `completed`; only the crew lead may complete, and must send at least one
-        evidence photo and attendance for every companion. Completing resolves the
-        linked reports and notifies the community.
+        `completed`; only the crew lead may complete, and must send at least one evidence
+        photo uploaded for this task (JPEG, PNG or WebP, 10 MB at most) and attendance for
+        every companion. Starting the task moves its reports to `in_progress`; cancelling
+        returns them to `pending`. Completing resolves them and notifies the community.
       requestBody:
         required: true
         content:
@@ -744,18 +743,14 @@ paths:
       x-status: implemented
       summary: Upload link for an evidence photo (crew lead, active task only)
       parameters:
-        - name: contentType
-          in: query
-          schema: { type: string, default: image/jpeg }
-        - name: filename
-          in: query
-          schema: { type: string, default: evidence.jpg }
+        - $ref: '#/components/parameters/PhotoContentType'
       responses:
         '200':
           description: Upload link; key is `evidence/<taskId>/<uuid>.<ext>`
           content:
             application/json:
               schema: { $ref: '#/components/schemas/UploadLink' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '403': { $ref: '#/components/responses/Forbidden' }
 
   /tasks/{taskId}/evidence-photos:
