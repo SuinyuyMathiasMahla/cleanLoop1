@@ -21,14 +21,7 @@ import { tasksApi, Task, getApiErrorMessage } from '@/services/api';
 import { useAuthStore } from '@/store/authStore';
 import { useReportStore } from '@/store/reportStore';
 import { firstName, greeting } from '@/utils/format';
-import {
-  isMine,
-  isOpen,
-  isOverdue,
-  onTimeRate,
-  sortBySchedule,
-  taskIdOf,
-} from '@/utils/tasks';
+import { isMine, isOpen, isOverdue, onTimeRate, sortBySchedule, taskIdOf } from '@/utils/tasks';
 import { colors } from '@/theme/colors';
 
 // react-native-maps crashes on web — load only on native
@@ -144,10 +137,13 @@ export default function CrewHome() {
     }
   }, [mapKey]);
 
-  const reportCounts = REPORT_TABS.reduce((acc, tab) => {
-    acc[tab.key] = (allReports ?? []).filter((r: any) => r.status === tab.key).length;
-    return acc;
-  }, {} as Record<ReportTab, number>);
+  const reportCounts = REPORT_TABS.reduce(
+    (acc, tab) => {
+      acc[tab.key] = (allReports ?? []).filter((r: any) => r.status === tab.key).length;
+      return acc;
+    },
+    {} as Record<ReportTab, number>,
+  );
   const filteredReports = (allReports ?? []).filter((r: any) => r.status === reportTab);
 
   if (!loaded && loading) return <LoadingSpinner fullScreen message="Loading dashboard..." />;
@@ -187,7 +183,9 @@ export default function CrewHome() {
                   </View>
                 )}
               </View>
-              <Text style={styles.hello}>{greeting()}, {firstName(user?.name, 'Crew')} 👋</Text>
+              <Text style={styles.hello}>
+                {greeting()}, {firstName(user?.name, 'Crew')} 👋
+              </Text>
               <Text style={styles.heroTitle}>
                 {openTasks.length > 0
                   ? `${openTasks.length} ${openTasks.length === 1 ? 'task' : 'tasks'}\nwaiting for you.`
@@ -206,7 +204,9 @@ export default function CrewHome() {
             {!!error && (
               <TouchableOpacity style={styles.errorBanner} onPress={load} activeOpacity={0.8}>
                 <Ionicons name="cloud-offline-outline" size={18} color={colors.danger} />
-                <Text style={styles.errorText} numberOfLines={2}>{error}</Text>
+                <Text style={styles.errorText} numberOfLines={2}>
+                  {error}
+                </Text>
                 <Text style={styles.errorRetry}>Retry</Text>
               </TouchableOpacity>
             )}
@@ -240,7 +240,9 @@ export default function CrewHome() {
                     </View>
                   )}
                 </View>
-                <Text style={styles.nextTitle} numberOfLines={2}>{nextTask.title}</Text>
+                <Text style={styles.nextTitle} numberOfLines={2}>
+                  {nextTask.title}
+                </Text>
                 <View style={styles.nextMeta}>
                   <Ionicons name="calendar-outline" size={14} color={colors.gray[500]} />
                   <Text style={styles.nextMetaText}>
@@ -256,7 +258,9 @@ export default function CrewHome() {
                 {!!nextTask.addresses?.[0] && (
                   <View style={styles.nextMeta}>
                     <Ionicons name="location-outline" size={14} color={colors.gray[500]} />
-                    <Text style={styles.nextMetaText} numberOfLines={1}>{nextTask.addresses[0]}</Text>
+                    <Text style={styles.nextMetaText} numberOfLines={1}>
+                      {nextTask.addresses[0]}
+                    </Text>
                   </View>
                 )}
                 <View style={styles.nextButton}>
@@ -272,7 +276,9 @@ export default function CrewHome() {
                   <Ionicons name="checkmark-done" size={24} color={colors.primary} />
                 </View>
                 <Text style={styles.allClearTitle}>No open tasks</Text>
-                <Text style={styles.allClearText}>Enjoy the break — we'll alert you when work is assigned.</Text>
+                <Text style={styles.allClearText}>
+                  Enjoy the break — we'll alert you when work is assigned.
+                </Text>
               </View>
             )}
 
@@ -282,7 +288,9 @@ export default function CrewHome() {
                 onPress={() => router.navigate('/(crew)/tabs/tasks' as any)}
                 activeOpacity={0.8}
               >
-                <Text style={styles.linkText}>+{openTasks.length - 1} more open {openTasks.length - 1 === 1 ? 'task' : 'tasks'}</Text>
+                <Text style={styles.linkText}>
+                  +{openTasks.length - 1} more open {openTasks.length - 1 === 1 ? 'task' : 'tasks'}
+                </Text>
                 <Ionicons name="arrow-forward" size={15} color={colors.primary} />
               </TouchableOpacity>
             )}
@@ -363,7 +371,9 @@ export default function CrewHome() {
                     onPress={() => setReportTab(tab.key)}
                     activeOpacity={0.8}
                   >
-                    <Text style={[styles.chipText, active && styles.chipTextActive]}>{tab.label}</Text>
+                    <Text style={[styles.chipText, active && styles.chipTextActive]}>
+                      {tab.label}
+                    </Text>
                     {reportCounts[tab.key] > 0 && (
                       <View style={[styles.chipBadge, active && styles.chipBadgeActive]}>
                         <Text style={[styles.chipBadgeText, active && { color: '#fff' }]}>
@@ -385,13 +395,15 @@ export default function CrewHome() {
                 <Text style={styles.emptyText}>Reports with this status will appear here</Text>
               </View>
             ) : (
-              filteredReports.slice(0, 20).map((report: any) => (
-                <ReportCard
-                  key={report.reportId ?? report.id}
-                  report={report}
-                  style={{ marginHorizontal: 0 }}
-                />
-              ))
+              filteredReports
+                .slice(0, 20)
+                .map((report: any) => (
+                  <ReportCard
+                    key={report.reportId ?? report.id}
+                    report={report}
+                    style={{ marginHorizontal: 0 }}
+                  />
+                ))
             )}
           </View>
         </ScrollView>
@@ -408,7 +420,6 @@ function Stat({ value, label }: { value: number | string; label: string }) {
     </View>
   );
 }
-
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.primary },
@@ -431,7 +442,14 @@ const styles = StyleSheet.create({
   },
   heroBadgeText: { fontSize: 10.5, fontWeight: '600', color: colors.mint },
   hello: { fontSize: 14, fontWeight: '600', color: colors.mint, marginBottom: 6 },
-  heroTitle: { fontSize: 34, lineHeight: 40, fontWeight: '800', color: '#fff', letterSpacing: -0.8, marginBottom: 10 },
+  heroTitle: {
+    fontSize: 34,
+    lineHeight: 40,
+    fontWeight: '800',
+    color: '#fff',
+    letterSpacing: -0.8,
+    marginBottom: 10,
+  },
   heroSub: { maxWidth: 330, fontSize: 14, lineHeight: 21, color: colors.mint },
 
   sheet: {
@@ -476,7 +494,13 @@ const styles = StyleSheet.create({
   stat: { flex: 1, alignItems: 'center' },
   statDivider: { width: 1, height: 32, backgroundColor: colors.border },
   statValue: { fontSize: 26, fontWeight: '800', color: colors.gray[900] },
-  statLabel: { fontSize: 10, fontWeight: '800', color: colors.gray[500], letterSpacing: 0.8, marginTop: 2 },
+  statLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: colors.gray[500],
+    letterSpacing: 0.8,
+    marginTop: 2,
+  },
 
   nextCard: {
     backgroundColor: '#fff',
@@ -486,13 +510,29 @@ const styles = StyleSheet.create({
     padding: 18,
     marginBottom: 12,
   },
-  nextTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
+  nextTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
   liveRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   liveDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.accent },
   liveText: { fontSize: 10, fontWeight: '800', color: '#22a05a', letterSpacing: 0.9 },
-  overduePill: { backgroundColor: '#fee2e2', borderRadius: 6, paddingHorizontal: 9, paddingVertical: 3 },
+  overduePill: {
+    backgroundColor: '#fee2e2',
+    borderRadius: 6,
+    paddingHorizontal: 9,
+    paddingVertical: 3,
+  },
   overdueText: { fontSize: 10.5, fontWeight: '800', color: '#b91c1c' },
-  nextTitle: { fontSize: 19, fontWeight: '800', color: colors.gray[900], letterSpacing: -0.3, marginBottom: 10 },
+  nextTitle: {
+    fontSize: 19,
+    fontWeight: '800',
+    color: colors.gray[900],
+    letterSpacing: -0.3,
+    marginBottom: 10,
+  },
   nextMeta: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 5 },
   nextMetaText: { flex: 1, fontSize: 13, color: colors.gray[500] },
   nextButton: {
@@ -540,7 +580,13 @@ const styles = StyleSheet.create({
   },
   linkText: { fontSize: 13.5, fontWeight: '700', color: colors.primary },
 
-  sectionTitle: { fontSize: 20, fontWeight: '800', color: colors.gray[900], letterSpacing: -0.3, marginTop: 20 },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: colors.gray[900],
+    letterSpacing: -0.3,
+    marginTop: 20,
+  },
   sectionSub: { fontSize: 12.5, color: colors.gray[500], marginTop: 3, marginBottom: 12 },
   mapCard: {
     backgroundColor: '#fff',
@@ -560,12 +606,23 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   osmText: { fontSize: 9.5, fontWeight: '700', color: '#fff' },
-  mapEmpty: { height: 150, alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#f1f5f3' },
+  mapEmpty: {
+    height: 150,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#f1f5f3',
+  },
   mapEmptyText: { fontSize: 13, color: colors.gray[500] },
   mapFooter: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 14 },
   mapFooterText: { flex: 1, fontSize: 13, fontWeight: '600', color: colors.gray[700] },
 
-  reportsHeader: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 12 },
+  reportsHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
   count: { fontSize: 12, fontWeight: '700', color: colors.primary, marginBottom: 2 },
   chipRow: { gap: 8, paddingRight: 8 },
   chip: {
@@ -604,5 +661,10 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   emptyTitle: { fontSize: 15, fontWeight: '700', color: colors.gray[700] },
-  emptyText: { fontSize: 12.5, color: colors.gray[500], textAlign: 'center', paddingHorizontal: 24 },
+  emptyText: {
+    fontSize: 12.5,
+    color: colors.gray[500],
+    textAlign: 'center',
+    paddingHorizontal: 24,
+  },
 });

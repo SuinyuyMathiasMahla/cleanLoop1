@@ -63,7 +63,13 @@ export default function TasksList() {
 
   const visible = useMemo(() => {
     const list =
-      filter === 'all' ? mine : filter === 'pending' ? todo : filter === 'in_progress' ? inProgress : done;
+      filter === 'all'
+        ? mine
+        : filter === 'pending'
+          ? todo
+          : filter === 'in_progress'
+            ? inProgress
+            : done;
     return sortBySchedule(list);
   }, [filter, mine, todo, inProgress, done]);
 
@@ -99,7 +105,9 @@ export default function TasksList() {
               >
                 <Text style={[styles.chipText, active && styles.chipTextActive]}>{item.label}</Text>
                 <View style={[styles.chipBadge, active && styles.chipBadgeActive]}>
-                  <Text style={[styles.chipBadgeText, active && { color: '#fff' }]}>{counts[item.key]}</Text>
+                  <Text style={[styles.chipBadgeText, active && { color: '#fff' }]}>
+                    {counts[item.key]}
+                  </Text>
                 </View>
               </TouchableOpacity>
             );
@@ -154,9 +162,25 @@ export default function TasksList() {
                   {task.addresses?.[0] ?? 'No location'}
                 </Text>
                 <View style={styles.metaRow}>
-                  <Meta icon="calendar-outline" text={new Date(task.scheduledAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} danger={overdue} />
-                  <Meta icon="time-outline" text={new Date(task.scheduledAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })} />
-                  <Meta icon="document-text-outline" text={`${(task.reportIds ?? []).length} rep.`} />
+                  <Meta
+                    icon="calendar-outline"
+                    text={new Date(task.scheduledAt).toLocaleDateString(undefined, {
+                      month: 'short',
+                      day: 'numeric',
+                    })}
+                    danger={overdue}
+                  />
+                  <Meta
+                    icon="time-outline"
+                    text={new Date(task.scheduledAt).toLocaleTimeString(undefined, {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  />
+                  <Meta
+                    icon="document-text-outline"
+                    text={`${(task.reportIds ?? []).length} rep.`}
+                  />
                 </View>
               </View>
               <Ionicons name="chevron-forward" size={17} color={colors.gray[300]} />

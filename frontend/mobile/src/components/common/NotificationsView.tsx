@@ -1,5 +1,12 @@
 import React, { useCallback, useMemo } from 'react';
-import { View, Text, SectionList, TouchableOpacity, RefreshControl, StyleSheet } from 'react-native';
+import {
+  View,
+  Text,
+  SectionList,
+  TouchableOpacity,
+  RefreshControl,
+  StyleSheet,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from 'expo-router';
@@ -14,11 +21,11 @@ import { colors } from '@/theme/colors';
 
 const TYPE_STYLE: Record<string, { icon: any; bg: string; color: string }> = {
   task_assigned: { icon: 'clipboard', bg: '#d1fae5', color: '#065f46' },
-  task_updated:  { icon: 'create', bg: '#dbeafe', color: '#1e40af' },
-  report_new:    { icon: 'alert-circle', bg: '#fef3c7', color: '#92400e' },
+  task_updated: { icon: 'create', bg: '#dbeafe', color: '#1e40af' },
+  report_new: { icon: 'alert-circle', bg: '#fef3c7', color: '#92400e' },
   report_resolved: { icon: 'checkmark-circle', bg: '#d1fae5', color: '#065f46' },
-  task_overdue:  { icon: 'time', bg: '#fee2e2', color: '#b91c1c' },
-  general:       { icon: 'megaphone', bg: colors.primaryLight, color: colors.primary },
+  task_overdue: { icon: 'time', bg: '#fee2e2', color: '#b91c1c' },
+  general: { icon: 'megaphone', bg: colors.primaryLight, color: colors.primary },
 };
 
 function idOf(n: Notification) {
@@ -35,8 +42,8 @@ function groupByDate(items: Notification[]) {
       d.toDateString() === today
         ? 'Today'
         : d.toDateString() === yesterday
-        ? 'Yesterday'
-        : d.toLocaleDateString(undefined, { month: 'long', day: 'numeric' });
+          ? 'Yesterday'
+          : d.toLocaleDateString(undefined, { month: 'long', day: 'numeric' });
     groups.set(label, [...(groups.get(label) ?? []), n]);
   });
   return Array.from(groups, ([title, data]) => ({ title, data }));
@@ -44,8 +51,16 @@ function groupByDate(items: Notification[]) {
 
 export function NotificationsView({ role }: { role: AppRole }) {
   const router = useRouter();
-  const { notifications, unreadCount, isLoading, error, fetchNotifications, markRead, markAllRead, remove } =
-    useNotificationStore();
+  const {
+    notifications,
+    unreadCount,
+    isLoading,
+    error,
+    fetchNotifications,
+    markRead,
+    markAllRead,
+    remove,
+  } = useNotificationStore();
 
   // Refresh whenever the tab gains focus so the list and badge stay current
   useFocusEffect(
@@ -124,7 +139,10 @@ export function NotificationsView({ role }: { role: AppRole }) {
                 </View>
                 <View style={styles.body}>
                   <View style={styles.topRow}>
-                    <Text style={[styles.title, !item.read && styles.titleUnread]} numberOfLines={1}>
+                    <Text
+                      style={[styles.title, !item.read && styles.titleUnread]}
+                      numberOfLines={1}
+                    >
                       {item.title}
                     </Text>
                     <Text style={styles.time}>{timeAgo(item.createdAt)}</Text>

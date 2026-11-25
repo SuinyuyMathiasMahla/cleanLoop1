@@ -79,11 +79,7 @@ export default function StatusScreen() {
             returnKeyType="search"
           />
 
-          <Button
-            title="Check Status"
-            onPress={handleCheck}
-            loading={loading}
-          />
+          <Button title="Check Status" onPress={handleCheck} loading={loading} />
 
           {error ? (
             <View style={styles.errorBox}>

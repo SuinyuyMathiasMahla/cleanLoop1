@@ -26,10 +26,10 @@ function AuthGate() {
   useEffect(() => {
     if (isLoading) return;
 
-    const inAuthGroup    = segments[0] === 'auth';
-    const inGuestGroup   = segments[0] === '(guest)';
+    const inAuthGroup = segments[0] === 'auth';
+    const inGuestGroup = segments[0] === '(guest)';
     const inCitizenGroup = segments[0] === '(citizen)';
-    const inCrewGroup    = segments[0] === '(crew)';
+    const inCrewGroup = segments[0] === '(crew)';
 
     if (!user) {
       if (!inGuestGroup && !inAuthGroup) router.replace('/(guest)');

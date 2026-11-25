@@ -9,12 +9,12 @@ move from submitted to resolved.
 
 ## What is in this repository
 
-| Folder | What it is | Stack |
-| --- | --- | --- |
-| `Backend/` | AWS infrastructure and API functions | AWS CDK v2, TypeScript, Lambda, API Gateway, Cognito, DynamoDB, S3, SES |
-| `Frontend/mobile/` | Citizen and crew app, with a guest mode | Expo (React Native), Expo Router, Zustand |
-| `Frontend/web/` | Admin portal: reports, tasks, crews and a map | React, Vite, Tailwind CSS, React Leaflet |
-| `Docs/` | Requirements, diagrams, decision records, meeting notes | |
+| Folder             | What it is                                              | Stack                                                                   |
+| ------------------ | ------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `Backend/`         | AWS infrastructure and API functions                    | AWS CDK v2, TypeScript, Lambda, API Gateway, Cognito, DynamoDB, S3, SES |
+| `Frontend/mobile/` | Citizen and crew app, with a guest mode                 | Expo (React Native), Expo Router, Zustand                               |
+| `Frontend/web/`    | Admin portal: reports, tasks, crews and a map           | React, Vite, Tailwind CSS, React Leaflet                                |
+| `Docs/`            | Requirements, diagrams, decision records, meeting notes |                                                                         |
 
 The folders will be renamed to lowercase (`backend/`, `frontend/`, `docs/`) in one
 Sprint 0 pull request, as set out in [CONTRIBUTING.md](CONTRIBUTING.md).
@@ -57,14 +57,14 @@ IDs the apps need. It is git-ignored because it names your account; never commit
 
 The CDK app reads these from `Backend/.env` (also git-ignored):
 
-| Variable | Purpose |
-| --- | --- |
-| `STAGE` | `dev`, `staging` or `prod` (default `dev`; `--context stage=` wins) |
-| `AWS_ACCOUNT`, `AWS_REGION` | Target account and region (default region `us-east-1`) |
-| `SES_FROM_EMAIL` | Verified SES sender for reminder and notification emails |
-| `GOOGLE_MAPS_API_KEY` | Geocoding for report locations and crew distances |
-| `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET` | Optional Google sign-in through Cognito |
-| `MAX_AUTO_ASSIGN_DISTANCE_KM` | Furthest crew distance for automatic assignment |
+| Variable                                               | Purpose                                                             |
+| ------------------------------------------------------ | ------------------------------------------------------------------- |
+| `STAGE`                                                | `dev`, `staging` or `prod` (default `dev`; `--context stage=` wins) |
+| `AWS_ACCOUNT`, `AWS_REGION`                            | Target account and region (default region `us-east-1`)              |
+| `SES_FROM_EMAIL`                                       | Verified SES sender for reminder and notification emails            |
+| `GOOGLE_MAPS_API_KEY`                                  | Geocoding for report locations and crew distances                   |
+| `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET` | Optional Google sign-in through Cognito                             |
+| `MAX_AUTO_ASSIGN_DISTANCE_KM`                          | Furthest crew distance for automatic assignment                     |
 
 ### Mobile app
 
@@ -117,8 +117,8 @@ pull request.
 
 ## Team
 
-| Role | Name |
-| --- | --- |
+| Role          | Name    |
+| ------------- | ------- |
 | Product Owner | Mathias |
-| Scrum Master | Bryan |
-| AI lead | Imele |
+| Scrum Master  | Bryan   |
+| AI lead       | Imele   |

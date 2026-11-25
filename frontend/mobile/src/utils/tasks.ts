@@ -54,12 +54,13 @@ export function sortBySchedule<T extends TaskLike>(tasks: T[]): T[] {
   });
 }
 
-export const TASK_STATUS: Record<string, { label: string; bg: string; color: string; icon: any }> = {
-  scheduled:   { label: 'Scheduled',   bg: '#fef3c7', color: '#92400e', icon: 'time' },
-  pending:     { label: 'Pending',     bg: '#fef3c7', color: '#92400e', icon: 'time' },
-  assigned:    { label: 'Assigned',    bg: '#dbeafe', color: '#1e40af', icon: 'person-circle' },
-  in_progress: { label: 'In progress', bg: '#d9f2e3', color: '#0f3d2e', icon: 'play-circle' },
-  completed:   { label: 'Done',        bg: '#d1fae5', color: '#065f46', icon: 'checkmark-circle' },
-  cancelled:   { label: 'Cancelled',   bg: '#f1f5f3', color: '#6b7c76', icon: 'close-circle' },
-  overdue:     { label: 'Overdue',     bg: '#fee2e2', color: '#b91c1c', icon: 'alert-circle' },
-};
+export const TASK_STATUS: Record<string, { label: string; bg: string; color: string; icon: any }> =
+  {
+    scheduled: { label: 'Scheduled', bg: '#fef3c7', color: '#92400e', icon: 'time' },
+    pending: { label: 'Pending', bg: '#fef3c7', color: '#92400e', icon: 'time' },
+    assigned: { label: 'Assigned', bg: '#dbeafe', color: '#1e40af', icon: 'person-circle' },
+    in_progress: { label: 'In progress', bg: '#d9f2e3', color: '#0f3d2e', icon: 'play-circle' },
+    completed: { label: 'Done', bg: '#d1fae5', color: '#065f46', icon: 'checkmark-circle' },
+    cancelled: { label: 'Cancelled', bg: '#f1f5f3', color: '#6b7c76', icon: 'close-circle' },
+    overdue: { label: 'Overdue', bg: '#fee2e2', color: '#b91c1c', icon: 'alert-circle' },
+  };

@@ -17,7 +17,7 @@ export function LoadingSpinner({ size = 'md', className }: Props) {
       className={clsx(
         'animate-spin rounded-full border-current border-t-transparent',
         sizes[size],
-        className
+        className,
       )}
       role="status"
       aria-label="Loading"

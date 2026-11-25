@@ -69,11 +69,9 @@ export default function VerifyScreen() {
     clearError();
     try {
       await confirmOtp(pendingEmail, code);
-      Alert.alert(
-        'Email Verified!',
-        'Your account is ready. Please sign in.',
-        [{ text: 'Sign In', onPress: () => router.replace('/auth/login') }]
-      );
+      Alert.alert('Email Verified!', 'Your account is ready. Please sign in.', [
+        { text: 'Sign In', onPress: () => router.replace('/auth/login') },
+      ]);
     } catch {
       // error shown via store.error
     }
@@ -125,7 +123,9 @@ export default function VerifyScreen() {
             {otp.map((digit, index) => (
               <TextInput
                 key={index}
-                ref={(ref) => { inputs.current[index] = ref; }}
+                ref={(ref) => {
+                  inputs.current[index] = ref;
+                }}
                 style={[styles.otpInput, digit ? styles.otpInputFilled : {}]}
                 value={digit}
                 onChangeText={(val) => handleChange(val, index)}
@@ -154,10 +154,7 @@ export default function VerifyScreen() {
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity
-            style={styles.backBtn}
-            onPress={() => router.back()}
-          >
+          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={16} color={colors.gray[500]} />
             <Text style={styles.backText}>Back to register</Text>
           </TouchableOpacity>

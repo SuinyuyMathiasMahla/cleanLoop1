@@ -70,10 +70,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 
       // Lambda returns { data: [...], notifications: [...] } — check all shapes
       const notifications: Notification[] =
-        response.data?.data ??
-        response.data?.notifications ??
-        response.data?.items ??
-        [];
+        response.data?.data ?? response.data?.notifications ?? response.data?.items ?? [];
 
       const unreadCount = notifications.filter((n) => !n.read).length;
       set({ notifications, unreadCount, isLoading: false });
@@ -87,7 +84,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       await notificationsApi.markRead(id);
       set((state) => {
         const notifications = state.notifications.map((n) =>
-          (n.notificationId ?? n.id) === id ? { ...n, read: true } : n
+          (n.notificationId ?? n.id) === id ? { ...n, read: true } : n,
         );
         return { notifications, unreadCount: notifications.filter((n) => !n.read).length };
       });
@@ -151,7 +148,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       const projectId =
         Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
       const { data: token } = await Notifications.getExpoPushTokenAsync(
-        projectId ? { projectId } : undefined
+        projectId ? { projectId } : undefined,
       );
 
       if (!token || token === lastRegisteredToken) return;

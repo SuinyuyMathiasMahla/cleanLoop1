@@ -16,7 +16,7 @@ export function Modal({ isOpen, onClose, title, children, size = 'md', footer }:
     (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     },
-    [onClose]
+    [onClose],
   );
 
   useEffect(() => {
@@ -51,7 +51,7 @@ export function Modal({ isOpen, onClose, title, children, size = 'md', footer }:
       <div
         className={clsx(
           'relative bg-white rounded-xl shadow-2xl w-full flex flex-col max-h-[90vh]',
-          sizes[size]
+          sizes[size],
         )}
         role="dialog"
         aria-modal="true"
@@ -71,9 +71,7 @@ export function Modal({ isOpen, onClose, title, children, size = 'md', footer }:
           </button>
         </div>
         {/* Body */}
-        <div className="overflow-y-auto flex-1 px-6 py-4">
-          {children}
-        </div>
+        <div className="overflow-y-auto flex-1 px-6 py-4">{children}</div>
         {/* Footer */}
         {footer && (
           <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-end gap-3">

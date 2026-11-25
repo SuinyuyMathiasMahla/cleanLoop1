@@ -1,8 +1,22 @@
 // Use case diagram v3: UML-correct actors, subject areas, include/extend, releases. Renders as HTML for Chrome at 3x.
 const fs = require('fs');
 const path = require('path');
-const K = { esp: '#3A2A22', body: '#5E524B', muted: '#7A6C63', light: '#F2EDE8', card: '#FDFBF9', line: '#DCD2CA', clay: '#8A6A56', terra: '#B5653A', peach: '#F2C9A8', lane: '#F5F0EB', ai: '#F3E6DD', aiLine: '#C9A792' };
-const W = 1664, H = 700;
+const K = {
+  esp: '#3A2A22',
+  body: '#5E524B',
+  muted: '#7A6C63',
+  light: '#F2EDE8',
+  card: '#FDFBF9',
+  line: '#DCD2CA',
+  clay: '#8A6A56',
+  terra: '#B5653A',
+  peach: '#F2C9A8',
+  lane: '#F5F0EB',
+  ai: '#F3E6DD',
+  aiLine: '#C9A792',
+};
+const W = 1664,
+  H = 700;
 
 const css = `
 *{box-sizing:border-box;margin:0}
@@ -37,7 +51,8 @@ function draw(edges){const NS='http://www.w3.org/2000/svg';const svg=document.cr
   if(e.label){const d=document.createElement('p');d.className='lab';d.textContent=e.label;d.style.left=e.lp[0]+'px';d.style.top=e.lp[1]+'px';document.body.appendChild(d);}}
  document.body.insertBefore(svg,document.querySelector('.uc'));}
 `;
-const fig = (id, cx, cy, label) => `<div id="${id}" class="act" style="left:${cx - 75}px;top:${cy - 36}px"><svg width="34" height="56" viewBox="0 0 36 60"><circle cx="18" cy="9" r="8" fill="none" stroke="${K.esp}" stroke-width="2.4"/><path d="M18 17v22M4 26h28M18 39L6 58M18 39l12 19" fill="none" stroke="${K.esp}" stroke-width="2.4" stroke-linecap="round"/></svg><p>${label}</p></div>`;
+const fig = (id, cx, cy, label) =>
+  `<div id="${id}" class="act" style="left:${cx - 75}px;top:${cy - 36}px"><svg width="34" height="56" viewBox="0 0 36 60"><circle cx="18" cy="9" r="8" fill="none" stroke="${K.esp}" stroke-width="2.4"/><path d="M18 17v22M4 26h28M18 39L6 58M18 39l12 19" fill="none" stroke="${K.esp}" stroke-width="2.4" stroke-linecap="round"/></svg><p>${label}</p></div>`;
 const { body, edges } = require('./uc-layout.js')(K, fig);
 const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400..700&family=Instrument+Serif&display=block" rel="stylesheet"><style>${css}</style></head><body>
 ${body}

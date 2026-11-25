@@ -1,7 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  FileText, Clock, TrendingUp, CheckCircle, RefreshCw, ArrowRight, Users, MapPin,
+  FileText,
+  Clock,
+  TrendingUp,
+  CheckCircle,
+  RefreshCw,
+  ArrowRight,
+  Users,
+  MapPin,
 } from 'lucide-react';
 import { format, formatDistanceToNow, isValid } from 'date-fns';
 import { useReportStore } from '../store/reportStore';
@@ -98,9 +105,11 @@ export function DashboardPage() {
           return {
             ...member,
             monthlyCompleted: completed.length,
-            monthlyOnTimeRate: completed.length ? Math.round((onTime.length / completed.length) * 100) : 0,
+            monthlyOnTimeRate: completed.length
+              ? Math.round((onTime.length / completed.length) * 100)
+              : 0,
           };
-        })
+        }),
       );
     } catch (err) {
       console.error('Failed to load dashboard data', err);
@@ -125,7 +134,7 @@ export function DashboardPage() {
   const pct = (n: number) => (total ? Math.round((n / total) * 100) : 0);
 
   const sortedCrew = [...crewRecords].sort(
-    (a, b) => (b.monthlyCompleted ?? 0) - (a.monthlyCompleted ?? 0)
+    (a, b) => (b.monthlyCompleted ?? 0) - (a.monthlyCompleted ?? 0),
   );
 
   const statCards = [
@@ -188,10 +197,15 @@ export function DashboardPage() {
         {statCards.map((card) => {
           const Icon = card.icon;
           return (
-            <div key={card.label} className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
+            <div
+              key={card.label}
+              className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm"
+            >
               <div className="flex items-center justify-between">
                 <p className="text-sm font-medium text-gray-500">{card.label}</p>
-                <div className={clsx('w-9 h-9 rounded-xl flex items-center justify-center', card.tint)}>
+                <div
+                  className={clsx('w-9 h-9 rounded-xl flex items-center justify-center', card.tint)}
+                >
                   <Icon className="w-[18px] h-[18px]" />
                 </div>
               </div>
@@ -202,7 +216,9 @@ export function DashboardPage() {
                 </>
               ) : (
                 <>
-                  <p className="text-4xl font-bold tracking-tight text-gray-900 mt-3 tabular-nums">{card.value}</p>
+                  <p className="text-4xl font-bold tracking-tight text-gray-900 mt-3 tabular-nums">
+                    {card.value}
+                  </p>
                   <p className="text-xs text-gray-400 mt-1.5">{card.hint}</p>
                 </>
               )}
@@ -216,7 +232,9 @@ export function DashboardPage() {
         {/* Breakdown */}
         <section className="xl:col-span-2 bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
           <h2 className="font-semibold text-gray-900">Where reports stand</h2>
-          <p className="text-xs text-gray-400 mt-0.5">Share of {total} report{total === 1 ? '' : 's'} by status</p>
+          <p className="text-xs text-gray-400 mt-0.5">
+            Share of {total} report{total === 1 ? '' : 's'} by status
+          </p>
 
           <div className="mt-5 flex h-3 w-full overflow-hidden rounded-full bg-gray-100">
             {!isLoading &&
@@ -229,7 +247,7 @@ export function DashboardPage() {
                     style={{ width: `${(s.count / total) * 100}%` }}
                     title={`${s.label}: ${s.count}`}
                   />
-                ) : null
+                ) : null,
               )}
           </div>
 
@@ -242,7 +260,9 @@ export function DashboardPage() {
                 </span>
                 <span className="tabular-nums text-gray-900 font-semibold">
                   {isLoading ? '-' : s.count}
-                  <span className="ml-2 text-xs font-normal text-gray-400">{isLoading ? '' : `${pct(s.count)}%`}</span>
+                  <span className="ml-2 text-xs font-normal text-gray-400">
+                    {isLoading ? '' : `${pct(s.count)}%`}
+                  </span>
                 </span>
               </li>
             ))}
@@ -272,7 +292,9 @@ export function DashboardPage() {
               ))}
             </div>
           ) : sortedCrew.length === 0 ? (
-            <p className="px-5 py-8 text-sm text-gray-500 text-center">Crew monthly records will appear here.</p>
+            <p className="px-5 py-8 text-sm text-gray-500 text-center">
+              Crew monthly records will appear here.
+            </p>
           ) : (
             <ul className="divide-y divide-gray-100">
               {sortedCrew.map((member) => {
@@ -286,13 +308,19 @@ export function DashboardPage() {
                       <div className="flex items-center justify-between gap-3">
                         <p className="truncate text-sm font-medium text-gray-900">{member.name}</p>
                         <p className="shrink-0 text-xs text-gray-500">
-                          <span className="font-semibold text-gray-900 tabular-nums">{member.monthlyCompleted}</span> completed
+                          <span className="font-semibold text-gray-900 tabular-nums">
+                            {member.monthlyCompleted}
+                          </span>{' '}
+                          completed
                         </p>
                       </div>
                       <div className="mt-2 flex items-center gap-3">
                         <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-gray-100">
                           <div
-                            className={clsx('h-full rounded-full', hasWork ? rateColor(member.monthlyOnTimeRate) : 'bg-gray-200')}
+                            className={clsx(
+                              'h-full rounded-full',
+                              hasWork ? rateColor(member.monthlyOnTimeRate) : 'bg-gray-200',
+                            )}
                             style={{ width: `${hasWork ? member.monthlyOnTimeRate : 0}%` }}
                           />
                         </div>
@@ -318,7 +346,10 @@ export function DashboardPage() {
               <MapPin className="w-4 h-4 text-gray-400" />
               <h2 className="font-semibold text-gray-900">Live map</h2>
             </div>
-            <Link to="/reports" className="text-sm text-primary-600 hover:underline flex items-center gap-1">
+            <Link
+              to="/reports"
+              className="text-sm text-primary-600 hover:underline flex items-center gap-1"
+            >
               All reports <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
@@ -340,7 +371,10 @@ export function DashboardPage() {
             <h2 className="font-semibold text-gray-900">Recent reports</h2>
             <span className="text-xs text-gray-400">{recentReports.length} latest</span>
           </div>
-          <div className="flex-1 overflow-y-auto divide-y divide-gray-100" style={{ maxHeight: '420px' }}>
+          <div
+            className="flex-1 overflow-y-auto divide-y divide-gray-100"
+            style={{ maxHeight: '420px' }}
+          >
             {isLoading ? (
               <div className="p-4 space-y-4">
                 {Array.from({ length: 5 }).map((_, i) => (
@@ -354,7 +388,10 @@ export function DashboardPage() {
                 ))}
               </div>
             ) : recentReports.length === 0 ? (
-              <EmptyState title="No reports yet" description="Reports submitted by citizens will appear here." />
+              <EmptyState
+                title="No reports yet"
+                description="Reports submitted by citizens will appear here."
+              />
             ) : (
               recentReports.map((report) => (
                 <button
@@ -381,7 +418,10 @@ export function DashboardPage() {
           </div>
           {recentReports.length > 0 && (
             <div className="px-5 py-3 border-t border-gray-100">
-              <Link to="/reports" className="text-sm text-primary-600 hover:underline flex items-center justify-center gap-1">
+              <Link
+                to="/reports"
+                className="text-sm text-primary-600 hover:underline flex items-center justify-center gap-1"
+              >
                 View all reports <ArrowRight className="w-3 h-3" />
               </Link>
             </div>

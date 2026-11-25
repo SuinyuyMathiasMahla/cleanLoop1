@@ -27,12 +27,7 @@ export function EmptyState({
       <Text style={styles.title}>{title}</Text>
       {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
       {actionLabel && onAction && (
-        <Button
-          title={actionLabel}
-          onPress={onAction}
-          style={styles.button}
-          fullWidth={false}
-        />
+        <Button title={actionLabel} onPress={onAction} style={styles.button} fullWidth={false} />
       )}
     </View>
   );

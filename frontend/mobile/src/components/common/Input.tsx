@@ -18,13 +18,7 @@ interface InputProps extends TextInputProps {
   containerStyle?: ViewStyle;
 }
 
-export function Input({
-  label,
-  error,
-  secure = false,
-  containerStyle,
-  ...props
-}: InputProps) {
+export function Input({ label, error, secure = false, containerStyle, ...props }: InputProps) {
   const [showPassword, setShowPassword] = useState(false);
 
   return (

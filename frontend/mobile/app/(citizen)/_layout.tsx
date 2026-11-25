@@ -19,7 +19,10 @@ export default function CitizenLayout() {
       />
       <Tabs.Screen
         name="tabs/my-reports"
-        options={{ title: 'Reports', tabBarIcon: tabIcon('document-text', 'document-text-outline') }}
+        options={{
+          title: 'Reports',
+          tabBarIcon: tabIcon('document-text', 'document-text-outline'),
+        }}
       />
       <Tabs.Screen
         name="tabs/notifications"

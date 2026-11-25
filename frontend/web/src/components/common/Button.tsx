@@ -21,11 +21,13 @@ export function Button({
   disabled,
   ...props
 }: ButtonProps) {
-  const base = 'inline-flex items-center justify-center font-medium rounded-lg transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed';
+  const base =
+    'inline-flex items-center justify-center font-medium rounded-lg transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed';
 
   const variants = {
     primary: 'bg-primary-600 hover:bg-primary-700 text-white focus:ring-primary-500 shadow-sm',
-    secondary: 'bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 focus:ring-primary-500 shadow-sm',
+    secondary:
+      'bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 focus:ring-primary-500 shadow-sm',
     danger: 'bg-red-600 hover:bg-red-700 text-white focus:ring-red-500 shadow-sm',
     ghost: 'bg-transparent hover:bg-gray-100 text-gray-600 focus:ring-gray-300',
   };
@@ -42,9 +44,7 @@ export function Button({
       disabled={disabled || isLoading}
       {...props}
     >
-      {isLoading ? (
-        <LoadingSpinner size="sm" className="text-current" />
-      ) : leftIcon}
+      {isLoading ? <LoadingSpinner size="sm" className="text-current" /> : leftIcon}
       {children}
       {!isLoading && rightIcon}
     </button>

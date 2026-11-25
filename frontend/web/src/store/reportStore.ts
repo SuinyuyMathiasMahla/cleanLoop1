@@ -100,12 +100,11 @@ export const useReportStore = create<ReportState>((set, get) => ({
     try {
       await reportsApi.updateStatus(id, status);
       set((state) => ({
-        reports: state.reports.map((r) =>
-          r.reportId === id ? { ...r, status } : r
-        ),
-        selectedReport: state.selectedReport?.reportId === id
-          ? { ...state.selectedReport, status }
-          : state.selectedReport,
+        reports: state.reports.map((r) => (r.reportId === id ? { ...r, status } : r)),
+        selectedReport:
+          state.selectedReport?.reportId === id
+            ? { ...state.selectedReport, status }
+            : state.selectedReport,
       }));
     } catch (err) {
       set({ error: err instanceof Error ? err.message : 'Failed to update status' });

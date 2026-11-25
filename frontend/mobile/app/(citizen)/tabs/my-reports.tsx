@@ -120,9 +120,7 @@ export default function MyReportsScreen() {
         <FlatList
           data={filtered}
           keyExtractor={(item, index) => item.reportId ?? item.id ?? String(index)}
-          renderItem={({ item }) => (
-            <ReportCard report={item as any} style={styles.card} />
-          )}
+          renderItem={({ item }) => <ReportCard report={item as any} style={styles.card} />}
           contentContainerStyle={[styles.list, filtered.length === 0 && { flex: 1 }]}
           ListEmptyComponent={
             <EmptyState
@@ -132,8 +130,8 @@ export default function MyReportsScreen() {
                 filter !== 'all'
                   ? 'No reports with this status.'
                   : scope === 'mine'
-                  ? "You haven't submitted any reports yet."
-                  : 'No reports in your community yet.'
+                    ? "You haven't submitted any reports yet."
+                    : 'No reports in your community yet.'
               }
               actionLabel={filter === 'all' && scope === 'mine' ? 'Report an issue' : undefined}
               onAction={

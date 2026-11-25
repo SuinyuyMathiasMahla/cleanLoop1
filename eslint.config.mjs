@@ -38,7 +38,10 @@ export default tseslint.config(
       // Existing code uses `any` widely; CONTRIBUTING.md bans it in new code.
       // Kept as a warning until the redesign removes it, then raised to error.
       '@typescript-eslint/no-explicit-any': 'warn',
-      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
+      ],
     },
   },
   prettier,

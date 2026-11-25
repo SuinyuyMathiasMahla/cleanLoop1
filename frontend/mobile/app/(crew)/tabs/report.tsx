@@ -1,5 +1,13 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, RefreshControl, StyleSheet } from 'react-native';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  Image,
+  RefreshControl,
+  StyleSheet,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useFocusEffect } from 'expo-router';
@@ -17,12 +25,19 @@ interface Participant {
   isMe: boolean;
 }
 
-type RecordTask = Task & { evidencePhotos?: string[]; completedAt?: string; updatedAt?: string; [k: string]: any };
+type RecordTask = Task & {
+  evidencePhotos?: string[];
+  completedAt?: string;
+  updatedAt?: string;
+  [k: string]: any;
+};
 
 /** id -> display name for every crew member we can look up (best effort). */
 async function loadCrewDirectory(): Promise<Record<string, string>> {
   try {
-    const { data } = await api.get<{ crew?: { crewId: string; name?: string; email?: string }[] }>('/crew');
+    const { data } = await api.get<{ crew?: { crewId: string; name?: string; email?: string }[] }>(
+      '/crew',
+    );
     const directory: Record<string, string> = {};
     (data.crew ?? []).forEach((m) => {
       const label = m.name || m.email;
@@ -175,7 +190,9 @@ export default function CrewRecord() {
                     <Ionicons name="checkmark" size={18} color="#065f46" />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.cardTitle} numberOfLines={1}>{task.title}</Text>
+                    <Text style={styles.cardTitle} numberOfLines={1}>
+                      {task.title}
+                    </Text>
                     <Text style={styles.cardDate}>{finishedAt(task).toLocaleDateString()}</Text>
                   </View>
                   <Ionicons name="chevron-forward" size={16} color={colors.gray[300]} />
@@ -209,7 +226,11 @@ export default function CrewRecord() {
                 )}
 
                 {!!task.evidencePhotos?.length && (
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.photoStrip}>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    style={styles.photoStrip}
+                  >
                     {task.evidencePhotos.map((uri, i) => (
                       <Image key={`${taskIdOf(task)}-${i}`} source={{ uri }} style={styles.photo} />
                     ))}
@@ -224,7 +245,15 @@ export default function CrewRecord() {
   );
 }
 
-function Stat({ value, label, divider }: { value: number | string; label: string; divider?: boolean }) {
+function Stat({
+  value,
+  label,
+  divider,
+}: {
+  value: number | string;
+  label: string;
+  divider?: boolean;
+}) {
   return (
     <View style={[styles.stat, divider && styles.statDivider]}>
       <Text style={styles.statValue}>{value}</Text>
@@ -247,9 +276,21 @@ const styles = StyleSheet.create({
   stat: { flex: 1, alignItems: 'center' },
   statDivider: { borderLeftWidth: 1, borderLeftColor: colors.border },
   statValue: { fontSize: 24, fontWeight: '800', color: colors.gray[900] },
-  statLabel: { fontSize: 10, fontWeight: '800', color: colors.gray[500], letterSpacing: 0.8, marginTop: 3 },
+  statLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: colors.gray[500],
+    letterSpacing: 0.8,
+    marginTop: 3,
+  },
 
-  sectionLabel: { fontSize: 11, fontWeight: '800', color: colors.gray[500], letterSpacing: 0.9, marginBottom: 10 },
+  sectionLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: colors.gray[500],
+    letterSpacing: 0.9,
+    marginBottom: 10,
+  },
   empty: {
     alignItems: 'center',
     gap: 8,
@@ -297,5 +338,11 @@ const styles = StyleSheet.create({
   crewChipLead: { backgroundColor: '#fef3c7' },
   crewChipText: { fontSize: 13, fontWeight: '600', color: colors.gray[700], flexShrink: 1 },
   photoStrip: { marginTop: 12 },
-  photo: { width: 112, height: 92, borderRadius: 1, marginRight: 8, backgroundColor: colors.gray[100] },
+  photo: {
+    width: 112,
+    height: 92,
+    borderRadius: 1,
+    marginRight: 8,
+    backgroundColor: colors.gray[100],
+  },
 });

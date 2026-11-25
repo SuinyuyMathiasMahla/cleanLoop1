@@ -23,8 +23,8 @@ import { getCurrentLocation } from '@/services/location';
 type ReportType = 'overflow_bin' | 'illegal_dumping';
 
 const DARK_BG = '#0d1f1a';
-const GREEN   = '#1a7a5e';
-const GREEN2  = '#00e5a0';
+const GREEN = '#1a7a5e';
+const GREEN2 = '#00e5a0';
 const CARD_BG = '#111f1a';
 
 export default function GuestReportScreen() {
@@ -41,12 +41,18 @@ export default function GuestReportScreen() {
   const [guestName, setGuestName] = useState('');
   const [guestPhone, setGuestPhone] = useState('');
   const [postPublic, setPostPublic] = useState(true);
-  const [location, setLocation] = useState<{ latitude: number; longitude: number; address: string } | null>(null);
+  const [location, setLocation] = useState<{
+    latitude: number;
+    longitude: number;
+    address: string;
+  } | null>(null);
   const [locationLoading, setLocationLoading] = useState(false);
   const [_locationError, setLocationError] = useState('');
   const [submittedId, setSubmittedId] = useState<string | null>(null);
 
-  useEffect(() => { fetchLocation(); }, []);
+  useEffect(() => {
+    fetchLocation();
+  }, []);
 
   async function fetchLocation() {
     setLocationLoading(true);
@@ -114,10 +120,20 @@ export default function GuestReportScreen() {
             <Text style={styles.idValue}>{submittedId}</Text>
           </View>
           <Text style={styles.idHint}>Save this ID to check your report status later.</Text>
-          <Button title="Check Status" onPress={() => router.replace('/(guest)/status')} style={styles.successBtn} />
+          <Button
+            title="Check Status"
+            onPress={() => router.replace('/(guest)/status')}
+            style={styles.successBtn}
+          />
           <Button
             title="Submit Another"
-            onPress={() => { setSubmittedId(null); setPhoto(null); setDescription(''); setGuestName(''); setGuestPhone(''); }}
+            onPress={() => {
+              setSubmittedId(null);
+              setPhoto(null);
+              setDescription('');
+              setGuestName('');
+              setGuestPhone('');
+            }}
             variant="ghost"
           />
         </View>
@@ -125,7 +141,14 @@ export default function GuestReportScreen() {
     );
   }
 
-  if (!permission) return <SafeAreaView style={styles.safe}><View style={styles.permissionContainer}><ActivityIndicator color={GREEN} /></View></SafeAreaView>;
+  if (!permission)
+    return (
+      <SafeAreaView style={styles.safe}>
+        <View style={styles.permissionContainer}>
+          <ActivityIndicator color={GREEN} />
+        </View>
+      </SafeAreaView>
+    );
 
   if (!permission.granted) {
     return (
@@ -133,8 +156,14 @@ export default function GuestReportScreen() {
         <View style={styles.permissionContainer}>
           <Ionicons name="camera-outline" size={56} color="#444" />
           <Text style={styles.permissionTitle}>Camera Access Needed</Text>
-          <Text style={styles.permissionSubtitle}>CleanLoop needs camera access to capture waste reports.</Text>
-          <Button title="Grant Camera Access" onPress={requestPermission} style={styles.permissionBtn} />
+          <Text style={styles.permissionSubtitle}>
+            CleanLoop needs camera access to capture waste reports.
+          </Text>
+          <Button
+            title="Grant Camera Access"
+            onPress={requestPermission}
+            style={styles.permissionBtn}
+          />
         </View>
       </SafeAreaView>
     );
@@ -142,14 +171,20 @@ export default function GuestReportScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
         {/* ── ANTI-FRAUD BANNER ── */}
         <View style={styles.fraudBanner}>
           <Ionicons name="shield-checkmark" size={14} color={GREEN2} />
           <View style={{ flex: 1 }}>
             <Text style={styles.fraudTitle}>ANTI-FRAUD PROTECTION ACTIVE</Text>
-            <Text style={styles.fraudSub}>Live Camera Capture Only — photo gallery uploads are disabled to ensure real-time reporting accuracy and instant location tagging.</Text>
+            <Text style={styles.fraudSub}>
+              Live Camera Capture Only — photo gallery uploads are disabled to ensure real-time
+              reporting accuracy and instant location tagging.
+            </Text>
           </View>
         </View>
 
@@ -158,13 +193,24 @@ export default function GuestReportScreen() {
           {photo ? (
             <>
               <Image source={{ uri: photo }} style={styles.camera} />
-              <TouchableOpacity style={styles.retakeBtn} onPress={() => { setPhoto(null); setCameraReady(false); }}>
+              <TouchableOpacity
+                style={styles.retakeBtn}
+                onPress={() => {
+                  setPhoto(null);
+                  setCameraReady(false);
+                }}
+              >
                 <Ionicons name="refresh" size={16} color="#fff" />
                 <Text style={styles.retakeBtnText}>Retake</Text>
               </TouchableOpacity>
             </>
           ) : (
-            <CameraView ref={cameraRef} style={styles.camera} facing="back" onCameraReady={() => setCameraReady(true)}>
+            <CameraView
+              ref={cameraRef}
+              style={styles.camera}
+              facing="back"
+              onCameraReady={() => setCameraReady(true)}
+            >
               {/* Top bar */}
               <View style={styles.camTopBar}>
                 <View style={styles.camPill}>
@@ -189,7 +235,7 @@ export default function GuestReportScreen() {
 
               {/* Horizon */}
               <View style={styles.horizonRow}>
-                <Text style={styles.horizonText}>⊕  HORIZON 0.0° LEVELED</Text>
+                <Text style={styles.horizonText}>⊕ HORIZON 0.0° LEVELED</Text>
               </View>
 
               <View style={styles.detectionRow}>
@@ -216,7 +262,12 @@ export default function GuestReportScreen() {
                   <Ionicons name="grid-outline" size={20} color="rgba(255,255,255,0.6)" />
                   <Text style={styles.camBottomLabel}>Grid</Text>
                 </View>
-                <TouchableOpacity style={[styles.captureBtn, !cameraReady && styles.captureBtnDisabled]} onPress={handleCapture} activeOpacity={0.85} disabled={!cameraReady}>
+                <TouchableOpacity
+                  style={[styles.captureBtn, !cameraReady && styles.captureBtnDisabled]}
+                  onPress={handleCapture}
+                  activeOpacity={0.85}
+                  disabled={!cameraReady}
+                >
                   <View style={styles.captureBtnRing}>
                     <View style={styles.captureBtnInner} />
                   </View>
@@ -242,8 +293,17 @@ export default function GuestReportScreen() {
               onPress={() => setReportType('overflow_bin')}
               activeOpacity={0.8}
             >
-              <Ionicons name="trash" size={13} color={reportType === 'overflow_bin' ? '#fff' : '#666'} />
-              <Text style={[styles.typeChipText, reportType === 'overflow_bin' && styles.typeChipTextSelected]}>
+              <Ionicons
+                name="trash"
+                size={13}
+                color={reportType === 'overflow_bin' ? '#fff' : '#666'}
+              />
+              <Text
+                style={[
+                  styles.typeChipText,
+                  reportType === 'overflow_bin' && styles.typeChipTextSelected,
+                ]}
+              >
                 Overflowing Public Bin
               </Text>
             </TouchableOpacity>
@@ -252,8 +312,17 @@ export default function GuestReportScreen() {
               onPress={() => setReportType('illegal_dumping')}
               activeOpacity={0.8}
             >
-              <Ionicons name="warning" size={13} color={reportType === 'illegal_dumping' ? '#fff' : '#b45309'} />
-              <Text style={[styles.typeChipText, reportType === 'illegal_dumping' && styles.typeChipTextSelected]}>
+              <Ionicons
+                name="warning"
+                size={13}
+                color={reportType === 'illegal_dumping' ? '#fff' : '#b45309'}
+              />
+              <Text
+                style={[
+                  styles.typeChipText,
+                  reportType === 'illegal_dumping' && styles.typeChipTextSelected,
+                ]}
+              >
                 Illegal Dumping Site
               </Text>
             </TouchableOpacity>
@@ -294,12 +363,27 @@ export default function GuestReportScreen() {
         {/* ── GUEST DETAILS ── */}
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Your Details (optional — for tracking)</Text>
-          <Input placeholder="Your name" value={guestName} onChangeText={setGuestName} autoCapitalize="words" />
-          <Input placeholder="Your phone number" value={guestPhone} onChangeText={setGuestPhone} keyboardType="phone-pad" />
+          <Input
+            placeholder="Your name"
+            value={guestName}
+            onChangeText={setGuestName}
+            autoCapitalize="words"
+          />
+          <Input
+            placeholder="Your phone number"
+            value={guestPhone}
+            onChangeText={setGuestPhone}
+            keyboardType="phone-pad"
+          />
         </View>
 
         <View style={styles.submitSection}>
-          <Button title="Submit Report" onPress={handleSubmit} loading={isSubmitting} disabled={!photo || !location} />
+          <Button
+            title="Submit Report"
+            onPress={handleSubmit}
+            loading={isSubmitting}
+            disabled={!photo || !location}
+          />
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -307,130 +391,280 @@ export default function GuestReportScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe:   { flex: 1, backgroundColor: DARK_BG },
+  safe: { flex: 1, backgroundColor: DARK_BG },
   scroll: { flexGrow: 1, paddingBottom: 40 },
 
   permissionContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
-  permissionTitle:    { fontSize: 20, fontWeight: '700', color: '#fff', marginTop: 20, marginBottom: 10, textAlign: 'center' },
-  permissionSubtitle: { fontSize: 14, color: '#888', textAlign: 'center', lineHeight: 20, marginBottom: 24 },
-  permissionBtn:      { width: '80%' },
+  permissionTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#fff',
+    marginTop: 20,
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  permissionSubtitle: {
+    fontSize: 14,
+    color: '#888',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 24,
+  },
+  permissionBtn: { width: '80%' },
 
   fraudBanner: {
-    flexDirection: 'row', alignItems: 'flex-start', gap: 10,
-    backgroundColor: '#0a1f18', borderBottomWidth: 1, borderBottomColor: '#1a3a2a',
-    paddingHorizontal: 16, paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    backgroundColor: '#0a1f18',
+    borderBottomWidth: 1,
+    borderBottomColor: '#1a3a2a',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
-  fraudTitle: { fontSize: 11, fontWeight: '800', color: GREEN2, letterSpacing: 0.5, marginBottom: 2 },
-  fraudSub:   { fontSize: 11, color: '#6b9e8a', lineHeight: 16 },
+  fraudTitle: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: GREEN2,
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  fraudSub: { fontSize: 11, color: '#6b9e8a', lineHeight: 16 },
 
   cameraWrapper: { height: 420, backgroundColor: '#000' },
-  camera:        { width: '100%', height: '100%' },
+  camera: { width: '100%', height: '100%' },
 
   camTopBar: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    paddingHorizontal: 14, paddingTop: 14, paddingBottom: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingTop: 14,
+    paddingBottom: 8,
   },
   camPill: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 6,
-    paddingHorizontal: 10, paddingVertical: 4,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
   },
   camPillText: { fontSize: 10, fontWeight: '700', color: '#fff', letterSpacing: 0.5 },
-  liveDot:     { width: 6, height: 6, borderRadius: 3, backgroundColor: '#ff4444' },
+  liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#ff4444' },
 
   cameraOverlay: { flex: 1, position: 'relative', justifyContent: 'center', alignItems: 'center' },
-  cornerTL: { position: 'absolute', top: 0, left: 20, width: 32, height: 32, borderTopWidth: 2, borderLeftWidth: 2, borderColor: GREEN2 },
-  cornerTR: { position: 'absolute', top: 0, right: 20, width: 32, height: 32, borderTopWidth: 2, borderRightWidth: 2, borderColor: GREEN2 },
-  cornerBL: { position: 'absolute', bottom: 0, left: 20, width: 32, height: 32, borderBottomWidth: 2, borderLeftWidth: 2, borderColor: GREEN2 },
-  cornerBR: { position: 'absolute', bottom: 0, right: 20, width: 32, height: 32, borderBottomWidth: 2, borderRightWidth: 2, borderColor: GREEN2 },
-  crossH:   { position: 'absolute', width: 20, height: 1, backgroundColor: GREEN2, opacity: 0.8 },
-  crossV:   { position: 'absolute', width: 1, height: 20, backgroundColor: GREEN2, opacity: 0.8 },
+  cornerTL: {
+    position: 'absolute',
+    top: 0,
+    left: 20,
+    width: 32,
+    height: 32,
+    borderTopWidth: 2,
+    borderLeftWidth: 2,
+    borderColor: GREEN2,
+  },
+  cornerTR: {
+    position: 'absolute',
+    top: 0,
+    right: 20,
+    width: 32,
+    height: 32,
+    borderTopWidth: 2,
+    borderRightWidth: 2,
+    borderColor: GREEN2,
+  },
+  cornerBL: {
+    position: 'absolute',
+    bottom: 0,
+    left: 20,
+    width: 32,
+    height: 32,
+    borderBottomWidth: 2,
+    borderLeftWidth: 2,
+    borderColor: GREEN2,
+  },
+  cornerBR: {
+    position: 'absolute',
+    bottom: 0,
+    right: 20,
+    width: 32,
+    height: 32,
+    borderBottomWidth: 2,
+    borderRightWidth: 2,
+    borderColor: GREEN2,
+  },
+  crossH: { position: 'absolute', width: 20, height: 1, backgroundColor: GREEN2, opacity: 0.8 },
+  crossV: { position: 'absolute', width: 1, height: 20, backgroundColor: GREEN2, opacity: 0.8 },
 
-  horizonRow:  { alignItems: 'center', paddingBottom: 6 },
+  horizonRow: { alignItems: 'center', paddingBottom: 6 },
   horizonText: { fontSize: 10, color: GREEN2, letterSpacing: 0.8, opacity: 0.8 },
 
   aiBar: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 14, paddingVertical: 7, backgroundColor: 'rgba(0,0,0,0.4)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    backgroundColor: 'rgba(0,0,0,0.4)',
   },
-  aiLeft:    { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  aiLabel:   { fontSize: 11, fontWeight: '600', color: GREEN2 },
+  aiLeft: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  aiLabel: { fontSize: 11, fontWeight: '600', color: GREEN2 },
   confBadge: { backgroundColor: GREEN, borderRadius: 6, paddingHorizontal: 10, paddingVertical: 3 },
-  confText:  { fontSize: 11, fontWeight: '700', color: '#fff' },
+  confText: { fontSize: 11, fontWeight: '700', color: '#fff' },
 
-  detectionRow:   { paddingHorizontal: 14, paddingVertical: 10, backgroundColor: 'rgba(0,0,0,0.5)' },
+  detectionRow: { paddingHorizontal: 14, paddingVertical: 10, backgroundColor: 'rgba(0,0,0,0.5)' },
   detectionTitle: { fontSize: 16, fontWeight: '800', color: '#fff', marginBottom: 5 },
-  gpsRow:         { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  gpsText:        { fontSize: 11, color: GREEN2 },
+  gpsRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  gpsText: { fontSize: 11, color: GREEN2 },
 
   camBottomBar: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 30, paddingVertical: 16, backgroundColor: 'rgba(0,0,0,0.6)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 30,
+    paddingVertical: 16,
+    backgroundColor: 'rgba(0,0,0,0.6)',
   },
   camBottomAction: { alignItems: 'center', gap: 4, width: 56 },
-  camBottomLabel:  { fontSize: 10, color: 'rgba(255,255,255,0.6)', fontWeight: '500' },
-  captureBtn:      { alignItems: 'center', justifyContent: 'center' },
+  camBottomLabel: { fontSize: 10, color: 'rgba(255,255,255,0.6)', fontWeight: '500' },
+  captureBtn: { alignItems: 'center', justifyContent: 'center' },
   captureBtnDisabled: { opacity: 0.45 },
   captureBtnRing: {
-    width: 68, height: 68, borderRadius: 34,
-    borderWidth: 3, borderColor: GREEN,
-    alignItems: 'center', justifyContent: 'center',
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    borderWidth: 3,
+    borderColor: GREEN,
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: 'rgba(26,122,94,0.3)',
   },
   captureBtnInner: { width: 50, height: 50, borderRadius: 25, backgroundColor: GREEN },
 
   retakeBtn: {
-    position: 'absolute', top: 12, right: 12, flexDirection: 'row', alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 6, paddingHorizontal: 12, paddingVertical: 6, gap: 6,
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    gap: 6,
   },
   retakeBtnText: { color: '#fff', fontSize: 13, fontWeight: '600' },
 
   classSection: { paddingHorizontal: 16, paddingTop: 18, paddingBottom: 4 },
-  classHeader:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  classTitle:   { fontSize: 11, fontWeight: '800', color: '#9ca3af', letterSpacing: 0.8 },
-  classAuto:    { fontSize: 11, fontWeight: '600', color: GREEN2 },
-  typeRow:      { flexDirection: 'row', gap: 10 },
-  typeChip: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', gap: 7,
-    backgroundColor: CARD_BG, borderRadius: 1,
-    paddingHorizontal: 12, paddingVertical: 12,
-    borderWidth: 1.5, borderColor: '#2a3a34',
+  classHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
   },
-  typeChipSelected:     { backgroundColor: GREEN, borderColor: GREEN },
-  typeChipText:         { fontSize: 12, fontWeight: '600', color: '#9ca3af', flex: 1 },
+  classTitle: { fontSize: 11, fontWeight: '800', color: '#9ca3af', letterSpacing: 0.8 },
+  classAuto: { fontSize: 11, fontWeight: '600', color: GREEN2 },
+  typeRow: { flexDirection: 'row', gap: 10 },
+  typeChip: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    backgroundColor: CARD_BG,
+    borderRadius: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderWidth: 1.5,
+    borderColor: '#2a3a34',
+  },
+  typeChipSelected: { backgroundColor: GREEN, borderColor: GREEN },
+  typeChipText: { fontSize: 12, fontWeight: '600', color: '#9ca3af', flex: 1 },
   typeChipTextSelected: { color: '#fff' },
 
   toggleRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    marginHorizontal: 16, marginTop: 14,
-    backgroundColor: CARD_BG, borderRadius: 1,
-    paddingHorizontal: 14, paddingVertical: 12,
-    borderWidth: 1, borderColor: '#2a3a34',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginHorizontal: 16,
+    marginTop: 14,
+    backgroundColor: CARD_BG,
+    borderRadius: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: '#2a3a34',
   },
   toggleLabel: { fontSize: 13, fontWeight: '600', color: '#fff', marginBottom: 2 },
-  toggleSub:   { fontSize: 11, color: '#6b7c76' },
+  toggleSub: { fontSize: 11, color: '#6b7c76' },
 
-  section:      { paddingHorizontal: 16, marginTop: 16 },
-  sectionLabel: { fontSize: 12, fontWeight: '700', color: '#9ca3af', marginBottom: 8, letterSpacing: 0.5, textTransform: 'uppercase' },
+  section: { paddingHorizontal: 16, marginTop: 16 },
+  sectionLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#9ca3af',
+    marginBottom: 8,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
   textArea: {
-    backgroundColor: CARD_BG, borderRadius: 1, borderWidth: 1.5,
-    borderColor: '#2a3a34', paddingHorizontal: 14, paddingVertical: 12,
-    fontSize: 14, color: '#fff', minHeight: 90,
+    backgroundColor: CARD_BG,
+    borderRadius: 1,
+    borderWidth: 1.5,
+    borderColor: '#2a3a34',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 14,
+    color: '#fff',
+    minHeight: 90,
   },
   submitSection: { paddingHorizontal: 16, marginTop: 24 },
 
-  successContainer: { flex: 1, paddingHorizontal: 24, paddingTop: 10, alignItems: 'center', justifyContent: 'center' },
-  successIcon:      { marginBottom: 20 },
-  successTitle:     { fontSize: 26, fontWeight: '800', color: '#fff', marginBottom: 10, textAlign: 'center' },
-  successSubtitle:  { fontSize: 15, color: '#9ca3af', textAlign: 'center', lineHeight: 22, marginBottom: 28 },
-  idBox: {
-    backgroundColor: '#0a2a1e', borderRadius: 1, paddingVertical: 20,
-    paddingHorizontal: 32, alignItems: 'center', marginBottom: 12,
-    borderWidth: 1, borderColor: GREEN, width: '100%',
+  successContainer: {
+    flex: 1,
+    paddingHorizontal: 24,
+    paddingTop: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  idLabel:    { fontSize: 12, fontWeight: '700', color: GREEN2, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 },
-  idValue:    { fontSize: 22, fontWeight: '800', color: '#fff', letterSpacing: 1 },
-  idHint:     { fontSize: 12, color: '#6b7c76', textAlign: 'center', marginBottom: 32 },
+  successIcon: { marginBottom: 20 },
+  successTitle: {
+    fontSize: 26,
+    fontWeight: '800',
+    color: '#fff',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  successSubtitle: {
+    fontSize: 15,
+    color: '#9ca3af',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 28,
+  },
+  idBox: {
+    backgroundColor: '#0a2a1e',
+    borderRadius: 1,
+    paddingVertical: 20,
+    paddingHorizontal: 32,
+    alignItems: 'center',
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: GREEN,
+    width: '100%',
+  },
+  idLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: GREEN2,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: 8,
+  },
+  idValue: { fontSize: 22, fontWeight: '800', color: '#fff', letterSpacing: 1 },
+  idHint: { fontSize: 12, color: '#6b7c76', textAlign: 'center', marginBottom: 32 },
   successBtn: { width: '100%', marginBottom: 12 },
 });

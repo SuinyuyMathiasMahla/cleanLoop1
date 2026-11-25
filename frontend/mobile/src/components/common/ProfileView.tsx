@@ -149,13 +149,22 @@ export function ProfileView({ role, stats }: ProfileViewProps) {
             )}
           </View>
           <Row icon="mail-outline" label="Email" value={user.email} />
-          {isCitizen && <Row icon="call-outline" label="Phone" value={phone || 'Not added yet'} muted={!phone} />}
+          {isCitizen && (
+            <Row
+              icon="call-outline"
+              label="Phone"
+              value={phone || 'Not added yet'}
+              muted={!phone}
+            />
+          )}
           <Row
             icon="shield-checkmark-outline"
             label="Account type"
             value={isCitizen ? 'Citizen' : 'Crew member'}
           />
-          {!isCitizen && <Row icon="finger-print-outline" label="User ID" value={user.userId} mono last />}
+          {!isCitizen && (
+            <Row icon="finger-print-outline" label="User ID" value={user.userId} mono last />
+          )}
         </View>
 
         {!isCitizen && (
@@ -181,7 +190,12 @@ export function ProfileView({ role, stats }: ProfileViewProps) {
       </ScrollView>
 
       {/* Edit modal */}
-      <Modal visible={editing} transparent animationType="slide" onRequestClose={() => setEditing(false)}>
+      <Modal
+        visible={editing}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setEditing(false)}
+      >
         <KeyboardAvoidingView
           style={styles.modalShade}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -222,7 +236,11 @@ export function ProfileView({ role, stats }: ProfileViewProps) {
               disabled={saving}
               activeOpacity={0.85}
             >
-              {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveText}>Save changes</Text>}
+              {saving ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.saveText}>Save changes</Text>
+              )}
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
@@ -302,7 +320,13 @@ const styles = StyleSheet.create({
   stat: { flex: 1, alignItems: 'center' },
   statDivider: { borderRightWidth: 1, borderRightColor: colors.border },
   statValue: { fontSize: 22, fontWeight: '800', color: colors.gray[900] },
-  statLabel: { fontSize: 10, fontWeight: '700', color: colors.gray[500], letterSpacing: 0.6, marginTop: 3 },
+  statLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: colors.gray[500],
+    letterSpacing: 0.6,
+    marginTop: 3,
+  },
 
   card: {
     backgroundColor: '#fff',
@@ -312,7 +336,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
   },
-  cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
   cardLabel: { fontSize: 11, fontWeight: '800', color: colors.gray[500], letterSpacing: 0.9 },
   editBtn: {
     flexDirection: 'row',
@@ -334,7 +363,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  rowLabel: { fontSize: 10.5, fontWeight: '700', color: colors.gray[500], letterSpacing: 0.5, textTransform: 'uppercase' },
+  rowLabel: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: colors.gray[500],
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
   rowValue: { fontSize: 14.5, fontWeight: '600', color: colors.gray[900], marginTop: 2 },
   mono: { fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', fontSize: 12 },
 
@@ -370,7 +405,12 @@ const styles = StyleSheet.create({
     padding: 22,
     paddingBottom: 32,
   },
-  modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 18,
+  },
   modalTitle: { fontSize: 19, fontWeight: '800', color: colors.gray[900] },
   fieldLabel: { fontSize: 13.5, fontWeight: '600', color: colors.gray[700], marginBottom: 7 },
   input: {

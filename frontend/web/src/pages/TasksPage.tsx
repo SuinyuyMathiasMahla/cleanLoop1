@@ -63,7 +63,17 @@ const isOverdue = (task: { status: string; dueAt?: string }) => {
 };
 
 export function TasksPage() {
-  const { tasks, total, isLoading, error, fetchTasks, createTask, updateTask, deleteTask, clearError } = useTaskStore();
+  const {
+    tasks,
+    total,
+    isLoading,
+    error,
+    fetchTasks,
+    createTask,
+    updateTask,
+    deleteTask,
+    clearError,
+  } = useTaskStore();
   const { reports, fetchReports } = useReportStore();
   const { crew, fetchCrew } = useCrewStore();
 
@@ -194,7 +204,9 @@ export function TasksPage() {
   const toggleReportId = (id: string) => {
     setForm((f) => ({
       ...f,
-      reportIds: f.reportIds.includes(id) ? f.reportIds.filter((r) => r !== id) : [...f.reportIds, id],
+      reportIds: f.reportIds.includes(id)
+        ? f.reportIds.filter((r) => r !== id)
+        : [...f.reportIds, id],
     }));
   };
 
@@ -210,10 +222,26 @@ export function TasksPage() {
   };
 
   const summary = [
-    { label: 'Scheduled', value: tasks.filter((t) => t.status === 'scheduled').length, tone: 'text-blue-600' },
-    { label: 'In progress', value: tasks.filter((t) => t.status === 'in_progress').length, tone: 'text-orange-600' },
-    { label: 'Completed', value: tasks.filter((t) => t.status === 'completed').length, tone: 'text-emerald-600' },
-    { label: 'Overdue', value: tasks.filter((t) => isOverdue(t as any)).length, tone: 'text-red-600' },
+    {
+      label: 'Scheduled',
+      value: tasks.filter((t) => t.status === 'scheduled').length,
+      tone: 'text-blue-600',
+    },
+    {
+      label: 'In progress',
+      value: tasks.filter((t) => t.status === 'in_progress').length,
+      tone: 'text-orange-600',
+    },
+    {
+      label: 'Completed',
+      value: tasks.filter((t) => t.status === 'completed').length,
+      tone: 'text-emerald-600',
+    },
+    {
+      label: 'Overdue',
+      value: tasks.filter((t) => isOverdue(t as any)).length,
+      tone: 'text-red-600',
+    },
   ];
 
   return (
@@ -228,7 +256,10 @@ export function TasksPage() {
           variant="primary"
           size="sm"
           leftIcon={<Plus className="w-4 h-4" />}
-          onClick={() => { clearError(); setShowCreateModal(true); }}
+          onClick={() => {
+            clearError();
+            setShowCreateModal(true);
+          }}
         >
           Create Task
         </Button>
@@ -243,7 +274,10 @@ export function TasksPage() {
       {/* Summary */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {summary.map((item) => (
-          <div key={item.label} className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+          <div
+            key={item.label}
+            className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm"
+          >
             <p className="text-xs font-medium text-gray-500">{item.label}</p>
             <p className={`mt-2 text-3xl font-bold tracking-tight tabular-nums ${item.tone}`}>
               {isLoading ? '-' : item.value}
@@ -258,37 +292,61 @@ export function TasksPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50/80">
-                <th className="text-left px-5 py-3 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">Title</th>
-                <th className="text-left px-5 py-3 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">Crew Head</th>
-                <th className="text-left px-5 py-3 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">Scheduled</th>
-                <th className="text-left px-5 py-3 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">Due</th>
-                <th className="text-left px-5 py-3 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">Status</th>
-                <th className="text-left px-5 py-3 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">Actions</th>
+                <th className="text-left px-5 py-3 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">
+                  Title
+                </th>
+                <th className="text-left px-5 py-3 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">
+                  Crew Head
+                </th>
+                <th className="text-left px-5 py-3 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">
+                  Scheduled
+                </th>
+                <th className="text-left px-5 py-3 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">
+                  Due
+                </th>
+                <th className="text-left px-5 py-3 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="text-left px-5 py-3 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {isLoading ? (
-                <tr><td colSpan={COLUMN_COUNT}><TableSkeleton rows={6} cols={COLUMN_COUNT} /></td></tr>
+                <tr>
+                  <td colSpan={COLUMN_COUNT}>
+                    <TableSkeleton rows={6} cols={COLUMN_COUNT} />
+                  </td>
+                </tr>
               ) : tasks.length === 0 ? (
-                <tr><td colSpan={COLUMN_COUNT}>
-                  <EmptyState
-                    title="No tasks yet"
-                    description="Create tasks to assign crew to pending reports."
-                    action={
-                      <Button variant="primary" size="sm" leftIcon={<Plus className="w-4 h-4" />}
-                        onClick={() => setShowCreateModal(true)}>
-                        Create Task
-                      </Button>
-                    }
-                  />
-                </td></tr>
+                <tr>
+                  <td colSpan={COLUMN_COUNT}>
+                    <EmptyState
+                      title="No tasks yet"
+                      description="Create tasks to assign crew to pending reports."
+                      action={
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          leftIcon={<Plus className="w-4 h-4" />}
+                          onClick={() => setShowCreateModal(true)}
+                        >
+                          Create Task
+                        </Button>
+                      }
+                    />
+                  </td>
+                </tr>
               ) : (
                 tasks.map((task) => (
                   <tr key={task.taskId} className="table-row-hover hover:bg-gray-50/70">
                     <td className="px-5 py-3.5">
                       <p className="font-medium text-gray-900">{task.title}</p>
                       {task.description && (
-                        <p className="text-xs text-gray-400 mt-0.5 truncate max-w-[200px]">{task.description}</p>
+                        <p className="text-xs text-gray-400 mt-0.5 truncate max-w-[200px]">
+                          {task.description}
+                        </p>
                       )}
                     </td>
                     <td className="px-5 py-3.5 text-gray-700" title={task.crewLeadId}>
@@ -298,8 +356,12 @@ export function TasksPage() {
                             {(getLeadLabel(task) || '?').charAt(0).toUpperCase()}
                           </div>
                           <div className="min-w-0">
-                            <span className="block truncate max-w-[180px]">{getLeadLabel(task)}</span>
-                            <span className="block text-[10px] font-medium uppercase tracking-wide text-gray-400">Crew head</span>
+                            <span className="block truncate max-w-[180px]">
+                              {getLeadLabel(task)}
+                            </span>
+                            <span className="block text-[10px] font-medium uppercase tracking-wide text-gray-400">
+                              Crew head
+                            </span>
                           </div>
                         </div>
                         {task.status !== 'completed' && task.status !== 'cancelled' && (
@@ -316,7 +378,10 @@ export function TasksPage() {
                       </div>
                       {getCompanionIds(task).length > 0 && (
                         <p className="mt-1 pl-9 text-[11px] text-gray-500">
-                          With {getCompanionIds(task).map((id) => crewById.get(id)?.name ?? id).join(', ')}
+                          With{' '}
+                          {getCompanionIds(task)
+                            .map((id) => crewById.get(id)?.name ?? id)
+                            .join(', ')}
                         </p>
                       )}
                     </td>
@@ -324,7 +389,11 @@ export function TasksPage() {
                       {safeFormat(task.scheduledAt, 'MMM d, HH:mm')}
                     </td>
                     <td className="px-5 py-3.5 whitespace-nowrap text-xs">
-                      <span className={isOverdue(task as any) ? 'font-medium text-red-600' : 'text-gray-500'}>
+                      <span
+                        className={
+                          isOverdue(task as any) ? 'font-medium text-red-600' : 'text-gray-500'
+                        }
+                      >
                         {safeFormat(task.dueAt, 'MMM d, HH:mm')}
                       </span>
                       {isOverdue(task as any) && (
@@ -340,11 +409,15 @@ export function TasksPage() {
                       <div className="flex items-center gap-2">
                         <select
                           value={task.status}
-                          onChange={(e) => handleStatusChange(task.taskId, e.target.value as TaskStatus)}
+                          onChange={(e) =>
+                            handleStatusChange(task.taskId, e.target.value as TaskStatus)
+                          }
                           className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
                         >
                           {TASK_STATUS_OPTIONS.map((o) => (
-                            <option key={o.value} value={o.value}>{o.label}</option>
+                            <option key={o.value} value={o.value}>
+                              {o.label}
+                            </option>
                           ))}
                         </select>
                         <button
@@ -372,7 +445,9 @@ export function TasksPage() {
         size="lg"
         footer={
           <>
-            <Button variant="secondary" onClick={closeModal}>Cancel</Button>
+            <Button variant="secondary" onClick={closeModal}>
+              Cancel
+            </Button>
             <Button variant="primary" isLoading={submitting} onClick={handleSubmit}>
               Create Task
             </Button>
@@ -413,7 +488,10 @@ export function TasksPage() {
                 <p className="text-sm text-gray-400 text-center py-2">No pending reports</p>
               ) : (
                 pendingReports.map((r) => (
-                  <label key={r.reportId} className="flex items-center gap-2 px-2 py-1 hover:bg-gray-50 rounded cursor-pointer">
+                  <label
+                    key={r.reportId}
+                    className="flex items-center gap-2 px-2 py-1 hover:bg-gray-50 rounded cursor-pointer"
+                  >
                     <input
                       type="checkbox"
                       checked={form.reportIds.includes(r.reportId)}
@@ -433,11 +511,13 @@ export function TasksPage() {
           <Select
             label="Crew Lead"
             value={form.crewLeadId}
-            onChange={(e) => setForm((f) => ({
-              ...f,
-              crewLeadId: e.target.value,
-              crewMemberIds: f.crewMemberIds.filter((id) => id !== e.target.value),
-            }))}
+            onChange={(e) =>
+              setForm((f) => ({
+                ...f,
+                crewLeadId: e.target.value,
+                crewMemberIds: f.crewMemberIds.filter((id) => id !== e.target.value),
+              }))
+            }
             options={activeCrew.map((c) => ({ value: c.crewId, label: c.name }))}
             placeholder="Select crew lead..."
             error={formErrors.crewLeadId as string}
@@ -456,15 +536,22 @@ export function TasksPage() {
                 activeCrew
                   .filter((c) => c.crewId !== form.crewLeadId)
                   .map((c) => (
-                    <label key={c.crewId} className="flex items-center gap-2 px-2 py-1 hover:bg-gray-50 rounded cursor-pointer">
+                    <label
+                      key={c.crewId}
+                      className="flex items-center gap-2 px-2 py-1 hover:bg-gray-50 rounded cursor-pointer"
+                    >
                       <input
                         type="checkbox"
                         checked={form.crewMemberIds.includes(c.crewId)}
                         onChange={() => toggleCrewMember(c.crewId)}
-                        disabled={!form.crewMemberIds.includes(c.crewId) && form.crewMemberIds.length >= 3}
+                        disabled={
+                          !form.crewMemberIds.includes(c.crewId) && form.crewMemberIds.length >= 3
+                        }
                         className="rounded text-primary-600 focus:ring-primary-500"
                       />
-                      <span className="text-sm text-gray-700">{c.name} · {c.email}</span>
+                      <span className="text-sm text-gray-700">
+                        {c.name} · {c.email}
+                      </span>
                     </label>
                   ))
               )}
@@ -510,7 +597,9 @@ export function TasksPage() {
         size="md"
         footer={
           <>
-            <Button variant="secondary" onClick={closeCrewEditor}>Cancel</Button>
+            <Button variant="secondary" onClick={closeCrewEditor}>
+              Cancel
+            </Button>
             <Button variant="primary" isLoading={savingCrew} onClick={saveCompanions}>
               Save crew
             </Button>
@@ -519,8 +608,12 @@ export function TasksPage() {
       >
         <div className="space-y-4">
           <div className="rounded-lg border border-primary-100 bg-primary-50 p-3 text-sm text-primary-900">
-            <p className="font-semibold">Crew head: {editingCrewTask ? getLeadLabel(editingCrewTask) : ''}</p>
-            <p className="mt-1 text-primary-700">Choose 1–3 companions. Automatic assignment keeps its selected crew head.</p>
+            <p className="font-semibold">
+              Crew head: {editingCrewTask ? getLeadLabel(editingCrewTask) : ''}
+            </p>
+            <p className="mt-1 text-primary-700">
+              Choose 1–3 companions. Automatic assignment keeps its selected crew head.
+            </p>
           </div>
           {crewEditError && (
             <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-sm text-red-700">
@@ -528,18 +621,27 @@ export function TasksPage() {
             </div>
           )}
           <div className="border border-gray-200 rounded-lg max-h-64 overflow-y-auto p-2 space-y-1">
-            {activeCrew.filter((member) => member.crewId !== editingCrewTask?.crewLeadId).length === 0 ? (
-              <p className="py-3 text-center text-sm text-gray-500">No other active crew members are available.</p>
+            {activeCrew.filter((member) => member.crewId !== editingCrewTask?.crewLeadId).length ===
+            0 ? (
+              <p className="py-3 text-center text-sm text-gray-500">
+                No other active crew members are available.
+              </p>
             ) : (
               activeCrew
                 .filter((member) => member.crewId !== editingCrewTask?.crewLeadId)
                 .map((member) => (
-                  <label key={member.crewId} className="flex items-center gap-3 rounded px-2 py-2 hover:bg-gray-50 cursor-pointer">
+                  <label
+                    key={member.crewId}
+                    className="flex items-center gap-3 rounded px-2 py-2 hover:bg-gray-50 cursor-pointer"
+                  >
                     <input
                       type="checkbox"
                       checked={selectedCompanionIds.includes(member.crewId)}
                       onChange={() => toggleCompanion(member.crewId)}
-                      disabled={!selectedCompanionIds.includes(member.crewId) && selectedCompanionIds.length >= 3}
+                      disabled={
+                        !selectedCompanionIds.includes(member.crewId) &&
+                        selectedCompanionIds.length >= 3
+                      }
                       className="rounded text-primary-600 focus:ring-primary-500"
                     />
                     <span className="min-w-0">
@@ -550,7 +652,9 @@ export function TasksPage() {
                 ))
             )}
           </div>
-          <p className="text-xs text-gray-500">{selectedCompanionIds.length} of 3 companions selected. At least 1 is required.</p>
+          <p className="text-xs text-gray-500">
+            {selectedCompanionIds.length} of 3 companions selected. At least 1 is required.
+          </p>
         </div>
       </Modal>
     </div>

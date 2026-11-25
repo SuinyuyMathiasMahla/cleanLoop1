@@ -46,10 +46,12 @@ export function AdminLayout() {
   const SidebarContent = ({ mobile = false }: { mobile?: boolean }) => (
     <div className="flex flex-col h-full">
       {/* Logo */}
-      <div className={clsx(
-        'flex items-center gap-3 px-4 py-5 border-b border-gray-100',
-        !sidebarOpen && !mobile && 'justify-center px-2'
-      )}>
+      <div
+        className={clsx(
+          'flex items-center gap-3 px-4 py-5 border-b border-gray-100',
+          !sidebarOpen && !mobile && 'justify-center px-2',
+        )}
+      >
         <div className="w-9 h-9 bg-primary-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm">
           <Leaf className="w-5 h-5 text-white" />
         </div>
@@ -74,16 +76,18 @@ export function AdminLayout() {
                 sidebarOpen || mobile ? 'gap-3 px-3 py-2.5' : 'justify-center p-2.5',
                 isActive
                   ? 'bg-primary-50 text-primary-700'
-                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900',
               )
             }
           >
             {({ isActive }) => (
               <>
-                <Icon className={clsx(
-                  'w-5 h-5 flex-shrink-0',
-                  isActive ? 'text-primary-600' : 'text-gray-500 group-hover:text-gray-700'
-                )} />
+                <Icon
+                  className={clsx(
+                    'w-5 h-5 flex-shrink-0',
+                    isActive ? 'text-primary-600' : 'text-gray-500 group-hover:text-gray-700',
+                  )}
+                />
                 {(sidebarOpen || mobile) && (
                   <span className="text-sm font-medium flex-1">{label}</span>
                 )}
@@ -109,11 +113,13 @@ export function AdminLayout() {
       </nav>
 
       {/* User section */}
-      <div className={clsx(
-        'border-t border-gray-100 p-3',
-        !sidebarOpen && !mobile && 'flex flex-col items-center'
-      )}>
-        {(sidebarOpen || mobile) ? (
+      <div
+        className={clsx(
+          'border-t border-gray-100 p-3',
+          !sidebarOpen && !mobile && 'flex flex-col items-center',
+        )}
+      >
+        {sidebarOpen || mobile ? (
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0">
               <span className="text-sm font-semibold text-primary-700">
@@ -154,7 +160,7 @@ export function AdminLayout() {
       <aside
         className={clsx(
           'hidden lg:flex flex-col bg-white border-r border-gray-200 flex-shrink-0 transition-all duration-300 ease-in-out',
-          sidebarOpen ? 'w-60' : 'w-16'
+          sidebarOpen ? 'w-60' : 'w-16',
         )}
       >
         <SidebarContent />
@@ -163,7 +169,12 @@ export function AdminLayout() {
           onClick={() => setSidebarOpen(!sidebarOpen)}
           className="absolute top-[72px] -right-3 z-10 w-6 h-6 bg-white border border-gray-200 rounded-full flex items-center justify-center shadow-sm hover:shadow-md transition-shadow hidden lg:flex"
         >
-          <ChevronLeft className={clsx('w-3 h-3 text-gray-500 transition-transform', !sidebarOpen && 'rotate-180')} />
+          <ChevronLeft
+            className={clsx(
+              'w-3 h-3 text-gray-500 transition-transform',
+              !sidebarOpen && 'rotate-180',
+            )}
+          />
         </button>
       </aside>
 

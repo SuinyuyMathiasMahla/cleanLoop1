@@ -1,5 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, Trash2, AlertCircle, Phone, Mail, Clock, CheckSquare, Eye, EyeOff, MapPin } from 'lucide-react';
+import {
+  Plus,
+  Trash2,
+  AlertCircle,
+  Phone,
+  Mail,
+  Clock,
+  CheckSquare,
+  Eye,
+  EyeOff,
+  MapPin,
+} from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useCrewStore, CreateCrewInput } from '../store/crewStore';
 import { StatusBadge } from '../components/common/StatusBadge';
@@ -19,31 +30,67 @@ interface FormData {
   temporaryPassword: string;
 }
 
-const EMPTY_FORM: FormData = { name: '', email: '', phone: '', location: '', locationLat: '', locationLng: '', temporaryPassword: '' };
+const EMPTY_FORM: FormData = {
+  name: '',
+  email: '',
+  phone: '',
+  location: '',
+  locationLat: '',
+  locationLng: '',
+  temporaryPassword: '',
+};
 
 function friendlyError(err: unknown): string {
   const msg = err instanceof Error ? err.message : String(err);
 
-  if (msg.includes('409') || msg.toLowerCase().includes('already exists') || msg.toLowerCase().includes('usernameexists')) {
+  if (
+    msg.includes('409') ||
+    msg.toLowerCase().includes('already exists') ||
+    msg.toLowerCase().includes('usernameexists')
+  ) {
     return 'A crew member with this email address already exists.';
   }
-  if (msg.includes('401') || msg.includes('403') || msg.toLowerCase().includes('unauthorized') || msg.toLowerCase().includes('forbidden')) {
+  if (
+    msg.includes('401') ||
+    msg.includes('403') ||
+    msg.toLowerCase().includes('unauthorized') ||
+    msg.toLowerCase().includes('forbidden')
+  ) {
     return 'You do not have permission to perform this action.';
   }
   if (msg.includes('500') || msg.includes('502') || msg.includes('503')) {
     return 'Something went wrong on our end. Please try again in a moment.';
   }
-  if (msg.toLowerCase().includes('network') || msg.toLowerCase().includes('fetch') || msg.toLowerCase().includes('failed to fetch')) {
+  if (
+    msg.toLowerCase().includes('network') ||
+    msg.toLowerCase().includes('fetch') ||
+    msg.toLowerCase().includes('failed to fetch')
+  ) {
     return 'Unable to connect. Please check your internet connection and try again.';
   }
-  if (msg.length < 120 && !msg.includes('at ') && !msg.includes('Exception') && !msg.includes('arn:aws')) {
+  if (
+    msg.length < 120 &&
+    !msg.includes('at ') &&
+    !msg.includes('Exception') &&
+    !msg.includes('arn:aws')
+  ) {
     return msg;
   }
   return 'Failed to create crew member. Please check your inputs and try again.';
 }
 
 export function CrewPage() {
-  const { crew, total, isLoading, error, fetchCrew, createCrew, updateLocation, deactivateCrew, clearError } = useCrewStore();
+  const {
+    crew,
+    total,
+    isLoading,
+    error,
+    fetchCrew,
+    createCrew,
+    updateLocation,
+    deactivateCrew,
+    clearError,
+  } = useCrewStore();
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [form, setForm] = useState<FormData>(EMPTY_FORM);
@@ -80,7 +127,8 @@ export function CrewPage() {
     if (form.phone.trim()) {
       const cleaned = form.phone.replace(/[\s\-().]/g, '');
       if (!cleaned.startsWith('+')) {
-        errs.phone = 'Phone number must include a country code starting with + (e.g. +27 82 000 0000).';
+        errs.phone =
+          'Phone number must include a country code starting with + (e.g. +27 82 000 0000).';
       } else if (!/^\+\d{7,15}$/.test(cleaned)) {
         errs.phone = 'Please enter a valid international phone number (e.g. +27 82 000 0000).';
       }
@@ -89,7 +137,10 @@ export function CrewPage() {
     if (!form.location.trim()) {
       errs.location = 'A Buea location is required for automatic task assignment.';
     }
-    if ((form.locationLat.trim() && !form.locationLng.trim()) || (!form.locationLat.trim() && form.locationLng.trim())) {
+    if (
+      (form.locationLat.trim() && !form.locationLng.trim()) ||
+      (!form.locationLat.trim() && form.locationLng.trim())
+    ) {
       errs.locationLat = 'Enter both latitude and longitude, or leave both blank to use geocoding.';
     }
 
@@ -152,8 +203,12 @@ export function CrewPage() {
     setSavingLocation(true);
     setLocationError(null);
     try {
-      const latitude = form.locationLat.trim() ? Number(form.locationLat) : editingMember.locationLat ?? undefined;
-      const longitude = form.locationLng.trim() ? Number(form.locationLng) : editingMember.locationLng ?? undefined;
+      const latitude = form.locationLat.trim()
+        ? Number(form.locationLat)
+        : (editingMember.locationLat ?? undefined);
+      const longitude = form.locationLng.trim()
+        ? Number(form.locationLng)
+        : (editingMember.locationLng ?? undefined);
       await updateLocation(editingMember.crewId, locationDraft.trim(), latitude, longitude);
       setEditingMember(null);
     } catch (err) {
@@ -195,7 +250,10 @@ export function CrewPage() {
           variant="primary"
           size="sm"
           leftIcon={<Plus className="w-4 h-4" />}
-          onClick={() => { clearError(); setShowCreateModal(true); }}
+          onClick={() => {
+            clearError();
+            setShowCreateModal(true);
+          }}
         >
           Add Crew Member
         </Button>
@@ -209,7 +267,10 @@ export function CrewPage() {
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {summary.map((item) => (
-          <div key={item.label} className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+          <div
+            key={item.label}
+            className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm"
+          >
             <p className="text-xs font-medium text-gray-500">{item.label}</p>
             <p className={`mt-2 text-3xl font-bold tracking-tight tabular-nums ${item.tone}`}>
               {isLoading ? '-' : item.value}
@@ -223,31 +284,55 @@ export function CrewPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50/80">
-                <th className="text-left px-5 py-3 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">Member</th>
-                <th className="text-left px-5 py-3 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">Contact</th>
-                <th className="text-left px-5 py-3 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">Location</th>
-                <th className="text-left px-5 py-3 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">Active Tasks</th>
-                <th className="text-left px-5 py-3 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">Last Login</th>
-                <th className="text-left px-5 py-3 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">Status</th>
-                <th className="text-left px-5 py-3 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">Actions</th>
+                <th className="text-left px-5 py-3 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">
+                  Member
+                </th>
+                <th className="text-left px-5 py-3 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">
+                  Contact
+                </th>
+                <th className="text-left px-5 py-3 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">
+                  Location
+                </th>
+                <th className="text-left px-5 py-3 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">
+                  Active Tasks
+                </th>
+                <th className="text-left px-5 py-3 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">
+                  Last Login
+                </th>
+                <th className="text-left px-5 py-3 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="text-left px-5 py-3 font-semibold text-gray-500 text-[11px] uppercase tracking-wider">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {isLoading ? (
-                <tr><td colSpan={7}><TableSkeleton rows={5} cols={7} /></td></tr>
+                <tr>
+                  <td colSpan={7}>
+                    <TableSkeleton rows={5} cols={7} />
+                  </td>
+                </tr>
               ) : crew.length === 0 ? (
-                <tr><td colSpan={7}>
-                  <EmptyState
-                    title="No crew members yet"
-                    description="Add crew members to assign them to waste collection tasks."
-                    action={
-                      <Button variant="primary" size="sm" leftIcon={<Plus className="w-4 h-4" />}
-                        onClick={() => setShowCreateModal(true)}>
-                        Add Crew Member
-                      </Button>
-                    }
-                  />
-                </td></tr>
+                <tr>
+                  <td colSpan={7}>
+                    <EmptyState
+                      title="No crew members yet"
+                      description="Add crew members to assign them to waste collection tasks."
+                      action={
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          leftIcon={<Plus className="w-4 h-4" />}
+                          onClick={() => setShowCreateModal(true)}
+                        >
+                          Add Crew Member
+                        </Button>
+                      }
+                    />
+                  </td>
+                </tr>
               ) : (
                 crew.map((member) => (
                   <tr key={member.crewId} className="table-row-hover hover:bg-gray-50/70">
@@ -284,9 +369,13 @@ export function CrewPage() {
                       )}
                     </td>
                     <td className="px-5 py-3.5">
-                      <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold tabular-nums ${
-                        member.activeTasks > 0 ? 'bg-orange-50 text-orange-700' : 'bg-gray-100 text-gray-500'
-                      }`}>
+                      <span
+                        className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold tabular-nums ${
+                          member.activeTasks > 0
+                            ? 'bg-orange-50 text-orange-700'
+                            : 'bg-gray-100 text-gray-500'
+                        }`}
+                      >
                         <CheckSquare className="w-3.5 h-3.5" />
                         {member.activeTasks}
                       </span>
@@ -345,7 +434,9 @@ export function CrewPage() {
         size="md"
         footer={
           <>
-            <Button variant="secondary" onClick={closeModal}>Cancel</Button>
+            <Button variant="secondary" onClick={closeModal}>
+              Cancel
+            </Button>
             <Button variant="primary" isLoading={submitting} onClick={handleSubmit}>
               Create Account
             </Button>
@@ -396,10 +487,26 @@ export function CrewPage() {
             hint="Used to find the nearest crew member for each report."
           />
           <div className="grid grid-cols-2 gap-3">
-            <Input label="Latitude (optional)" type="number" value={form.locationLat} onChange={f('locationLat')} placeholder="4.15" error={formErrors.locationLat} />
-            <Input label="Longitude (optional)" type="number" value={form.locationLng} onChange={f('locationLng')} placeholder="9.24" />
+            <Input
+              label="Latitude (optional)"
+              type="number"
+              value={form.locationLat}
+              onChange={f('locationLat')}
+              placeholder="4.15"
+              error={formErrors.locationLat}
+            />
+            <Input
+              label="Longitude (optional)"
+              type="number"
+              value={form.locationLng}
+              onChange={f('locationLng')}
+              placeholder="9.24"
+            />
           </div>
-          <p className="-mt-2 text-xs text-gray-500">If geocoding is unavailable, right-click the crew base in Google Maps and copy its coordinates.</p>
+          <p className="-mt-2 text-xs text-gray-500">
+            If geocoding is unavailable, right-click the crew base in Google Maps and copy its
+            coordinates.
+          </p>
           <div className="relative">
             <Input
               label="Temporary Password"
@@ -411,7 +518,11 @@ export function CrewPage() {
               required
               hint="The crew member will be asked to change this on first login."
               rightIcon={
-                <button type="button" onClick={() => setShowPassword(!showPassword)} className="text-gray-400 hover:text-gray-600">
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               }
@@ -428,8 +539,12 @@ export function CrewPage() {
           size="sm"
           footer={
             <>
-              <Button variant="secondary" onClick={() => setEditingMember(null)}>Cancel</Button>
-              <Button variant="primary" isLoading={savingLocation} onClick={handleLocationUpdate}>Save location</Button>
+              <Button variant="secondary" onClick={() => setEditingMember(null)}>
+                Cancel
+              </Button>
+              <Button variant="primary" isLoading={savingLocation} onClick={handleLocationUpdate}>
+                Save location
+              </Button>
             </>
           }
         >
@@ -444,10 +559,25 @@ export function CrewPage() {
               hint="The address is geocoded within Buea and used for nearest-crew assignment."
             />
             <div className="grid grid-cols-2 gap-3">
-              <Input label="Latitude (optional)" type="number" value={form.locationLat} onChange={f('locationLat')} placeholder={editingMember.locationLat?.toString() ?? '4.15'} />
-              <Input label="Longitude (optional)" type="number" value={form.locationLng} onChange={f('locationLng')} placeholder={editingMember.locationLng?.toString() ?? '9.24'} />
+              <Input
+                label="Latitude (optional)"
+                type="number"
+                value={form.locationLat}
+                onChange={f('locationLat')}
+                placeholder={editingMember.locationLat?.toString() ?? '4.15'}
+              />
+              <Input
+                label="Longitude (optional)"
+                type="number"
+                value={form.locationLng}
+                onChange={f('locationLng')}
+                placeholder={editingMember.locationLng?.toString() ?? '9.24'}
+              />
             </div>
-            <p className="text-xs text-gray-500">If geocoding is unavailable, right-click the crew base in Google Maps and copy its coordinates.</p>
+            <p className="text-xs text-gray-500">
+              If geocoding is unavailable, right-click the crew base in Google Maps and copy its
+              coordinates.
+            </p>
           </div>
         </Modal>
       )}
@@ -460,15 +590,22 @@ export function CrewPage() {
           size="sm"
           footer={
             <>
-              <Button variant="secondary" onClick={() => setConfirmDelete(null)}>Cancel</Button>
-              <Button variant="danger" isLoading={deleting} onClick={() => handleDeactivate(confirmDelete)}>
+              <Button variant="secondary" onClick={() => setConfirmDelete(null)}>
+                Cancel
+              </Button>
+              <Button
+                variant="danger"
+                isLoading={deleting}
+                onClick={() => handleDeactivate(confirmDelete)}
+              >
                 Deactivate
               </Button>
             </>
           }
         >
           <p className="text-sm text-gray-600">
-            Are you sure you want to deactivate this crew member? They will lose access to the CleanLoop app.
+            Are you sure you want to deactivate this crew member? They will lose access to the
+            CleanLoop app.
           </p>
         </Modal>
       )}

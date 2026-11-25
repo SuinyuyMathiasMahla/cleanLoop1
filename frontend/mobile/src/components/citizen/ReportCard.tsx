@@ -47,10 +47,10 @@ interface ReportCardProps {
 }
 
 const STATUS: Record<string, { label: string; bg: string; color: string }> = {
-  pending:     { label: 'Pending',     bg: '#fef3c7', color: '#92400e' },
-  assigned:    { label: 'Assigned',    bg: '#dbeafe', color: '#1e40af' },
+  pending: { label: 'Pending', bg: '#fef3c7', color: '#92400e' },
+  assigned: { label: 'Assigned', bg: '#dbeafe', color: '#1e40af' },
   in_progress: { label: 'In progress', bg: '#e0e7ff', color: '#3730a3' },
-  resolved:    { label: 'Resolved',    bg: '#d1fae5', color: '#065f46' },
+  resolved: { label: 'Resolved', bg: '#d1fae5', color: '#065f46' },
 };
 
 export function ReportCard({ report, onPress, style }: ReportCardProps) {
@@ -148,7 +148,11 @@ export function ReportCard({ report, onPress, style }: ReportCardProps) {
       )}
 
       <View style={styles.actions}>
-        <TouchableOpacity style={styles.action} onPress={toggleLike} accessibilityLabel="Like report">
+        <TouchableOpacity
+          style={styles.action}
+          onPress={toggleLike}
+          accessibilityLabel="Like report"
+        >
           <Ionicons
             name={liked ? 'heart' : 'heart-outline'}
             size={20}
@@ -164,8 +168,8 @@ export function ReportCard({ report, onPress, style }: ReportCardProps) {
           <Ionicons name="chatbubble-outline" size={19} color={colors.gray[700]} />
           <Text style={styles.actionText}>{comments.length}</Text>
         </TouchableOpacity>
-        {status && (
-          canViewEvidence ? (
+        {status &&
+          (canViewEvidence ? (
             <TouchableOpacity
               style={[styles.statusChip, { backgroundColor: status.bg }]}
               onPress={() => setShowEvidence(true)}
@@ -179,8 +183,7 @@ export function ReportCard({ report, onPress, style }: ReportCardProps) {
             <View style={[styles.statusChip, { backgroundColor: status.bg }]}>
               <Text style={[styles.statusText, { color: status.color }]}>{status.label}</Text>
             </View>
-          )
-        )}
+          ))}
       </View>
 
       <Modal
@@ -193,7 +196,10 @@ export function ReportCard({ report, onPress, style }: ReportCardProps) {
           <View style={styles.modal}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Cleanup evidence</Text>
-              <TouchableOpacity onPress={() => setShowEvidence(false)} accessibilityLabel="Close cleanup evidence">
+              <TouchableOpacity
+                onPress={() => setShowEvidence(false)}
+                accessibilityLabel="Close cleanup evidence"
+              >
                 <Ionicons name="close" size={23} color={colors.gray[700]} />
               </TouchableOpacity>
             </View>
@@ -225,12 +231,17 @@ export function ReportCard({ report, onPress, style }: ReportCardProps) {
           <View style={styles.modal}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Comments</Text>
-              <TouchableOpacity onPress={() => setShowComments(false)} accessibilityLabel="Close comments">
+              <TouchableOpacity
+                onPress={() => setShowComments(false)}
+                accessibilityLabel="Close comments"
+              >
                 <Ionicons name="close" size={23} color={colors.gray[700]} />
               </TouchableOpacity>
             </View>
             <ScrollView style={styles.commentList} keyboardShouldPersistTaps="handled">
-              {comments.length === 0 && <Text style={styles.signInHint}>No comments yet. Be the first!</Text>}
+              {comments.length === 0 && (
+                <Text style={styles.signInHint}>No comments yet. Be the first!</Text>
+              )}
               {comments.map((comment) => (
                 <View style={styles.comment} key={comment.commentId}>
                   <View style={styles.commentTop}>
@@ -294,7 +305,15 @@ const styles = StyleSheet.create({
   authorCopy: { flex: 1 },
   authorName: { fontSize: 14, fontWeight: '800', color: colors.gray[900] },
   meta: { fontSize: 11.5, color: colors.gray[500], marginTop: 2, textTransform: 'capitalize' },
-  statusChip: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: 1, paddingHorizontal: 9, paddingVertical: 4, marginLeft: 'auto' },
+  statusChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderRadius: 1,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    marginLeft: 'auto',
+  },
   statusText: { fontSize: 10.5, fontWeight: '800' },
   description: { fontSize: 14, color: colors.gray[700], marginBottom: 6, lineHeight: 20 },
   addressRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 10 },
@@ -333,7 +352,12 @@ const styles = StyleSheet.create({
     paddingBottom: 28,
     maxHeight: '75%',
   },
-  modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
   modalTitle: { fontSize: 18, fontWeight: '800', color: colors.gray[900] },
   commentList: { flexGrow: 0 },
   comment: { paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.gray[100] },
