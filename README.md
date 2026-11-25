@@ -59,14 +59,16 @@ IDs the apps need. It is git-ignored because it names your account; never commit
 
 The CDK app reads these from `backend/.env` (also git-ignored):
 
-| Variable                      | Purpose                                                             |
-| ----------------------------- | ------------------------------------------------------------------- |
-| `STAGE`                       | `dev`, `staging` or `prod` (default `dev`; `--context stage=` wins) |
-| `AWS_ACCOUNT`, `AWS_REGION`   | Target account and region (default region `us-east-1`)              |
-| `SES_FROM_EMAIL`              | Verified SES sender for reminder and notification emails            |
-| `GOOGLE_MAPS_API_KEY`         | Geocoding for report locations and crew distances                   |
-| `GOOGLE_OAUTH_CLIENT_ID`      | Optional Google sign-in through Cognito (secret: see below)         |
-| `MAX_AUTO_ASSIGN_DISTANCE_KM` | Furthest crew distance for automatic assignment                     |
+| Variable                      | Purpose                                                                                  |
+| ----------------------------- | ---------------------------------------------------------------------------------------- |
+| `STAGE`                       | `dev`, `staging` or `prod` (default `dev`; `--context stage=` wins)                      |
+| `AWS_ACCOUNT`, `AWS_REGION`   | Target account and region (default region `us-east-1`)                                   |
+| `SES_FROM_EMAIL`              | Verified SES sender for reminder and notification emails                                 |
+| `GOOGLE_MAPS_API_KEY`         | Geocoding for report locations and crew distances                                        |
+| `GOOGLE_OAUTH_CLIENT_ID`      | Optional Google sign-in through Cognito (secret: see below)                              |
+| `MAX_AUTO_ASSIGN_DISTANCE_KM` | Furthest crew distance for automatic assignment                                          |
+| `BUDGET_ALERT_EMAIL`          | Optional. Creates a monthly AWS cost budget that emails this address                     |
+| `MONTHLY_BUDGET_USD`          | Budget limit in dollars (default 7). Alerts at 80% spent and when the forecast passes it |
 
 The Google client secret is never put in `.env`. Store it once per stage in Secrets
 Manager, and CloudFormation reads it at deploy time:
@@ -74,6 +76,10 @@ Manager, and CloudFormation reads it at deploy time:
 ```powershell
 aws secretsmanager create-secret --name cleanloop/dev/google-oauth-client-secret --secret-string "<client secret>"
 ```
+
+Lambda logs are kept for 14 days (30 in `prod`). AWS Budgets measures the whole
+account, so if several stages share one account, set `BUDGET_ALERT_EMAIL` for one stage
+only.
 
 ### Mobile app
 

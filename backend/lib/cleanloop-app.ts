@@ -6,6 +6,8 @@ import { StorageStack } from './stacks/storage-stack';
 import { ComputeStack } from './stacks/compute-stack';
 import { ApiStack } from './stacks/api-stack';
 import { NotificationsStack } from './stacks/notifications-stack';
+import { BudgetStack } from './stacks/budget-stack';
+import { applyLogRetention, logRetentionFor } from './log-retention';
 
 dotenv.config();
 
@@ -44,7 +46,7 @@ export class CleanLoopApp extends Construct {
       ...props,
     });
 
-    new ApiStack(scope, `CleanLoop-Api-${stage}`, {
+    const apiStack = new ApiStack(scope, `CleanLoop-Api-${stage}`, {
       userPool: authStack.userPool,
       userPoolClient: authStack.userPoolClient,
       reportsHandler: computeStack.reportsHandler,
@@ -53,5 +55,19 @@ export class CleanLoopApp extends Construct {
       notificationsHandler: computeStack.notificationsHandler,
       ...props,
     });
+
+    const retention = logRetentionFor(stage);
+    for (const stack of [authStack, computeStack, apiStack]) applyLogRetention(stack, retention);
+
+    // Optional: set BUDGET_ALERT_EMAIL to create the monthly cost alarm.
+    const budgetAlertEmail = process.env.BUDGET_ALERT_EMAIL;
+    if (budgetAlertEmail) {
+      new BudgetStack(scope, `CleanLoop-Budget-${stage}`, {
+        stage,
+        monthlyLimitUsd: Number(process.env.MONTHLY_BUDGET_USD ?? 7),
+        alertEmail: budgetAlertEmail,
+        ...props,
+      });
+    }
   }
 }
