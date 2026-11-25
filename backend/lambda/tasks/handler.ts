@@ -4,7 +4,12 @@ import { DeleteObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { dbGet, dbPut, dbUpdate, dbQuery, dbScan, dbDelete } from '../shared/dynamo';
 import { ok, created, badRequest, forbidden, notFound, serverError } from '../shared/response';
 import { getCaller, isAdmin, isCrew } from '../shared/auth';
-import { getPresignedPutUrl, getPresignedGetUrl } from '../shared/s3';
+import {
+  checkUploadedImage,
+  getPresignedGetUrl,
+  getPresignedPutUrl,
+  IMAGE_EXTENSIONS,
+} from '../shared/s3';
 import { notifyCitizenCommunity, notifyUsers } from '../shared/notifications';
 
 const ses = new SESClient({});
@@ -425,7 +430,8 @@ async function updateTask(event: APIGatewayProxyEvent): Promise<APIGatewayProxyR
   await dbUpdate({
     TableName: TASKS_TABLE,
     Key: { taskId },
-    UpdateExpression: `SET ${updates.join(', ')}`,
+    // A new due date earns a new 24-hour reminder
+    UpdateExpression: `SET ${updates.join(', ')}${'dueAt' in body ? ' REMOVE reminderSentAt' : ''}`,
     ExpressionAttributeNames: names,
     ExpressionAttributeValues: values,
     ConditionExpression: 'attribute_exists(taskId)',
@@ -462,6 +468,52 @@ async function updateTask(event: APIGatewayProxyEvent): Promise<APIGatewayProxyR
   }
 
   return ok({ taskId, updated: Object.keys(body).filter((k) => allowed.includes(k)) });
+}
+
+async function syncLinkedReports(
+  task: Record<string, any>,
+  status: 'in_progress' | 'cancelled',
+): Promise<void> {
+  const reportIds = (task.reportIds as string[] | undefined) ?? [];
+  const now = new Date().toISOString();
+  const results = await Promise.allSettled(
+    reportIds.map((reportId) =>
+      status === 'in_progress'
+        ? dbUpdate({
+            TableName: REPORTS_TABLE,
+            Key: { reportId },
+            UpdateExpression: 'SET #s = :inProgress, updatedAt = :now',
+            ExpressionAttributeNames: { '#s': 'status' },
+            ExpressionAttributeValues: {
+              ':inProgress': 'in_progress',
+              ':assigned': 'assigned',
+              ':taskId': task.taskId,
+              ':now': now,
+            },
+            // Only reports still waiting on this task; never reopen a resolved one
+            ConditionExpression: '#s = :assigned AND assignedTaskId = :taskId',
+          })
+        : dbUpdate({
+            TableName: REPORTS_TABLE,
+            Key: { reportId },
+            UpdateExpression: 'SET #s = :pending, updatedAt = :now REMOVE assignedTaskId',
+            ExpressionAttributeNames: { '#s': 'status' },
+            ExpressionAttributeValues: {
+              ':pending': 'pending',
+              ':resolved': 'resolved',
+              ':taskId': task.taskId,
+              ':now': now,
+            },
+            ConditionExpression: '#s <> :resolved AND assignedTaskId = :taskId',
+          }),
+    ),
+  );
+  results.forEach((result, index) => {
+    const name = result.status === 'rejected' ? (result.reason as { name?: string })?.name : '';
+    if (result.status === 'rejected' && name !== 'ConditionalCheckFailedException') {
+      console.error(`Could not update report ${reportIds[index]}:`, result.reason);
+    }
+  });
 }
 
 // ── PATCH /tasks/{taskId}/status ──────────────────────────────────────────────
@@ -502,6 +554,14 @@ async function updateTaskStatus(event: APIGatewayProxyEvent): Promise<APIGateway
     const keys: string[] = Array.isArray(evidencePhotoKeys) ? evidencePhotoKeys : [];
     if (keys.length === 0) {
       return badRequest('At least one evidence photo is required to complete a task');
+    }
+    const evidencePrefix = `evidence/${taskId}/`;
+    for (const key of keys) {
+      if (typeof key !== 'string' || !key.startsWith(evidencePrefix) || key.includes('..')) {
+        return badRequest('Evidence photos must be uploaded for this task');
+      }
+      const problem = await checkUploadedImage(MEDIA_BUCKET, key);
+      if (problem) return badRequest(`Evidence photo rejected: ${problem}`);
     }
 
     const companionIds = [...new Set((task.crewIds as string[] | undefined) ?? [])].filter(
@@ -572,6 +632,12 @@ async function updateTaskStatus(event: APIGatewayProxyEvent): Promise<APIGateway
       ExpressionAttributeValues: { ':s': status, ':now': new Date().toISOString() },
       ConditionExpression: 'attribute_exists(taskId)',
     });
+  }
+
+  // Reports follow their task: started tasks show their reports as in progress, and
+  // cancelled tasks release their reports so automatic assignment picks them up again.
+  if (status === 'in_progress' || status === 'cancelled') {
+    await syncLinkedReports(task, status);
   }
 
   const reportIdsToComplete = (task.reportIds as string[] | undefined) ?? [];
@@ -662,9 +728,10 @@ async function getEvidenceUploadUrl(event: APIGatewayProxyEvent): Promise<APIGat
     return forbidden('Only the crew head can upload task evidence');
   }
 
-  const { contentType = 'image/jpeg', filename = 'evidence.jpg' } =
-    event.queryStringParameters ?? {};
-  const ext = filename.split('.').pop() ?? 'jpg';
+  // The extension comes from the allowed content type, never from the client's filename
+  const contentType = event.queryStringParameters?.contentType ?? 'image/jpeg';
+  const ext = IMAGE_EXTENSIONS[contentType];
+  if (!ext) return badRequest('contentType must be image/jpeg, image/png or image/webp');
   const key = `evidence/${taskId}/${crypto.randomUUID()}.${ext}`;
 
   const url = await getPresignedPutUrl(MEDIA_BUCKET, key, contentType);

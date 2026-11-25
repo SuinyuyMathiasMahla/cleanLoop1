@@ -14,12 +14,16 @@ export async function handler(_event: ScheduledEvent): Promise<void> {
   const now = new Date();
   const in24h = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString();
 
-  // Find tasks due within the next 24 hours that are scheduled or in_progress
+  // Find active tasks due within the next 24 hours. Every task starts as assigned, so
+  // assigned must be included or crews are never reminded of work they have not started.
   const { items: tasks } = await dbScan({
     TableName: TASKS_TABLE,
-    FilterExpression: '#s IN (:scheduled, :inprog) AND dueAt <= :cutoff AND dueAt >= :now',
+    FilterExpression:
+      '#s IN (:assigned, :scheduled, :inprog) AND dueAt <= :cutoff AND dueAt >= :now ' +
+      'AND attribute_not_exists(reminderSentAt)',
     ExpressionAttributeNames: { '#s': 'status' },
     ExpressionAttributeValues: {
+      ':assigned': 'assigned',
       ':scheduled': 'scheduled',
       ':inprog': 'in_progress',
       ':cutoff': in24h,
@@ -98,6 +102,15 @@ export async function handler(_event: ScheduledEvent): Promise<void> {
         console.error(`Failed to send reminder to user ${userId} for task ${task.taskId}:`, e);
       }
     }
+
+    // The rule runs every 30 minutes; without this flag each crew member would get a
+    // reminder on every run until the task is due. updateTask clears it when dueAt moves.
+    await dbUpdate({
+      TableName: TASKS_TABLE,
+      Key: { taskId: task.taskId },
+      UpdateExpression: 'SET reminderSentAt = :now',
+      ExpressionAttributeValues: { ':now': now.toISOString() },
+    }).catch((e) => console.error(`Could not record the reminder for task ${task.taskId}:`, e));
   }
 
   const { items: overdueTasks } = await dbScan({
