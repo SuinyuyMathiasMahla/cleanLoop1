@@ -4,3 +4,9 @@ cdk.out/
 .env
 *.log
 .expo/
+
+# Build output
+dist/
+
+# CDK deploy outputs (contain the AWS account ID and resource names)
+cdk-outputs.json
