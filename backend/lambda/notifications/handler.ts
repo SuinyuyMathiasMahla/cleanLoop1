@@ -122,7 +122,7 @@ async function deleteNotification(event: APIGatewayProxyEvent): Promise<APIGatew
 // ── POST /notifications/send — Admin broadcast ────────────────────────────────
 async function sendNotification(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
   const caller = getCaller(event);
-  if (!isAdmin(caller)) return forbidden('Admin only');
+  if (!caller || !isAdmin(caller)) return forbidden('Admin only');
 
   const body = JSON.parse(event.body ?? '{}');
   const { title, message, type = 'general', referenceId, recipients } = body;
