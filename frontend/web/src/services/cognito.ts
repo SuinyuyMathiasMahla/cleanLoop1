@@ -1,6 +1,8 @@
 const REGION = import.meta.env.VITE_COGNITO_REGION;
 const CLIENT_ID = import.meta.env.VITE_COGNITO_CLIENT_ID;
-const COGNITO_URL = `https://cognito-idp.${REGION}.amazonaws.com/`;
+// Preview mode points this at the local stand-in (frontend/preview-server)
+const COGNITO_URL =
+  import.meta.env.VITE_COGNITO_ENDPOINT || `https://cognito-idp.${REGION}.amazonaws.com/`;
 
 async function cognitoRequest(target: string, body: object) {
   const res = await fetch(COGNITO_URL, {

@@ -1,7 +1,10 @@
 import { Linking } from 'react-native';
 
 const COGNITO_REGION = process.env.EXPO_PUBLIC_COGNITO_REGION ?? 'ap-southeast-2';
-const COGNITO_URL = `https://cognito-idp.${COGNITO_REGION}.amazonaws.com/`;
+// Preview mode points this at the local stand-in (frontend/preview-server)
+const COGNITO_URL =
+  process.env.EXPO_PUBLIC_COGNITO_ENDPOINT ??
+  `https://cognito-idp.${COGNITO_REGION}.amazonaws.com/`;
 const CLIENT_ID = process.env.EXPO_PUBLIC_COGNITO_CLIENT_ID ?? '';
 const COGNITO_DOMAIN = process.env.EXPO_PUBLIC_COGNITO_DOMAIN ?? 'cleanloop-dev';
 

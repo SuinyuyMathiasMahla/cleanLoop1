@@ -25,6 +25,10 @@ export default tseslint.config(
     languageOptions: { globals: globals.node },
   },
   {
+    files: ['frontend/preview-server/**/*.mjs'],
+    languageOptions: { globals: globals.node },
+  },
+  {
     files: ['frontend/**/*.{ts,tsx}'],
     languageOptions: { globals: { ...globals.browser, ...globals.node } },
     plugins: { 'react-hooks': reactHooks },

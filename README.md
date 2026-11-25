@@ -38,6 +38,19 @@ Known gaps in the current code, scheduled as Sprint 0 and Sprint 1 work:
 
 ## Getting started
 
+### Try it without AWS (preview mode)
+
+To click through both apps with fictional sample data and no AWS account:
+
+```powershell
+pnpm preview
+```
+
+The admin portal opens on http://localhost:3100 and the mobile app (web build) on
+http://localhost:8090. Sample accounts and how it works are in
+[frontend/preview-server/README.md](frontend/preview-server/README.md). Nothing in preview
+mode touches real data.
+
 ### Prerequisites
 
 - Node.js 22 and pnpm 10.20 (`corepack enable` installs the pinned version)
