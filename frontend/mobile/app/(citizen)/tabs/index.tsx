@@ -71,7 +71,7 @@ export default function CitizenHome() {
 
           <View style={styles.heroCopy}>
             <Text style={styles.hello}>
-              {greeting()}, {firstName(user?.name)} 👋
+              {greeting()}, {firstName(user?.name)}
             </Text>
             <Text style={styles.heroTitle}>
               Report waste.{'\n'}Keep your city{'\n'}clean.

@@ -20,10 +20,10 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 const TYPE_LABELS: Record<string, string> = {
-  overflow: '🗑️ Overflow Bin',
-  illegal_dumping: '⚠️ Illegal Dumping',
-  damaged_bin: '🔧 Damaged Bin',
-  missed_collection: '📋 Missed Collection',
+  overflow: 'Overflow Bin',
+  illegal_dumping: 'Illegal Dumping',
+  damaged_bin: 'Damaged Bin',
+  missed_collection: 'Missed Collection',
 };
 
 function createColoredIcon(color: string) {
