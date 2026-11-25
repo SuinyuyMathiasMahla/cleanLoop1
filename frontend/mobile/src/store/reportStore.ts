@@ -20,6 +20,7 @@ interface ReportStore {
   publicNextKey: string | null;
   publicStatus: string | undefined;
   myReports: Report[];
+  myNextKey: string | null;
   allReports: Report[];
   isLoading: boolean;
   isSubmitting: boolean;
@@ -27,7 +28,8 @@ interface ReportStore {
 
   fetchPublicReports: (status?: string, append?: boolean) => Promise<void>;
   loadMorePublicReports: () => Promise<void>;
-  fetchMyReports: () => Promise<void>;
+  fetchMyReports: (append?: boolean) => Promise<void>;
+  loadMoreMyReports: () => Promise<void>;
   fetchAllReports: (status?: string) => Promise<void>;
   submitReport: (data: any) => Promise<void>;
   submitGuestReport: (data: any) => Promise<string>;
@@ -39,6 +41,7 @@ export const useReportStore = create<ReportStore>((set, get) => ({
   publicNextKey: null,
   publicStatus: undefined,
   myReports: [],
+  myNextKey: null,
   allReports: [],
   isLoading: false,
   isSubmitting: false,
@@ -73,16 +76,28 @@ export const useReportStore = create<ReportStore>((set, get) => ({
     if (publicNextKey && !isLoading) await get().fetchPublicReports(publicStatus, true);
   },
 
-  fetchMyReports: async () => {
+  fetchMyReports: async (append = false) => {
     set({ isLoading: true, error: null });
     try {
-      const response = await reportsApi.getMine(); // ← was getMy()
-      set({ myReports: response.data.reports ?? [] });
+      const response = await reportsApi.getMine(
+        append ? (get().myNextKey ?? undefined) : undefined,
+      );
+      set((state) => ({
+        myReports: append
+          ? [...state.myReports, ...(response.data.reports ?? [])]
+          : (response.data.reports ?? []),
+        myNextKey: response.data.nextKey ?? null,
+      }));
     } catch (err: any) {
       set({ error: err.message ?? 'Failed to fetch reports' });
     } finally {
       set({ isLoading: false });
     }
+  },
+
+  loadMoreMyReports: async () => {
+    const { myNextKey, isLoading } = get();
+    if (myNextKey && !isLoading) await get().fetchMyReports(true);
   },
 
   fetchAllReports: async (status?: string) => {

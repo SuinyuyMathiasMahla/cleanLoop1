@@ -27,10 +27,12 @@ export default function MyReportsScreen() {
     publicReports,
     publicNextKey,
     myReports,
+    myNextKey,
     isLoading,
     fetchPublicReports,
     loadMorePublicReports,
     fetchMyReports,
+    loadMoreMyReports,
   } = useReportStore();
 
   const [scope, setScope] = useState<Scope>('mine');
@@ -151,6 +153,7 @@ export default function MyReportsScreen() {
           }
           onEndReached={() => {
             if (scope === 'community' && publicNextKey) loadMorePublicReports();
+            if (scope === 'mine' && myNextKey) loadMoreMyReports();
           }}
           onEndReachedThreshold={0.6}
           showsVerticalScrollIndicator={false}
