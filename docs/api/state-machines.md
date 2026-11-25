@@ -14,22 +14,25 @@ stateDiagram-v2
     pending --> assigned: automatic assignment [crew within 25 km] / create task, notify crew
     pending --> assigned: admin creates a task with this report
     assigned --> pending: admin deletes the task
+    assigned --> in_progress: crew starts the task
+    in_progress --> resolved: crew lead completes the task / notify community
     assigned --> resolved: crew lead completes the task / notify community
+    assigned --> pending: task cancelled
+    in_progress --> pending: task cancelled or deleted
     pending --> pending: SLA sweep every minute [no crew in range] / alert admins, once a day
     resolved --> [*]
     note right of assigned
         Admin PATCH /reports/{id}/status can set any status from any status.
-        Nothing sets in_progress automatically: it is reachable only by that override.
     end note
 ```
 
 Problems this shows:
 
-- `in_progress` is never set when the crew starts the task, so citizens see `assigned`
+- Fixed in SCRUM-45: `in_progress` was never set when the crew started the task, so citizens see `assigned`
   until the report is resolved.
 - The admin override skips every rule, including moving a resolved report back to
   pending without touching its task.
-- Cancelling a task (`status = cancelled`) leaves its reports `assigned` forever. Only
+- Fixed in SCRUM-46: cancelling a task (`status = cancelled`) left its reports `assigned`. Only
   deleting the task returns them to `pending`.
 
 ### Target (new report flow)
@@ -90,11 +93,11 @@ stateDiagram-v2
 
 Problems this shows:
 
-- Nothing creates a `scheduled` task, but the daily reminder looks only for `scheduled`
+- Fixed in SCRUM-44: nothing creates a `scheduled` task, but the daily reminder looked only for `scheduled`
   and `in_progress` tasks, so tasks in `assigned` (all of them, at first) never get a
   reminder.
 - An admin can complete a task without evidence, which resolves its reports.
-- `cancelled` does not release the reports (see Report, today).
+- Fixed in SCRUM-46: `cancelled` did not release the reports.
 
 ### Target
 
