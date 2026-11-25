@@ -24,10 +24,12 @@ docs/
   meetings/     sprint reviews and retrospectives
 ```
 
-The top-level folders are still named `Backend/`, `Frontend/` and `Docs/`. Renaming
-them to lowercase is a Sprint 0 task, done in one pull request so that nobody's
-local paths break halfway (on Windows a case-only rename needs `git mv Backend
-backend-tmp` then `git mv backend-tmp backend`).
+Each of `backend/`, `frontend/mobile/` and `frontend/web/` is its own pnpm project with
+its own `pnpm-lock.yaml`. The root `package.json` holds only the shared tooling
+(Prettier and ESLint) that checks all three.
+
+If your editor or a terminal still shows `Backend/` after pulling the lowercase rename,
+close it and reopen the folder; Windows keeps the old case in open handles.
 
 ## 2. Naming conventions
 
