@@ -497,7 +497,8 @@ route('GET', '/tasks', ({ caller, query }) => {
     const status = query.get('status');
     const items = db.tasks.filter((t) => !status || t.status === status);
     const { slice, nextKey } = page(items, query, 500);
-    return { tasks: slice, nextKey };
+    // Like the Lambda handler, total is the size of this page, not of the whole table
+    return { tasks: slice, total: slice.length, nextKey };
   }
   if (isCrew(caller)) {
     const tasks = db.tasks.filter((t) => onTask(t, caller.userId));
