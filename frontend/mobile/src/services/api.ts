@@ -136,6 +136,13 @@ export async function uploadToS3(
   localUri: string,
   contentType: string,
 ): Promise<void> {
+  // React Native's XMLHttpRequest reads a file from a { uri, type, name } object, but a
+  // browser would send that object as the text "[object Object]". On web, read the
+  // local (blob: or data:) URI into a Blob and send the bytes instead.
+  const body: unknown = isWeb
+    ? await (await fetch(localUri)).blob()
+    : { uri: localUri, type: contentType, name: 'upload' };
+
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open('PUT', presignedUrl);
@@ -152,7 +159,7 @@ export async function uploadToS3(
     xhr.onerror = () => reject(new Error('S3 upload network error'));
     xhr.ontimeout = () => reject(new Error('S3 upload timed out'));
 
-    xhr.send({ uri: localUri, type: contentType, name: 'upload' } as any);
+    xhr.send(body as any);
   });
 }
 
