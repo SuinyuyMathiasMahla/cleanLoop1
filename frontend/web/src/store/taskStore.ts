@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import { tasksApi } from '../services/api';
 
-export type TaskStatus = 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
+// `scheduled` is legacy: nothing creates it any more, but older tasks may still carry it
+export type TaskStatus = 'assigned' | 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
 
 export interface Task {
   taskId: string;
@@ -33,19 +34,18 @@ export interface CreateTaskInput {
 
 interface TaskState {
   tasks: Task[];
-  total: number;
   isLoading: boolean;
   error: string | null;
   fetchTasks: () => Promise<void>;
   createTask: (data: CreateTaskInput) => Promise<void>;
   updateTask: (id: string, data: Partial<Task>) => Promise<void>;
+  setTaskStatus: (id: string, status: TaskStatus) => Promise<void>;
   deleteTask: (id: string) => Promise<void>;
   clearError: () => void;
 }
 
 export const useTaskStore = create<TaskState>((set) => ({
   tasks: [],
-  total: 0,
   isLoading: false,
   error: null,
 
@@ -55,7 +55,6 @@ export const useTaskStore = create<TaskState>((set) => ({
       const res = await tasksApi.list();
       set({
         tasks: res.data.tasks || res.data.items || [],
-        total: res.data.total || 0,
         isLoading: false,
       });
     } catch (err) {
@@ -73,7 +72,6 @@ export const useTaskStore = create<TaskState>((set) => ({
       const newTask = res.data.task || res.data;
       set((state) => ({
         tasks: [newTask, ...state.tasks],
-        total: state.total + 1,
       }));
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to create task';
@@ -95,12 +93,24 @@ export const useTaskStore = create<TaskState>((set) => ({
     }
   },
 
+  setTaskStatus: async (id: string, status: TaskStatus) => {
+    try {
+      await tasksApi.updateStatus(id, status);
+      set((state) => ({
+        tasks: state.tasks.map((t) => (t.taskId === id ? { ...t, status } : t)),
+      }));
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to update task status';
+      set({ error: msg });
+      throw new Error(msg);
+    }
+  },
+
   deleteTask: async (id: string) => {
     try {
       await tasksApi.delete(id);
       set((state) => ({
         tasks: state.tasks.filter((t) => t.taskId !== id),
-        total: state.total - 1,
       }));
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to delete task';

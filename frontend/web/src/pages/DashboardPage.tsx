@@ -17,16 +17,9 @@ import { StatusBadge } from '../components/common/StatusBadge';
 import { PageLoader } from '../components/common/LoadingSpinner';
 import { EmptyState } from '../components/common/EmptyState';
 import { Button } from '../components/common/Button';
+import { ReportTypeIcon } from '../components/common/ReportTypeIcon';
 import { tasksApi, crewApi } from '../services/api';
 import clsx from 'clsx';
-
-const TYPE_ICONS: Record<string, string> = {
-  overflow: '🗑️',
-  illegal_dumping: '⚠️',
-  dumping: '⚠️',
-  damaged_bin: '🔧',
-  missed_collection: '📋',
-};
 
 const STATUS_META = [
   { key: 'pending', label: 'Pending', color: 'bg-amber-400' },
@@ -402,7 +395,7 @@ export function DashboardPage() {
                 >
                   <div className="flex items-center gap-3">
                     <div className="h-9 w-9 shrink-0 rounded-lg bg-gray-100 flex items-center justify-center text-base">
-                      {TYPE_ICONS[report.type] || '📍'}
+                      <ReportTypeIcon type={report.type} />
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium text-gray-900">{report.address}</p>

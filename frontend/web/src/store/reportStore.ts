@@ -13,8 +13,8 @@ export interface Report {
   lat: number;
   lng: number;
   photoUrl?: string;
-  submittedBy: string;
-  submitterPhone?: string;
+  // Display name from the reports API; the submitter's ID and contact details are never returned
+  submitterName?: string;
   assignedTo?: string; // legacy field, kept for backwards compatibility
   assignedCrewId?: string;
   assignedCrewName?: string;

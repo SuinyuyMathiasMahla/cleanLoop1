@@ -20,6 +20,7 @@ import { Input, Select } from '../components/common/Input';
 import { Modal } from '../components/common/Modal';
 import { EmptyState } from '../components/common/EmptyState';
 import { TableSkeleton } from '../components/common/LoadingSpinner';
+import { ReportTypeIcon } from '../components/common/ReportTypeIcon';
 import { useDebounce } from '../hooks/useDebounce';
 
 const STATUS_OPTIONS = [
@@ -40,22 +41,22 @@ const TYPE_OPTIONS = [
 
 const TYPE_LABELS: Record<string, string> = {
   overflow: 'Overflow Bin',
-  illegal_dumping: '⚠️ Illegal Dumping',
-  dumping: '⚠️ Illegal Dumping',
-  damaged_bin: '🔧 Damaged Bin',
-  missed_collection: '📋 Missed Collection',
+  illegal_dumping: 'Illegal Dumping',
+  dumping: 'Illegal Dumping',
+  damaged_bin: 'Damaged Bin',
+  missed_collection: 'Missed Collection',
 };
 
 const COLUMN_COUNT = 5;
 
-const TYPE_META: Record<string, { icon: string; label: string; tint: string }> = {
-  overflow: { icon: '🗑️', label: 'Overflow bin', tint: 'bg-amber-50' },
-  illegal_dumping: { icon: '⚠️', label: 'Illegal dumping', tint: 'bg-red-50' },
-  dumping: { icon: '⚠️', label: 'Illegal dumping', tint: 'bg-red-50' },
-  damaged_bin: { icon: '🔧', label: 'Damaged bin', tint: 'bg-slate-100' },
-  missed_collection: { icon: '📋', label: 'Missed collection', tint: 'bg-blue-50' },
+const TYPE_META: Record<string, { label: string; tint: string }> = {
+  overflow: { label: 'Overflow bin', tint: 'bg-amber-50' },
+  illegal_dumping: { label: 'Illegal dumping', tint: 'bg-red-50' },
+  dumping: { label: 'Illegal dumping', tint: 'bg-red-50' },
+  damaged_bin: { label: 'Damaged bin', tint: 'bg-slate-100' },
+  missed_collection: { label: 'Missed collection', tint: 'bg-blue-50' },
 };
-const typeMeta = (t: string) => TYPE_META[t] ?? { icon: '📍', label: t, tint: 'bg-gray-100' };
+const typeMeta = (t: string) => TYPE_META[t] ?? { label: t, tint: 'bg-gray-100' };
 
 /** Name of the crew member a report is assigned to (falls back to id / legacy field). */
 const getAssigneeName = (r: Report): string | null =>
@@ -313,7 +314,7 @@ export function ReportsPage() {
                         <div
                           className={`h-9 w-9 shrink-0 rounded-xl flex items-center justify-center text-base ${typeMeta(report.type).tint}`}
                         >
-                          {typeMeta(report.type).icon}
+                          <ReportTypeIcon type={report.type} />
                         </div>
                         <div className="min-w-0">
                           <p className="font-medium text-gray-900">{typeMeta(report.type).label}</p>
@@ -432,7 +433,7 @@ export function ReportsPage() {
               <InfoItem
                 icon={<User className="w-4 h-4" />}
                 label="Submitted by"
-                value={viewReport.submittedBy}
+                value={viewReport.submitterName || 'Community member'}
               />
               <InfoItem
                 icon={<Calendar className="w-4 h-4" />}

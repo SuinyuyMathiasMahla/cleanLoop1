@@ -35,8 +35,9 @@ const EMPTY_FORM: TaskFormData = {
 
 type TaskFormErrors = Partial<Omit<TaskFormData, 'crewMemberIds'>> & { crewMemberIds?: string };
 
-const TASK_STATUS_OPTIONS = [
-  { value: 'scheduled', label: 'Scheduled' },
+// Every task starts `assigned` (docs/api/state-machines.md); nothing creates `scheduled`.
+const TASK_STATUS_OPTIONS: { value: TaskStatus; label: string }[] = [
+  { value: 'assigned', label: 'Assigned' },
   { value: 'in_progress', label: 'In Progress' },
   { value: 'completed', label: 'Completed' },
   { value: 'cancelled', label: 'Cancelled' },
@@ -65,12 +66,12 @@ const isOverdue = (task: { status: string; dueAt?: string }) => {
 export function TasksPage() {
   const {
     tasks,
-    total,
     isLoading,
     error,
     fetchTasks,
     createTask,
     updateTask,
+    setTaskStatus,
     deleteTask,
     clearError,
   } = useTaskStore();
@@ -195,7 +196,7 @@ export function TasksPage() {
 
   const handleStatusChange = async (taskId: string, status: TaskStatus) => {
     try {
-      await updateTask(taskId, { status });
+      await setTaskStatus(taskId, status);
     } catch {
       // error handled in store
     }
@@ -223,8 +224,9 @@ export function TasksPage() {
 
   const summary = [
     {
-      label: 'Scheduled',
-      value: tasks.filter((t) => t.status === 'scheduled').length,
+      label: 'Assigned',
+      // Older tasks may still carry the legacy `scheduled` status: count them as not started
+      value: tasks.filter((t) => t.status === 'assigned' || t.status === 'scheduled').length,
       tone: 'text-blue-600',
     },
     {
@@ -250,7 +252,9 @@ export function TasksPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-gray-900">Tasks</h1>
-          <p className="text-sm text-gray-500 mt-1">{total} tasks total</p>
+          <p className="text-sm text-gray-500 mt-1">
+            {tasks.length} {tasks.length === 1 ? 'task' : 'tasks'} total
+          </p>
         </div>
         <Button
           variant="primary"
@@ -414,6 +418,11 @@ export function TasksPage() {
                           }
                           className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
                         >
+                          {!TASK_STATUS_OPTIONS.some((o) => o.value === task.status) && (
+                            <option value={task.status} disabled>
+                              {task.status === 'scheduled' ? 'Scheduled' : task.status}
+                            </option>
+                          )}
                           {TASK_STATUS_OPTIONS.map((o) => (
                             <option key={o.value} value={o.value}>
                               {o.label}

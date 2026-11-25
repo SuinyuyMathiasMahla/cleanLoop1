@@ -31,9 +31,9 @@ const RECIPIENT_OPTIONS = [
 ];
 
 const RECIPIENT_LABELS: Record<string, string> = {
-  all_citizens: '👥 All Citizens',
-  all_crew: '🦺 All Crew',
-  all_users: '🌐 All Users',
+  all_citizens: 'All Citizens',
+  all_crew: 'All Crew',
+  all_users: 'All Users',
 };
 
 const EMPTY_FORM: FormData = { title: '', message: '', recipients: 'all_citizens' };

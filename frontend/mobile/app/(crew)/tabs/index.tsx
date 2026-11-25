@@ -184,7 +184,7 @@ export default function CrewHome() {
                 )}
               </View>
               <Text style={styles.hello}>
-                {greeting()}, {firstName(user?.name, 'Crew')} 👋
+                {greeting()}, {firstName(user?.name, 'Crew')}
               </Text>
               <Text style={styles.heroTitle}>
                 {openTasks.length > 0
