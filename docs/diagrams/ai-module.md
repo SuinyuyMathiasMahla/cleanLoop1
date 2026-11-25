@@ -454,11 +454,11 @@ flowchart TB
     direction LR
     msg["User message"] --> lang["Detect language"] --> claims["Read role claims"]
     claims --> gin["Input guardrails"] --> ret["Retrieve, filtered<br/>by audience"]
-    ret --> call["Model call"]
-    call -- "tool request" --> exec["Core tool executor"]
+    ret --> llm["Model call"]
+    llm -- "tool request" --> exec["Core tool executor"]
     exec --> db[("Database")]
-    exec --> call
-    call --> gout["Output guardrails"] --> ans["Answer citing<br/>document titles"]
+    exec --> llm
+    llm --> gout["Output guardrails"] --> ans["Answer citing<br/>document titles"]
     ans --> sess[("Session store<br/>with time-to-live")]
   end
   kb --> ret
