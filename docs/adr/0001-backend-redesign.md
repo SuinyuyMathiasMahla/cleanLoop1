@@ -1,6 +1,6 @@
 # 0001. Backend redesign: keep the serverless core, cut what Release 1 does not need
 
-- Status: Proposed
+- Status: Accepted (2026-11-26)
 - Date: 2026-11-25
 - Deciders: Mathias (Product Owner), Bryan (Scrum Master), Imele (AI)
 
@@ -48,9 +48,9 @@ under $10 a month at that size.
   confirmations and status changes go by push and in-app. SMS is kept for crews who have
   no data connection when a task is assigned.
 
-This changes the SRS decision "SMS code is the default sign-in". It needs the Product
-Owner's agreement and a verified Meta Business account (a registered business and a
-phone number for WhatsApp).
+This changes the SRS decision "SMS code is the default sign-in". The Product Owner
+agreed on 2026-11-26. WhatsApp codes still need a verified Meta Business account (a
+registered business and a phone number for WhatsApp), tracked in SCRUM-34.
 
 ### 2. API layer: API Gateway HTTP API instead of REST API
 
@@ -183,15 +183,17 @@ with an SMS spending limit, and raise the alarm to the pilot estimate before lau
 ## How we get there without a rewrite
 
 1. **Contracts first (Sprint 1):** `docs/api/openapi.yaml` from the existing routes,
-   the access-pattern table, and the report and task state machines.
+   the access-pattern table, and the report and task state machines. Done (SCRUM-38).
 2. **Infrastructure swaps with little or no code change:** arm64, log retention, the
    Google OAuth secret moved into Secrets Manager behind `getSecret`, plain settings in
-   Parameter Store, remove SNS.
+   Parameter Store, remove SNS. Log retention, the budget alarm and the OAuth secret
+   are done; the rest is SCRUM-59.
 3. **Restructure one domain per story:** move code into handler, service, rules and
    repository, add unit tests for the rules, replace that domain's scans with queries.
-4. **New flows:** report create, upload, submit and queue; the per-minute SLA
-   watchdog; WhatsApp sign-in with SMS fallback.
-5. **HTTP API switch** once every route is in the OpenAPI file.
+   SCRUM-60 (tasks), SCRUM-61 (reports), SCRUM-62 (crew and notifications).
+4. **New flows:** report create, upload, submit and queue (S1, S2); the per-minute SLA
+   watchdog (SCRUM-63); WhatsApp sign-in with SMS fallback (S15, after SCRUM-34).
+5. **HTTP API switch** once every route is in the OpenAPI file (SCRUM-64).
 
 If there are no real users in the deployed environment yet, tables can be recreated
 with the new keys instead of migrated. To confirm before step 3.
