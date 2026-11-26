@@ -78,18 +78,18 @@ const body = [
   grp(200, 552, 1120, 112, 'Operations and security (every service)'),
   // clients and external systems sit outside the AWS Cloud
   n('admin', 84, 104, 'client', 'Admin portal', 'web'),
-  n('citizen', 84, 244, 'mobile', 'Citizen app', 'Expo, offline queue'),
+  n('citizen', 84, 244, 'mobile', 'Citizen app', 'Expo, offline queue, OpenFreeMap tiles'),
   n('crew', 84, 384, 'mobile', 'Crew app', 'Expo'),
   `<p style="position:absolute;left:24px;top:470px;width:120px;text-align:center;font-size:11px;color:${K.muted}">Users</p>`,
   n('geo', 1436, 118, 'globe', 'Geocoding API', 'external'),
-  n('sms', 1436, 262, 'internet', 'SMS gateway', 'external, key in Secrets Manager'),
+  n('sms', 1436, 262, 'internet', 'WhatsApp and SMS', 'sign-in codes; SMS only as fallback'),
   // edge and identity
   n('amplify', 275, 104, 'amplify', 'Amplify Hosting', 'admin portal + CDN'),
-  n('cognito', 275, 214, 'cognito', 'Amazon Cognito', 'SMS code or email login'),
-  n('apigw', 275, 324, 'apigw', 'API Gateway', 'REST, JWT, throttling'),
-  n('waf', 275, 434, 'waf', 'AWS WAF', 'attaches to API Gateway', 'LATER'),
+  n('cognito', 275, 214, 'cognito', 'Amazon Cognito', 'WhatsApp, SMS or email'),
+  n('apigw', 275, 324, 'apigw', 'API Gateway', 'HTTP API, JWT auth'),
+  n('waf', 275, 434, 'waf', 'AWS WAF', 'needs CloudFront in front', 'LATER'),
   // API functions
-  n('fReports', 452, 100, 'lambda', 'Reports API'),
+  n('fReports', 452, 100, 'lambda', 'Reports API', 'all on arm64, Node.js 22'),
   n('fAuth', 452, 186, 'lambda', 'Auth trigger', 'Cognito hooks'),
   n('fTasks', 452, 272, 'lambda', 'Tasks API'),
   n('fCrew', 452, 358, 'lambda', 'Crew and admin API'),
@@ -103,29 +103,29 @@ const body = [
   n('pipe', 930, 104, 'lambda', 'Pipeline worker', 'validate, geocode, dedupe, prioritise, assign'),
   n('bus', 930, 276, 'eb', 'Event bus', 'Amazon EventBridge'),
   n('notifier', 1064, 276, 'lambda', 'Notifier'),
-  n('sns', 992, 400, 'sns', 'Amazon SNS', 'mobile push'),
+  n('sns', 992, 400, 'internet', 'Expo push', 'external, free'),
   n('ses', 1090, 400, 'ses', 'Amazon SES', 'admin email'),
   n('sched', 790, 400, 'eb', 'Scheduler', 'EventBridge, every minute'),
   n('sla', 905, 400, 'lambda', 'SLA watchdog', 'and monthly rollover'),
   // AI services
-  n('rek', 1229, 100, 'rek', 'Amazon Rekognition', 'labels, moderation'),
+  n('rek', 1229, 100, 'bedrock', 'Image analysis', 'Bedrock Nova Lite'),
   n('aim', 1229, 248, 'lambda', 'AI Intelligence Module', 'private API', 'R2'),
   n('bedrock', 1229, 396, 'bedrock', 'Amazon Bedrock', 'assistant, narratives', 'R3+'),
   // operations band
   n('cw', 290, 572, 'cw', 'CloudWatch', 'logs, metrics, alarms'),
-  n('sm', 480, 572, 'sm', 'Secrets Manager', 'SMS provider key'),
-  n('kms', 670, 572, 'kms', 'AWS KMS', 'encryption keys'),
+  n('sm', 480, 572, 'sm', 'Secrets Manager', 'OAuth, WhatsApp, geocoding keys'),
+  n('kms', 670, 572, 'kms', 'AWS KMS', 'AWS-managed keys'),
   n('iam', 860, 572, 'iam', 'AWS IAM', 'least-privilege roles'),
   n('cdk', 1050, 572, 'cdk', 'AWS CDK', 'deployed by GitHub Actions'),
   // numbered steps
   `<div style="position:absolute;left:1366px;top:388px;width:290px;font-size:11.5px;line-height:1.38;color:${K.body}"><p style="font-weight:700;color:${K.esp};font-size:12.5px;margin-bottom:4px">How a report flows</p>` +
     [
-      ['1', 'Apps sign in with Cognito and get a token'],
+      ['1', 'Apps sign in with a WhatsApp code through Cognito'],
       ['2', 'App creates the report; API returns upload links'],
       ['3', 'Photos go straight from the phone to S3'],
       ['4', 'App calls submit; the report is queued once'],
       ['5', 'Worker labels images, geocodes, checks duplicates, assigns a crew'],
-      ['6', 'Assignment event triggers SMS and push'],
+      ['6', 'Assignment event sends push; SMS only to offline crews'],
       ['7', 'Scheduler escalates tasks past their SLA'],
     ]
       .map(

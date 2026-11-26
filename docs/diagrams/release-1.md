@@ -41,7 +41,7 @@ flowchart LR
       APIGW["API Gateway<br/>REST today, HTTP API next<br/>throttled guest routes"]
     end
     subgraph ComputeStack["Compute stack"]
-      Lambdas["Lambda per domain, arm64<br/>reports, tasks, crew, notifications"]
+      Lambdas["Lambda per domain, arm64, Node.js 22<br/>reports, tasks, crew, notifications"]
       Sched["EventBridge Scheduler<br/>SLA sweep every minute,<br/>reminders every 30 minutes"]
       Pipe["Step Functions pipeline<br/>with SQS queue and DLQ"]
     end
