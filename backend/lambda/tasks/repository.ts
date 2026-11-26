@@ -74,7 +74,7 @@ export async function updateTask(
   });
   sets.push('updatedAt = :now');
 
-  const after = { ...before, ...updates, updatedAt: now };
+  const after: Item = { ...before, ...updates, updatedAt: now };
   const previous = new Set(taskMemberIds(before));
   const next = taskMemberIds(after);
   const scheduleMoved = 'scheduledAt' in updates || 'crewLeadId' in updates;
