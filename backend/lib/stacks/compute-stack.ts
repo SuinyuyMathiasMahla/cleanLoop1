@@ -15,6 +15,7 @@ export interface ComputeStackProps extends cdk.StackProps {
   reportsTable: dynamodb.Table;
   usersTable: dynamodb.Table;
   tasksTable: dynamodb.Table;
+  taskAssignmentsTable: dynamodb.Table;
   notificationsTable: dynamodb.Table;
   mediaBucket: s3.Bucket;
   userPool: cognito.UserPool;
@@ -36,6 +37,7 @@ export class ComputeStack extends cdk.Stack {
       reportsTable,
       usersTable,
       tasksTable,
+      taskAssignmentsTable,
       notificationsTable,
       mediaBucket,
       userPool,
@@ -48,6 +50,7 @@ export class ComputeStack extends cdk.Stack {
       USERS_TABLE: usersTable.tableName,
       CREW_TABLE: usersTable.tableName,
       TASKS_TABLE: tasksTable.tableName,
+      TASK_ASSIGNMENTS_TABLE: taskAssignmentsTable.tableName,
       NOTIFICATIONS_TABLE: notificationsTable.tableName,
       MEDIA_BUCKET: mediaBucket.bucketName,
       USER_POOL_ID: userPool.userPoolId,
@@ -113,6 +116,7 @@ export class ComputeStack extends cdk.Stack {
     });
 
     tasksTable.grantReadWriteData(this.tasksHandler);
+    taskAssignmentsTable.grantReadWriteData(this.tasksHandler);
     reportsTable.grantReadWriteData(this.tasksHandler);
     usersTable.grantReadData(this.tasksHandler);
     notificationsTable.grantWriteData(this.tasksHandler);

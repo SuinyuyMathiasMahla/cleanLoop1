@@ -562,6 +562,13 @@ route('PATCH', '/tasks/{taskId}/status', async ({ caller, params, body }) => {
       fail(403, 'Only the crew head can complete the task and submit evidence');
   } else fail(403, 'Forbidden');
 
+  const reason = typeof body.reason === 'string' ? body.reason.trim().replace(/\s+/g, ' ') : '';
+  if (status === 'cancelled') {
+    if (!reason) fail(400, 'A reason is required to cancel a task');
+    if (reason.length > 500) fail(400, 'The reason must be 500 characters or fewer');
+    Object.assign(t, { cancelReason: reason, cancelledAt: now(), cancelledBy: caller.userId });
+  }
+
   if (status === 'completed' && isCrew(caller)) {
     const keys = Array.isArray(body.evidencePhotoKeys) ? body.evidencePhotoKeys : [];
     if (!keys.length) fail(400, 'At least one evidence photo is required to complete a task');

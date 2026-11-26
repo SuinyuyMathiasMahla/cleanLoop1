@@ -1,4 +1,4 @@
-import { dbPut, dbScan } from './dynamo';
+import { dbPut, dbQuery } from './dynamo';
 
 export interface NotificationRecipient {
   userId?: string;
@@ -97,28 +97,35 @@ export async function notifyUsers(
   }
 }
 
+/**
+ * Notifies every citizen. Reads RoleIndex, one page at a time; roles are stored in both
+ * spellings today, so both are queried.
+ */
 export async function notifyCitizenCommunity(
   usersTable: string,
   notificationsTable: string,
   details: NotificationDetails,
   excludedUserId?: string,
 ): Promise<void> {
-  let lastKey: Record<string, unknown> | undefined;
-  do {
-    const result = await dbScan({
-      TableName: usersTable,
-      FilterExpression: '#r IN (:citizen, :citizenUpper) OR #ut IN (:citizen, :citizenUpper)',
-      ExpressionAttributeNames: { '#r': 'role', '#ut': 'userType' },
-      ExpressionAttributeValues: { ':citizen': 'citizen', ':citizenUpper': 'CITIZEN' },
-      Limit: 100,
-      ...(lastKey ? { ExclusiveStartKey: lastKey } : {}),
-    });
+  for (const role of ['CITIZEN', 'citizen']) {
+    let lastKey: Record<string, unknown> | undefined;
+    do {
+      const result = await dbQuery({
+        TableName: usersTable,
+        IndexName: 'RoleIndex',
+        KeyConditionExpression: '#r = :r',
+        ExpressionAttributeNames: { '#r': 'role' },
+        ExpressionAttributeValues: { ':r': role },
+        Limit: 100,
+        ...(lastKey ? { ExclusiveStartKey: lastKey } : {}),
+      });
 
-    await notifyUsers(
-      notificationsTable,
-      result.items.filter((user) => user.userId && user.userId !== excludedUserId),
-      details,
-    );
-    lastKey = result.lastKey as Record<string, unknown> | undefined;
-  } while (lastKey);
+      await notifyUsers(
+        notificationsTable,
+        result.items.filter((user) => user.userId && user.userId !== excludedUserId),
+        details,
+      );
+      lastKey = result.lastKey as Record<string, unknown> | undefined;
+    } while (lastKey);
+  }
 }

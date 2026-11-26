@@ -5,7 +5,8 @@
     "build": "tsc",
     "cdk": "cdk",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.lambda.json",
-    "synth": "cdk synth --quiet"
+    "synth": "cdk synth --quiet",
+    "test": "node --import tsx --test \"lambda/**/*.test.ts\""
   },
   "dependencies": {
     "aws-cdk-lib": "^2.130.0",
@@ -27,6 +28,7 @@
     "esbuild": "^0.20.0",
     "source-map-support": "^0.5.21",
     "ts-node": "^10.9.2",
+    "tsx": "4.19.2",
     "typescript": "^5.3.0"
   },
   "packageManager": "pnpm@10.20.0"

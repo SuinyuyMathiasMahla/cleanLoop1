@@ -17,6 +17,8 @@ export interface Task {
   dueAt: string;
   notes?: string;
   status: TaskStatus;
+  cancelReason?: string;
+  cancelledAt?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -39,7 +41,7 @@ interface TaskState {
   fetchTasks: () => Promise<void>;
   createTask: (data: CreateTaskInput) => Promise<void>;
   updateTask: (id: string, data: Partial<Task>) => Promise<void>;
-  setTaskStatus: (id: string, status: TaskStatus) => Promise<void>;
+  setTaskStatus: (id: string, status: TaskStatus, reason?: string) => Promise<void>;
   deleteTask: (id: string) => Promise<void>;
   clearError: () => void;
 }
@@ -93,11 +95,13 @@ export const useTaskStore = create<TaskState>((set) => ({
     }
   },
 
-  setTaskStatus: async (id: string, status: TaskStatus) => {
+  setTaskStatus: async (id: string, status: TaskStatus, reason?: string) => {
     try {
-      await tasksApi.updateStatus(id, status);
+      await tasksApi.updateStatus(id, status, reason);
       set((state) => ({
-        tasks: state.tasks.map((t) => (t.taskId === id ? { ...t, status } : t)),
+        tasks: state.tasks.map((t) =>
+          t.taskId === id ? { ...t, status, ...(reason ? { cancelReason: reason } : {}) } : t,
+        ),
       }));
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to update task status';

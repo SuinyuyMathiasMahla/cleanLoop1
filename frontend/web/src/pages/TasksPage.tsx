@@ -87,6 +87,10 @@ export function TasksPage() {
   const [selectedCompanionIds, setSelectedCompanionIds] = useState<string[]>([]);
   const [crewEditError, setCrewEditError] = useState<string | null>(null);
   const [savingCrew, setSavingCrew] = useState(false);
+  const [cancellingTask, setCancellingTask] = useState<Task | null>(null);
+  const [cancelReason, setCancelReason] = useState('');
+  const [cancelError, setCancelError] = useState<string | null>(null);
+  const [savingCancel, setSavingCancel] = useState(false);
 
   useEffect(() => {
     fetchTasks();
@@ -195,10 +199,40 @@ export function TasksPage() {
   };
 
   const handleStatusChange = async (taskId: string, status: TaskStatus) => {
+    // Cancelling needs a reason, so it goes through a dialog first
+    if (status === 'cancelled') {
+      setCancellingTask(tasks.find((t) => t.taskId === taskId) ?? null);
+      setCancelReason('');
+      setCancelError(null);
+      return;
+    }
     try {
       await setTaskStatus(taskId, status);
     } catch {
       // error handled in store
+    }
+  };
+
+  const closeCancelDialog = () => {
+    if (savingCancel) return;
+    setCancellingTask(null);
+  };
+
+  const confirmCancel = async () => {
+    if (!cancellingTask) return;
+    const reason = cancelReason.trim();
+    if (!reason) {
+      setCancelError('Give a reason for cancelling this task.');
+      return;
+    }
+    setSavingCancel(true);
+    try {
+      await setTaskStatus(cancellingTask.taskId, 'cancelled', reason);
+      setCancellingTask(null);
+    } catch (err) {
+      setCancelError(err instanceof Error ? err.message : 'Could not cancel the task');
+    } finally {
+      setSavingCancel(false);
     }
   };
 
@@ -664,6 +698,44 @@ export function TasksPage() {
           <p className="text-xs text-gray-500">
             {selectedCompanionIds.length} of 3 companions selected. At least 1 is required.
           </p>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={!!cancellingTask}
+        onClose={closeCancelDialog}
+        title="Cancel task"
+        size="md"
+        footer={
+          <>
+            <Button variant="secondary" onClick={closeCancelDialog}>
+              Keep task
+            </Button>
+            <Button variant="danger" isLoading={savingCancel} onClick={confirmCancel}>
+              Cancel task
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600">
+            Cancelling &ldquo;{cancellingTask?.title}&rdquo; returns its reports to pending, and the
+            crew is told why.
+          </p>
+          {cancelError && (
+            <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-sm text-red-700">
+              <AlertCircle className="h-4 w-4" /> {cancelError}
+            </div>
+          )}
+          <Textarea
+            label="Reason"
+            required
+            maxLength={500}
+            rows={3}
+            value={cancelReason}
+            onChange={(e) => setCancelReason(e.target.value)}
+            placeholder="For example: duplicate of another task, or the site was already cleaned"
+          />
         </div>
       </Modal>
     </div>

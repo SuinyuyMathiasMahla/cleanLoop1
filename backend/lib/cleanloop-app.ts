@@ -38,6 +38,7 @@ export class CleanLoopApp extends Construct {
       reportsTable: storageStack.reportsTable,
       usersTable: storageStack.usersTable,
       tasksTable: storageStack.tasksTable,
+      taskAssignmentsTable: storageStack.taskAssignmentsTable,
       notificationsTable: storageStack.notificationsTable,
       mediaBucket: storageStack.mediaBucket,
       userPool: authStack.userPool,
