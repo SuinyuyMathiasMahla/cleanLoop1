@@ -46,6 +46,7 @@ jobs:
           cache-dependency-path: backend/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
+      - run: pnpm test
       - run: pnpm synth
         env:
           CDK_DEFAULT_ACCOUNT: '000000000000'

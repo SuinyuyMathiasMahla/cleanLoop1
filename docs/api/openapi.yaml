@@ -575,8 +575,9 @@ paths:
       x-status: implemented
       summary: List tasks (admin all; crew their own)
       description: |
-        Admin: all tasks, optionally by `status`, paged. Crew: tasks they lead or belong
-        to, not paged.
+        Admin: all tasks, optionally by `status`, paged. Without `status` the list walks
+        the statuses in turn, so tasks come grouped by status; `nextKey` carries on from
+        where the page stopped. Crew: tasks they lead or belong to, not paged.
       parameters:
         - name: status
           in: query
@@ -701,8 +702,10 @@ paths:
         Admin may set any task status. Crew on the task may set `in_progress` or
         `completed`; only the crew lead may complete, and must send at least one evidence
         photo uploaded for this task (JPEG, PNG or WebP, 10 MB at most) and attendance for
-        every companion. Starting the task moves its reports to `in_progress`; cancelling
-        returns them to `pending`. Completing resolves them and notifies the community.
+        every companion. Cancelling needs a `reason` (500 characters at most), which is
+        stored on the task and sent to its crew. Starting the task moves its reports to
+        `in_progress`; cancelling returns them to `pending`. Completing resolves them and
+        notifies the community.
       requestBody:
         required: true
         content:
@@ -712,6 +715,10 @@ paths:
               required: [status]
               properties:
                 status: { $ref: '#/components/schemas/TaskStatus' }
+                reason:
+                  type: string
+                  maxLength: 500
+                  description: Required when `status` is `cancelled`
                 evidencePhotoKeys: { type: array, items: { type: string } }
                 companionAttendance:
                   type: array
@@ -1302,6 +1309,9 @@ components:
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
         completedAt: { type: string, format: date-time }
+        cancelReason: { type: string, description: Set when the task is cancelled }
+        cancelledAt: { type: string, format: date-time }
+        cancelledBy: { type: string, description: The admin who cancelled it }
 
     CrewMember:
       type: object

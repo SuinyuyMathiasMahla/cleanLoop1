@@ -120,4 +120,7 @@ Rules:
 - Overdue is a flag, not a state: the SLA watchdog sets `overdueAt` on active tasks past
   `dueAt` and alerts admins once.
 - Admins complete a task only through the same evidence rules, or cancel it.
+- Cancelling needs a reason (enforced since SCRUM-60). The other target rules are in
+  `backend/lambda/tasks/rules.ts` with tests; the status endpoint switches them on in
+  SCRUM-47 once the team agrees.
 - Deleting a task is kept for mistakes made within a few minutes; afterwards, cancel.
