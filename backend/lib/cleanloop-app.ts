@@ -42,7 +42,6 @@ export class CleanLoopApp extends Construct {
       mediaBucket: storageStack.mediaBucket,
       userPool: authStack.userPool,
       sesFromEmail: process.env.SES_FROM_EMAIL ?? `noreply@cleanloop-${stage}.example.com`,
-      googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY ?? '',
       ...props,
     });
 

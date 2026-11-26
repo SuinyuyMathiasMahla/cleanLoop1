@@ -9,6 +9,7 @@ import { ok, created, badRequest, forbidden, notFound, serverError } from '../sh
 import { getCaller, isAdmin, isCrew } from '../shared/auth';
 import { checkUploadedImage, getPresignedGetUrl, IMAGE_EXTENSIONS } from '../shared/s3';
 import { notifyCitizenCommunity } from '../shared/notifications';
+import { getSecret } from '../shared/secrets';
 
 const s3 = new S3Client({});
 const eb = new EventBridgeClient({});
@@ -19,7 +20,7 @@ const USERS_TABLE = process.env.USERS_TABLE!;
 const TASKS_TABLE = process.env.TASKS_TABLE!;
 const NOTIFICATIONS_TABLE = process.env.NOTIFICATIONS_TABLE!;
 const MEDIA_BUCKET = process.env.MEDIA_BUCKET!;
-const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY ?? '';
+const GEOCODING_SECRET_NAME = process.env.GEOCODING_SECRET_NAME;
 const STAGE = process.env.STAGE ?? 'dev';
 
 // ── Haversine distance (km) ───────────────────────────────────────────────────
@@ -47,11 +48,16 @@ async function resolveCrewCoordinates(
   ) {
     return { ...profile, locationLat: latitude, locationLng: longitude };
   }
-  if (!profile.locationText || !GOOGLE_MAPS_API_KEY) return null;
+  if (!profile.locationText) return null;
+  const apiKey = await getSecret(GEOCODING_SECRET_NAME).catch((e) => {
+    console.error('Could not read the geocoding key:', e);
+    return '';
+  });
+  if (!apiKey) return null;
 
   try {
     const address = encodeURIComponent(`${profile.locationText}, Buea, Cameroon`);
-    const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${address}&key=${GOOGLE_MAPS_API_KEY}`;
+    const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${address}&key=${apiKey}`;
     const response = await fetch(url, { signal: AbortSignal.timeout(4000) });
     if (!response.ok) return null;
     const result = (await response.json()) as any;

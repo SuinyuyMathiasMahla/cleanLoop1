@@ -77,18 +77,28 @@ The CDK app reads these from `backend/.env` (also git-ignored):
 | `STAGE`                       | `dev`, `staging` or `prod` (default `dev`; `--context stage=` wins)                      |
 | `AWS_ACCOUNT`, `AWS_REGION`   | Target account and region (default region `us-east-1`)                                   |
 | `SES_FROM_EMAIL`              | Verified SES sender for reminder and notification emails                                 |
-| `GOOGLE_MAPS_API_KEY`         | Geocoding for report locations and crew distances                                        |
 | `GOOGLE_OAUTH_CLIENT_ID`      | Optional Google sign-in through Cognito (secret: see below)                              |
 | `MAX_AUTO_ASSIGN_DISTANCE_KM` | Furthest crew distance for automatic assignment                                          |
 | `BUDGET_ALERT_EMAIL`          | Optional. Creates a monthly AWS cost budget that emails this address                     |
 | `MONTHLY_BUDGET_USD`          | Budget limit in dollars (default 7). Alerts at 80% spent and when the forecast passes it |
 
-The Google client secret is never put in `.env`. Store it once per stage in Secrets
-Manager, and CloudFormation reads it at deploy time:
+Secrets are never put in `.env`. Store each one once per stage in Secrets Manager:
+
+| Secret                                         | Used for                                                                                                               |
+| ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `cleanloop/<stage>/google-oauth-client-secret` | Google sign-in. CloudFormation reads it at deploy time                                                                 |
+| `cleanloop/<stage>/google-geocoding-api-key`   | Geocoding for report locations and crew distances. Lambdas read it at run time; if it is missing, geocoding is skipped |
 
 ```powershell
 aws secretsmanager create-secret --name cleanloop/dev/google-oauth-client-secret --secret-string "<client secret>"
 ```
+
+```powershell
+aws secretsmanager create-secret --name cleanloop/dev/google-geocoding-api-key --secret-string "<api key>"
+```
+
+Lambda code reads secrets only through `getSecret` in `backend/lambda/shared/secrets.ts`.
+Every function runs on arm64 and Node.js 22, with the AWS SDK bundled.
 
 Lambda logs are kept for 14 days (30 in `prod`). AWS Budgets measures the whole
 account, so if several stages share one account, set `BUDGET_ALERT_EMAIL` for one stage

@@ -1,10 +1,10 @@
 import * as cdk from 'aws-cdk-lib';
 import * as cognito from 'aws-cdk-lib/aws-cognito';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
-import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as lambdaNodejs from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as path from 'path';
 import { Construct } from 'constructs';
+import { functionDefaults } from '../lambda-defaults';
 
 export interface AuthStackProps extends cdk.StackProps {
   stage: string;
@@ -21,12 +21,11 @@ export class AuthStack extends cdk.Stack {
 
     const authHandler = new lambdaNodejs.NodejsFunction(this, 'AuthHandler', {
       functionName: `cleanloop-auth-${stage}`,
-      runtime: lambda.Runtime.NODEJS_20_X,
+      ...functionDefaults,
       entry: path.join(__dirname, '../../lambda/auth/handler.ts'),
       handler: 'handler',
       timeout: cdk.Duration.seconds(10),
       memorySize: 256,
-      bundling: { minify: false, sourceMap: false, externalModules: ['aws-sdk', '@aws-sdk/*'] },
       environment: { USERS_TABLE: usersTable.tableName, STAGE: stage },
     });
 
