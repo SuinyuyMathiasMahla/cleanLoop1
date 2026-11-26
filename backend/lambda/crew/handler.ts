@@ -23,13 +23,14 @@ import {
 } from '../shared/response';
 import { dbGet, dbUpdate } from '../shared/dynamo';
 import { getCaller, isAdmin } from '../shared/auth';
+import { getSecret } from '../shared/secrets';
 
 const cognito = new CognitoIdentityProviderClient({});
 const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 
 const USER_POOL_ID = process.env.USER_POOL_ID!;
 const USERS_TABLE = process.env.USERS_TABLE!;
-const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY ?? '';
+const GEOCODING_SECRET_NAME = process.env.GEOCODING_SECRET_NAME;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -60,13 +61,17 @@ function sanitisePhone(phone: string): string {
  * Appends ", Buea, Cameroon" to every query so partial addresses resolve correctly.
  */
 async function geocodeLocation(locationText: string): Promise<{ lat: number; lng: number } | null> {
-  if (!GOOGLE_MAPS_API_KEY) {
-    console.warn('GOOGLE_MAPS_API_KEY not set — skipping geocoding');
+  const apiKey = await getSecret(GEOCODING_SECRET_NAME).catch((e) => {
+    console.error('Could not read the geocoding key:', e);
+    return '';
+  });
+  if (!apiKey) {
+    console.warn('Geocoding key not set; skipping geocoding');
     return null;
   }
   try {
     const query = encodeURIComponent(`${locationText}, Buea, Cameroon`);
-    const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${query}&key=${GOOGLE_MAPS_API_KEY}`;
+    const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${query}&key=${apiKey}`;
     const res = await fetch(url);
     const data = (await res.json()) as any;
     if (data.status === 'OK' && data.results?.[0]) {

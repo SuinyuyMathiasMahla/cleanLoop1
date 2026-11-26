@@ -3,12 +3,14 @@ import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as lambdaNodejs from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as s3 from 'aws-cdk-lib/aws-s3';
+import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import * as cognito from 'aws-cdk-lib/aws-cognito';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as events from 'aws-cdk-lib/aws-events';
 import * as targets from 'aws-cdk-lib/aws-events-targets';
 import * as path from 'path';
 import { Construct } from 'constructs';
+import { functionDefaults } from '../lambda-defaults';
 
 export interface ComputeStackProps extends cdk.StackProps {
   stage: string;
@@ -19,7 +21,6 @@ export interface ComputeStackProps extends cdk.StackProps {
   mediaBucket: s3.Bucket;
   userPool: cognito.UserPool;
   sesFromEmail: string;
-  googleMapsApiKey: string;
 }
 
 export class ComputeStack extends cdk.Stack {
@@ -40,8 +41,15 @@ export class ComputeStack extends cdk.Stack {
       mediaBucket,
       userPool,
       sesFromEmail,
-      googleMapsApiKey,
     } = props;
+
+    // Read at runtime through getSecret (lambda/shared/secrets.ts). Created by hand once
+    // per stage; when it is missing, geocoding is skipped.
+    const geocodingKey = secretsmanager.Secret.fromSecretNameV2(
+      this,
+      'GeocodingApiKey',
+      `cleanloop/${stage}/google-geocoding-api-key`,
+    );
 
     const commonEnv = {
       REPORTS_TABLE: reportsTable.tableName,
@@ -53,14 +61,8 @@ export class ComputeStack extends cdk.Stack {
       USER_POOL_ID: userPool.userPoolId,
       SES_FROM_EMAIL: sesFromEmail,
       STAGE: stage,
-      GOOGLE_MAPS_API_KEY: googleMapsApiKey,
+      GEOCODING_SECRET_NAME: geocodingKey.secretName,
       MAX_AUTO_ASSIGN_DISTANCE_KM: process.env.MAX_AUTO_ASSIGN_DISTANCE_KM ?? '25',
-    };
-
-    const bundling = {
-      minify: false,
-      sourceMap: false,
-      externalModules: ['aws-sdk', '@aws-sdk/*'],
     };
 
     const lambdaDir = path.join(__dirname, '../../lambda');
@@ -68,15 +70,15 @@ export class ComputeStack extends cdk.Stack {
     // -- Reports Handler -------------------------------------------------------
     this.reportsHandler = new lambdaNodejs.NodejsFunction(this, 'ReportsHandler', {
       functionName: `cleanloop-reports-${stage}`,
-      runtime: lambda.Runtime.NODEJS_20_X,
+      ...functionDefaults,
       entry: path.join(lambdaDir, 'reports/handler.ts'),
       handler: 'handler',
-      bundling,
       environment: commonEnv,
       timeout: cdk.Duration.seconds(29),
       memorySize: 256,
     });
 
+    geocodingKey.grantRead(this.reportsHandler);
     reportsTable.grantReadWriteData(this.reportsHandler);
     usersTable.grantReadWriteData(this.reportsHandler);
     tasksTable.grantReadWriteData(this.reportsHandler);
@@ -103,10 +105,9 @@ export class ComputeStack extends cdk.Stack {
     // -- Tasks Handler ---------------------------------------------------------
     this.tasksHandler = new lambdaNodejs.NodejsFunction(this, 'TasksHandler', {
       functionName: `cleanloop-tasks-${stage}`,
-      runtime: lambda.Runtime.NODEJS_20_X,
+      ...functionDefaults,
       entry: path.join(lambdaDir, 'tasks/handler.ts'),
       handler: 'handler',
-      bundling,
       environment: commonEnv,
       timeout: cdk.Duration.seconds(29),
       memorySize: 256,
@@ -129,15 +130,15 @@ export class ComputeStack extends cdk.Stack {
     // -- Crew Handler ----------------------------------------------------------
     this.crewHandler = new lambdaNodejs.NodejsFunction(this, 'CrewHandler', {
       functionName: `cleanloop-crew-${stage}`,
-      runtime: lambda.Runtime.NODEJS_20_X,
+      ...functionDefaults,
       entry: path.join(lambdaDir, 'crew/handler.ts'),
       handler: 'handler',
-      bundling,
       environment: commonEnv,
       timeout: cdk.Duration.seconds(29),
       memorySize: 256,
     });
 
+    geocodingKey.grantRead(this.crewHandler);
     usersTable.grantReadWriteData(this.crewHandler);
     this.crewHandler.addToRolePolicy(
       new iam.PolicyStatement({
@@ -160,10 +161,9 @@ export class ComputeStack extends cdk.Stack {
     // -- Notifications Handler -------------------------------------------------
     this.notificationsHandler = new lambdaNodejs.NodejsFunction(this, 'NotificationsHandler', {
       functionName: `cleanloop-notifications-${stage}`,
-      runtime: lambda.Runtime.NODEJS_20_X,
+      ...functionDefaults,
       entry: path.join(lambdaDir, 'notifications/handler.ts'),
       handler: 'handler',
-      bundling,
       environment: commonEnv,
       timeout: cdk.Duration.seconds(29),
       memorySize: 256,
@@ -175,10 +175,9 @@ export class ComputeStack extends cdk.Stack {
     // -- Email Reminder Handler (Scheduled) ------------------------------------
     const emailReminderHandler = new lambdaNodejs.NodejsFunction(this, 'EmailReminderHandler', {
       functionName: `cleanloop-email-reminder-${stage}`,
-      runtime: lambda.Runtime.NODEJS_20_X,
+      ...functionDefaults,
       entry: path.join(lambdaDir, 'email-reminder/handler.ts'),
       handler: 'handler',
-      bundling,
       environment: commonEnv,
       timeout: cdk.Duration.seconds(60),
       memorySize: 256,
